@@ -27,7 +27,9 @@
 // //  ---------------------------------------------------------------------
 #endregion
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
@@ -62,13 +64,31 @@ namespace Simple_Marksmans.Plugins.Ezreal
         protected static BoolItemData AutoHarassBoolItemData;
 
         protected static bool IsPreAttack { get; private set; }
+        protected static bool IsPostAttack { get; private set; }
+
+
+        protected static bool HasPassiveBuff
+            => Player.Instance.Buffs.Any(b => b.IsActive && b.Name.ToLowerInvariant() == "ezrealrisingspellforce");
+
+        protected static BuffInstance GetPassiveBuff
+            => Player.Instance.Buffs.Find(b => b.IsActive && b.Name.ToLowerInvariant() == "ezrealrisingspellforce");
+
+        protected static int GetPassiveBuffAmount
+            => HasPassiveBuff ? Player.Instance.Buffs.Find(
+                        b => b.IsActive && b.Name.ToLowerInvariant() == "ezrealrisingspellforce").Count : 0;
 
         static Ezreal()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 1150, SkillShotType.Linear, 250, 2000, 50);
-            W = new Spell.Skillshot(SpellSlot.W, 1000, SkillShotType.Linear, 250, 1550, 70);
+            Q = new Spell.Skillshot(SpellSlot.Q, 1150, SkillShotType.Linear, 250, 2000, 60);
+            W = new Spell.Skillshot(SpellSlot.W, 1000, SkillShotType.Linear, 250, 1550, 70)
+            {
+                AllowedCollisionCount = int.MaxValue
+            };
             E = new Spell.Skillshot(SpellSlot.E, 475, SkillShotType.Linear);
-            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 1000, 2000, 160);
+            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 1000, 2000, 160)
+            {
+                AllowedCollisionCount = int.MaxValue
+            };
 
             ColorPicker = new ColorPicker[4];
 
@@ -87,20 +107,33 @@ namespace Simple_Marksmans.Plugins.Ezreal
                     DamageIndicator.Color = System.Drawing.Color.FromArgb(b.Color.A, b.Color.R, b.Color.G, b.Color.B);
                 };
 
-            TearStacker.Initializer(new Dictionary<SpellSlot, float> {{SpellSlot.Q, 5000}, {SpellSlot.W, 5000}},
-                () =>
-                {
-                    if (Player.Instance.CountEnemiesInRange(1000) == 0 && Player.Instance.CountEnemyMinionsInRange(1000) == 0 && !HasAnyOrbwalkerFlags())
-                        return true;
-                    else return false;
-                });
+            TearStacker.Initializer(new Dictionary<SpellSlot, float> {{SpellSlot.Q, 5000}, {SpellSlot.W, 15000}},
+                () => Player.Instance.CountEnemiesInRange(1000) == 0 && Player.Instance.CountEnemyMinionsInRange(1000) == 0 && !HasAnyOrbwalkerFlags());
 
-            TearStacker.MinimumManaPercent = 50;
-
-            Orbwalker.OnPreAttack += (a,b) => IsPreAttack = true;
-            Game.OnPostTick += args => IsPreAttack = false;
+            Orbwalker.OnPreAttack += (a, b) => IsPreAttack = true;
+            Orbwalker.OnPostAttack += (a, b) => IsPostAttack = true;
+            Game.OnPostTick += args => { IsPreAttack = false; IsPostAttack = false; };
+            
+            ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
 
             PermaShow = new PermaShow("Ezreal PermaShow", new Vector2(200, 200));
+        }
+
+        private static void ChampionTracker_OnLongSpellCast(object sender, OnLongSpellCastEventArgs e)
+        {
+            if (e.IsTeleport)
+                return;
+
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Q.IsReady() && Settings.Combo.UseQ &&
+                Settings.Combo.UseQOnImmobile && !Player.Instance.HasSheenBuff())
+            {
+                Q.CastMinimumHitchance(e.Sender, 65);
+            }
+            else if (Settings.Harass.IsAutoHarassEnabledFor(e.Sender) && Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ &&
+                     !Player.Instance.HasSheenBuff())
+            {
+                Q.CastMinimumHitchance(e.Sender, 65);
+            }
         }
 
         private static bool HasAnyOrbwalkerFlags()
@@ -110,7 +143,7 @@ namespace Simple_Marksmans.Plugins.Ezreal
 
         private static float HandleDamageIndicator(Obj_AI_Base unit)
         {
-            // (!Settings.Drawings.DrawDamageIndicator)
+            if (!Settings.Drawings.DrawDamageIndicator)
             {
                 return 0;
             }
@@ -121,13 +154,13 @@ namespace Simple_Marksmans.Plugins.Ezreal
             var damage = 0f;
 
             if (unit.IsValidTarget(Q.Range))
-            //    damage += Damage.GetQDamage(unit, true);
+                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
 
             if (unit.IsValidTarget(W.Range))
-           //     damage += Damage.GetWDamage(unit);
+                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.W);
 
             if (unit.IsValidTarget(R.Range))
-           //     damage += Damage.GetRDamage(unit);
+                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.R);
 
             if (Player.Instance.IsInAutoAttackRange(unit))
                 damage += Player.Instance.GetAutoAttackDamage(unit);
@@ -135,12 +168,41 @@ namespace Simple_Marksmans.Plugins.Ezreal
             return damage;
         }
 
+        protected static float GetComboDamage(Obj_AI_Base unit)
+        {
+
+            var damage = 0f;
+
+            if (unit.IsValidTarget(Q.Range))
+                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
+
+            if (unit.IsValidTarget(W.Range))
+                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.W);
+
+            if (unit.IsValidTarget(E.Range))
+                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.E);
+
+            if (unit.IsValidTarget(R.Range))
+                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.R);
+
+            if (Player.Instance.IsInAutoAttackRange(unit))
+                damage += Player.Instance.GetAutoAttackDamage(unit);
+
+            return damage;
+        }
 
         protected override void OnDraw()
         {
             if (_changingRangeScan)
                 Circle.Draw(Color.White,
                     LaneClearMenu["Plugins.Ezreal.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue, Player.Instance);
+
+            if (Settings.Drawings.DrawQ && (!Settings.Drawings.DrawSpellRangesWhenReady || Q.IsReady()))
+                Circle.Draw(ColorPicker[0].Color, Q.Range, Player.Instance);
+            if (Settings.Drawings.DrawW && (!Settings.Drawings.DrawSpellRangesWhenReady || W.IsReady()))
+                Circle.Draw(ColorPicker[1].Color, W.Range, Player.Instance);
+            if (Settings.Drawings.DrawE && (!Settings.Drawings.DrawSpellRangesWhenReady || E.IsReady()))
+                Circle.Draw(ColorPicker[2].Color, E.Range, Player.Instance);
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
@@ -150,7 +212,7 @@ namespace Simple_Marksmans.Plugins.Ezreal
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
         }
-
+        
         protected override void CreateMenu()
         {
             ComboMenu = MenuManager.Menu.AddSubMenu("Combo");
@@ -230,10 +292,30 @@ namespace Simple_Marksmans.Plugins.Ezreal
             MiscMenu.AddSeparator(5);
 
             MiscMenu.AddLabel("Arcane Shift (E) settings :");
-            MiscMenu.Add("Plugins.Ezreal.MiscMenu.UseEVsHooks", new CheckBox("Use E against Thresh / Blitzcrank hooks"));
+            MiscMenu.Add("Plugins.Ezreal.MiscMenu.EAntiMelee", new CheckBox("Use E against melee champions"));
             MiscMenu.AddSeparator(5);
 
+            MiscMenu.AddLabel("Tear Stacker settings :");
+            MiscMenu.Add("Plugins.Ezreal.MiscMenu.EnableTearStacker", new CheckBox("Enable Tear stacker")).OnValueChange +=
+                (a, b) =>
+                {
+                    TearStacker.Enabled = b.NewValue;
+                };
 
+            MiscMenu.Add("Plugins.Ezreal.MiscMenu.StackOnlyInFountain", new CheckBox("Stack only in fountain")).OnValueChange +=
+                (a, b) =>
+                {
+                    TearStacker.OnlyInFountain = b.NewValue;
+                };
+
+            MiscMenu.Add("Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker", new Slider("Min mana percentage ({0}%) to use to stack tear",  50)).OnValueChange +=
+                (a, b) =>
+                {
+                    TearStacker.MinimumManaPercent = b.NewValue;
+                };
+
+            MiscMenu.AddSeparator(5);
+            
             DrawingsMenu = MenuManager.Menu.AddSubMenu("Drawings");
             DrawingsMenu.AddGroupLabel("Drawings settings for Ezreal addon");
 
@@ -254,7 +336,7 @@ namespace Simple_Marksmans.Plugins.Ezreal
             DrawingsMenu.AddSeparator(5);
 
             DrawingsMenu.AddLabel("Essence Flux (W) settings :");
-            DrawingsMenu.Add("Plugins.Ezreal.DrawingsMenu.DrawW", new CheckBox("Draw W range"));
+            DrawingsMenu.Add("Plugins.Ezreal.DrawingsMenu.DrawW", new CheckBox("Draw W range", false));
             DrawingsMenu.Add("Plugins.Ezreal.DrawingsMenu.DrawWColor", new CheckBox("Change color", false)).OnValueChange += (a, b) =>
             {
                 if (!b.NewValue)
@@ -267,7 +349,7 @@ namespace Simple_Marksmans.Plugins.Ezreal
             DrawingsMenu.AddSeparator(5);
 
             DrawingsMenu.AddLabel("Arcane Shift (E) settings :");
-            DrawingsMenu.Add("Plugins.Ezreal.DrawingsMenu.DrawE", new CheckBox("Draw E range"));
+            DrawingsMenu.Add("Plugins.Ezreal.DrawingsMenu.DrawE", new CheckBox("Draw E range", false));
             DrawingsMenu.Add("Plugins.Ezreal.DrawingsMenu.DrawEColor", new CheckBox("Change color", false)).OnValueChange += (a, b) =>
             {
                 if (!b.NewValue)
@@ -295,6 +377,10 @@ namespace Simple_Marksmans.Plugins.Ezreal
             };
 
             AutoHarassBoolItemData = PermaShow.AddItem("Auto harass", new BoolItemData("Enable Auto harass", Settings.Harass.UseQ, 14));
+            
+            TearStacker.Enabled = Settings.Misc.EnableTearStacker;
+            TearStacker.OnlyInFountain = Settings.Misc.StackOnlyInFountain;
+            TearStacker.MinimumManaPercent = Settings.Misc.MinimalManaPercentTearStacker;
         }
 
         protected override void PermaActive()
@@ -649,20 +735,71 @@ namespace Simple_Marksmans.Plugins.Ezreal
                     }
                 }
 
-                public static bool UseEVsHooks
+                public static bool EAntiMelee
                 {
                     get
                     {
-                        return MiscMenu?["Plugins.Ezreal.MiscMenu.UseEVsHooks"] != null &&
-                               MiscMenu["Plugins.Ezreal.MiscMenu.UseEVsHooks"].Cast<CheckBox>()
+                        return MiscMenu?["Plugins.Ezreal.MiscMenu.EAntiMelee"] != null &&
+                               MiscMenu["Plugins.Ezreal.MiscMenu.EAntiMelee"].Cast<CheckBox>()
                                    .CurrentValue;
                     }
                     set
                     {
-                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.UseEVsHooks"] != null)
-                            MiscMenu["Plugins.Ezreal.MiscMenu.UseEVsHooks"].Cast<CheckBox>()
+                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.EAntiMelee"] != null)
+                            MiscMenu["Plugins.Ezreal.MiscMenu.EAntiMelee"].Cast<CheckBox>()
                                 .CurrentValue
                                 = value;
+                    }
+                }
+
+                public static bool EnableTearStacker
+                {
+                    get
+                    {
+                        return MiscMenu?["Plugins.Ezreal.MiscMenu.EnableTearStacker"] != null &&
+                               MiscMenu["Plugins.Ezreal.MiscMenu.EnableTearStacker"].Cast<CheckBox>()
+                                   .CurrentValue;
+                    }
+                    set
+                    {
+                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.EnableTearStacker"] != null)
+                            MiscMenu["Plugins.Ezreal.MiscMenu.EnableTearStacker"].Cast<CheckBox>()
+                                .CurrentValue
+                                = value;
+                    }
+                }
+
+                public static bool StackOnlyInFountain
+                {
+                    get
+                    {
+                        return MiscMenu?["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"] != null &&
+                               MiscMenu["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"].Cast<CheckBox>()
+                                   .CurrentValue;
+                    }
+                    set
+                    {
+                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"] != null)
+                            MiscMenu["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"].Cast<CheckBox>()
+                                .CurrentValue
+                                = value;
+                    }
+                }
+
+                public static int MinimalManaPercentTearStacker
+                {
+                    get
+                    {
+                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker"] != null)
+                            return MiscMenu["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker"].Cast<Slider>().CurrentValue;
+
+                        Logger.Error("Couldn't get Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker menu item value.");
+                        return 0;
+                    }
+                    set
+                    {
+                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker"] != null)
+                            MiscMenu["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker"].Cast<Slider>().CurrentValue = value;
                     }
                 }
             }

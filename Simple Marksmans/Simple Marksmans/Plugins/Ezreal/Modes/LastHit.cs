@@ -26,7 +26,6 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using EloBuddy;
 
 namespace Simple_Marksmans.Plugins.Ezreal.Modes
 {

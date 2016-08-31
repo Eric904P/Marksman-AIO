@@ -26,12 +26,11 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
+
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using EloBuddy;
+using EloBuddy.SDK;
+using Simple_Marksmans.Utils;
 
 namespace Simple_Marksmans.Plugins.Ezreal.Modes
 {
@@ -39,6 +38,76 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
     {
         public static void Execute()
         {
+            if (Settings.Misc.EnableKillsteal)
+            {
+                var enemies = EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(Q.Range) && x.HealthPercent < 20 && !x.HasUndyingBuffA() &&
+                        !x.HasSpellShield()).ToList();
+
+                if (enemies.Any())
+                {
+                    if (Q.IsReady())
+                    {
+                        foreach (var enemy in enemies.Where(x=> x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                        {
+                            Q.CastMinimumHitchance(enemy, 65);
+                        }
+                    } else if (W.IsReady())
+                    {
+                        foreach (var enemy in enemies.Where(x => x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.W)))
+                        {
+                            W.CastMinimumHitchance(enemy, 65);
+                        }
+                    }
+                }
+            }
+
+            if (Q.IsReady() && Settings.Misc.KeepPassiveStacks && GetPassiveBuffAmount >= 4 && GetPassiveBuff.EndTime - Game.Time < 1 && GetPassiveBuff.EndTime - Game.Time > 0.3f && Player.Instance.Mana > 350 && !EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(Q.Range)))
+            {
+                foreach (var minion in EntityManager.MinionsAndMonsters.CombinedAttackable.Where(x=>x.IsValidTarget(Q.Range)))
+                {
+                    Q.Cast(minion);
+                    return;
+                }
+            }
+
+            if (Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ &&
+                !Player.Instance.HasSheenBuff() && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0)
+            {
+                var immobileEnemies = EntityManager.Heroes.Enemies.Where(
+                    x =>
+                        Settings.Harass.IsAutoHarassEnabledFor(x) && x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() &&
+                        !x.HasSpellShield() && x.GetMovementBlockedDebuffDuration() > 0.3f).ToList();
+
+                if (immobileEnemies.Any())
+                {
+                    foreach (
+                        var immobileEnemy in
+                            immobileEnemies.OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                    {
+                        if ((immobileEnemy.GetMovementBlockedDebuffDuration() >
+                             Player.Instance.Distance(immobileEnemy)/Q.Speed + 0.25f) && !Player.Instance.HasSheenBuff())
+                        {
+                            var qPrediction = Q.GetPrediction(immobileEnemy);
+                            if (qPrediction.HitChancePercent > 60)
+                            {
+                                Q.Cast(qPrediction.CastPosition);
+                            }
+                        }
+
+                    }
+                }
+                else
+                {
+                    foreach (var target in
+                        EntityManager.Heroes.Enemies.Where(x =>
+                            Settings.Harass.IsAutoHarassEnabledFor(x) && x.IsValidTarget(Q.Range) &&
+                            !x.HasUndyingBuffA() &&
+                            !x.HasSpellShield()).OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                    {
+                        Q.CastMinimumHitchance(target, 75);
+                    }
+                }
+            }
         }
     }
 }

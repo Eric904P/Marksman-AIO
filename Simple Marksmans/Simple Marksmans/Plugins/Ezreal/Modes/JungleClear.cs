@@ -26,14 +26,13 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
+
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using Simple_Marksmans.Utils;
 
 namespace Simple_Marksmans.Plugins.Ezreal.Modes
 {
@@ -53,7 +52,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                 "SRU_Dragon_Water", "SRU_Baron"
             };
 
-            if (!Q.IsReady() || !Settings.LaneClear.UseQInJungleClear ||
+            if (!Q.IsReady() || !Settings.LaneClear.UseQInJungleClear || Player.Instance.HasSheenBuff() ||
                 jungleMinions.Count(x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase)) < 1 ||
                 !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
                 return;

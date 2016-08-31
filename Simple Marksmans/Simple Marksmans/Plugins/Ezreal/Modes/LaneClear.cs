@@ -31,6 +31,7 @@ using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using Simple_Marksmans.Utils;
 
 namespace Simple_Marksmans.Plugins.Ezreal.Modes
 {
@@ -43,7 +44,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
 
         public static void Execute()
         {
-            if (!Q.IsReady() || !Settings.LaneClear.UseQInLaneClear ||
+            if (!Q.IsReady() || !Settings.LaneClear.UseQInLaneClear || Player.Instance.HasSheenBuff() ||
                 !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
                 return;
 
