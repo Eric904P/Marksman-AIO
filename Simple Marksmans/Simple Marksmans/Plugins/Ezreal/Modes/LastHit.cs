@@ -34,7 +34,6 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
     {
         public static void Execute()
         {
-            Chat.Print("LastHit mode !");
         }
     }
 }

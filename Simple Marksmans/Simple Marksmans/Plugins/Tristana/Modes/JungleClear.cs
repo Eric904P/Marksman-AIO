@@ -45,7 +45,8 @@ namespace Simple_Marksmans.Plugins.Tristana.Modes
             string[] allowedMonsters =
             {
                 "SRU_Gromp", "SRU_Blue", "SRU_Red", "SRU_Razorbeak", "SRU_Krug", "SRU_Murkwolf", "Sru_Crab",
-                "SRU_RiftHerald", "SRU_Dragon", "SRU_Baron"
+                "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
+                "SRU_Dragon_Water", "SRU_Baron"
             };
 
             if (Q.IsReady() && Settings.LaneClear.UseQInJungleClear && jungleMinions.Count(x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase)) >= 1)

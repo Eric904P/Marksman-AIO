@@ -32,6 +32,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EloBuddy;
+using EloBuddy.SDK;
+using EloBuddy.SDK.Enumerations;
 
 namespace Simple_Marksmans.Plugins.Ezreal.Modes
 {
@@ -39,7 +41,40 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
     {
         public static void Execute()
         {
-            Chat.Print("JungleClear mode !");
+            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+
+            if (!jungleMinions.Any())
+                return;
+
+            string[] allowedMonsters =
+            {
+                "SRU_Gromp", "SRU_Blue", "SRU_Red", "SRU_Razorbeak", "SRU_Krug", "SRU_Murkwolf", "Sru_Crab",
+                "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
+                "SRU_Dragon_Water", "SRU_Baron"
+            };
+
+            if (!Q.IsReady() || !Settings.LaneClear.UseQInJungleClear ||
+                jungleMinions.Count(x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase)) < 1 ||
+                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
+                return;
+
+            {
+                foreach (var minion in from minion in jungleMinions.Where(x => x.IsValidTarget(Q.Range) && allowedMonsters.Any(k=> k.Contains(x.BaseSkinName)) && Q.GetPrediction(x).HitChance == HitChance.High) let health = Prediction.Health.GetPrediction(minion, (int)((minion.Distance(Player.Instance) + Q.CastDelay) / Q.Speed * 1000)) where health > 10 select minion)
+                {
+                    if (Orbwalker.LastTarget != null && Orbwalker.LastTarget.NetworkId == minion.NetworkId &&
+                        Player.Instance.GetAutoAttackDamage(minion, true) < minion.Health && !IsPreAttack)
+                    {
+                        Q.Cast(minion);
+                        return;
+                    }
+
+                    if (IsPreAttack || (Orbwalker.LastTarget != null && Orbwalker.LastTarget.NetworkId == minion.NetworkId))
+                        continue;
+
+                    Q.Cast(minion);
+                    return;
+                }
+            }
         }
     }
 }

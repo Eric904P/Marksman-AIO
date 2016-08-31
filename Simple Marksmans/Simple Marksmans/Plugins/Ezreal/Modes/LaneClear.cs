@@ -26,15 +26,49 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
+
+using System.Linq;
 using EloBuddy;
+using EloBuddy.SDK;
+using EloBuddy.SDK.Enumerations;
 
 namespace Simple_Marksmans.Plugins.Ezreal.Modes
 {
     internal class LaneClear : Ezreal
     {
+        public static bool CanILaneClear()
+        {
+            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
+        }
+
         public static void Execute()
         {
-            Chat.Print("LaneClear mode !");
+            if (!Q.IsReady() || !Settings.LaneClear.UseQInLaneClear ||
+                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
+                return;
+
+            var laneMinions =
+                EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
+                    Player.Instance.Position, Q.Range).ToList();
+
+            if (!laneMinions.Any() || !CanILaneClear())
+                return;
+
+            foreach (var minion in from minion in laneMinions.Where(x=> x.IsValidTarget(Q.Range) && Q.GetPrediction(x).HitChance == HitChance.High) let health = Prediction.Health.GetPrediction(minion, (int) ((minion.Distance(Player.Instance) + Q.CastDelay)/Q.Speed*1000)) where health > 10 && health < Player.Instance.GetSpellDamage(minion, SpellSlot.Q) select minion)
+            {
+                if (Orbwalker.LastTarget != null && Orbwalker.LastTarget.NetworkId == minion.NetworkId &&
+                    Player.Instance.GetAutoAttackDamage(minion, true) < minion.Health && !IsPreAttack)
+                {
+                    Q.Cast(minion);
+                    return;
+                }
+
+                if (IsPreAttack || (Orbwalker.LastTarget != null && Orbwalker.LastTarget.NetworkId == minion.NetworkId))
+                    continue;
+
+                Q.Cast(minion);
+                return;
+            }
         }
     }
 }

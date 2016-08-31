@@ -259,6 +259,7 @@
     <Compile Include="Utils\PermaShow\Rectangle.cs" />
     <Compile Include="Utils\PermaShow\Text.cs" />
     <Compile Include="Utils\SafeSpotFinder.cs" />
+    <Compile Include="Utils\TearStacker.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

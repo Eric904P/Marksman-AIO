@@ -55,8 +55,8 @@ namespace Simple_Marksmans.Plugins.Lucian
         private static Menu MiscMenu { get; set; }
         private static Menu DrawingsMenu { get; set; }
 
-        public static PermaShow PermaShow;
-        public static BoolItemData AutoHarassBoolItemData;
+        protected static PermaShow PermaShow;
+        protected static BoolItemData AutoHarassBoolItemData;
 
         protected static bool HasPassiveBuff
             => Player.Instance.Buffs.Any(x => x.Name.ToLowerInvariant() == "lucianpassivebuff");
