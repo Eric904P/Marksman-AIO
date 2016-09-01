@@ -87,7 +87,7 @@ namespace Simple_Marksmans.Plugins.Graves
                 AllowedCollisionCount = int.MaxValue
             };
             W = new Spell.Skillshot(SpellSlot.W, 950, SkillShotType.Circular, 250, 1200, 250);
-            E = new Spell.Skillshot(SpellSlot.E, 425, SkillShotType.Linear);
+            E = new Spell.Skillshot(SpellSlot.E, 440, SkillShotType.Linear);
             R = new Spell.Skillshot(SpellSlot.R, 1000, SkillShotType.Linear, 250, 2000, 110)
             {
                 AllowedCollisionCount = 0

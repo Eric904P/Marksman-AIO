@@ -73,7 +73,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                     var melee2 = EntityManager.Heroes.Enemies.Where(x => !x.IsDead && Player.Instance.IsInAutoAttackRange(x) && x.IsMelee).ToList();
                     if (melee.Any())
                     {
-                        var firstOrDefault = melee2.OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
+                        var firstOrDefault = melee2.OrderBy(x => x.Distance(Player.Instance)).First();
 
                         if (firstOrDefault != null)
                         {
@@ -88,7 +88,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                                             .ToList(), firstOrDefault.Position.To2D())[0];
 
                                 E.Cast(pos.Distance(Player.Instance) > E.Range
-                                    ? Player.Instance.Position.Extend(pos, E.Range).To3D()
+                                    ? Player.Instance.Position.Extend(pos, E.Range - 15).To3D()
                                     : pos.To3D());
                             }
                         }

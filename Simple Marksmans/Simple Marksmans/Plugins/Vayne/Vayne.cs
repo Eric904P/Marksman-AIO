@@ -98,7 +98,7 @@ namespace Simple_Marksmans.Plugins.Vayne
 
         static Vayne()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 300, SkillShotType.Linear);
+            Q = new Spell.Skillshot(SpellSlot.Q, 315, SkillShotType.Linear);
             W = new Spell.Active(SpellSlot.W);
             E = new Spell.Targeted(SpellSlot.E, 650);
             R = new Spell.Active(SpellSlot.R);

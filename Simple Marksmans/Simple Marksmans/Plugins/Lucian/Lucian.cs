@@ -74,7 +74,7 @@ namespace Simple_Marksmans.Plugins.Lucian
         {
             Q = new Spell.Targeted(SpellSlot.Q, 750);
             W = new Spell.Skillshot(SpellSlot.W, 1000, SkillShotType.Circular, 250, 1500, 80);
-            E = new Spell.Skillshot(SpellSlot.E, 420, SkillShotType.Linear);
+            E = new Spell.Skillshot(SpellSlot.E, 440, SkillShotType.Linear);
             R = new Spell.Skillshot(SpellSlot.R, 1150, SkillShotType.Linear, 250, 2000, 110);
 
             ColorPicker = new ColorPicker[3];
