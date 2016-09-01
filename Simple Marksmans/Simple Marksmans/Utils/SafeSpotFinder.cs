@@ -44,7 +44,7 @@ namespace Simple_Marksmans.Utils
             {
                 for (var i = 0f; i <= range; i += step)
                 {
-                    var circle = new Geometry.Polygon.Circle(start, range, quality);
+                    var circle = new Geometry.Polygon.Circle(start, range, (int)Misc.GetNumberInRangeFromProcent(step/range*100, quality/5D, quality));
                     list.AddRange(circle.Points.Select(xd => start.Extend(xd, i)));
                 }
             }

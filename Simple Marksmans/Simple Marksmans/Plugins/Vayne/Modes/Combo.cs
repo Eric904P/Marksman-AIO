@@ -75,7 +75,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                         .OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
 
                                 var list =
-                                    SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 330,
+                                    SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
                                         1300,
                                         target.IsMelee ? target.GetAutoAttackRange() * 2 : target.GetAutoAttackRange()).Where(x => !x.Key.To3D().IsVectorUnderEnemyTower() && x.Key.IsInRange(Prediction.Position.PredictUnitPosition(closest, 850), Player.Instance.GetAutoAttackRange() - 50)).Select(source => source.Key).ToList();
 
@@ -111,7 +111,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
 
                             if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
                             {
-                                Q.Cast(Player.Instance.Position.Extend(position, 285).To3D());
+                                Q.Cast(position.Distance(Player.Instance) > Q.Range ? Player.Instance.Position.Extend(position, Q.Range).To3D() : position);
                                 return;
                             }
                             break;

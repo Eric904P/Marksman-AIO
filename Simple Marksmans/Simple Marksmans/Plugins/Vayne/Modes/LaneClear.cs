@@ -70,14 +70,14 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                 return;
             }
 
-            var pos = SafeSpotFinder.PointsInRange(Player.Instance.Position.To2D(), 300, 100).Where(x=> EntityManager.Heroes.Enemies.Any(e=>e.IsInRange(x, e.GetAutoAttackRange())) == false).ToList();
+            var pos = SafeSpotFinder.PointsInRange(Player.Instance.Position.To2D(), 900, 100).Where(x=> EntityManager.Heroes.Enemies.Any(e=>e.IsInRange(x, e.GetAutoAttackRange())) == false).ToList();
 
             if (!pos.Any())
                 return;
 
-            pos = Misc.SortVectorsByDistance(pos, minion.First().Position.To2D());
+            var poss = Misc.SortVectorsByDistance(pos, minion.First().Position.To2D())[0];
 
-            Q.Cast(Player.Instance.Position.Extend(pos[0], 285).To3D());
+            Q.Cast(poss.Distance(Player.Instance) > Q.Range ? Player.Instance.Position.Extend(poss, Q.Range).To3D() : poss.To3D());
         }
     }
 }

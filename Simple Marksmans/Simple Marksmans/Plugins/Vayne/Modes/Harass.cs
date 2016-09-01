@@ -89,7 +89,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                     else if (target != null)
                                     {
                                         var list =
-                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 300,
+                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
                                                 900,
                                                 target.IsMelee
                                                     ? target.GetAutoAttackRange()*2
@@ -120,7 +120,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                         (enemy[1].Distance(Player.Instance) > 600 || enemy[1].HealthPercent < 25))
                                     {
                                         list =
-                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 300, 1300,
+                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 1300,
                                                 300)
                                                 .Where(x => x.Value == 0 && !x.Key.To3D().IsVectorUnderEnemyTower())
                                                 .Select(source => source.Key)
@@ -130,7 +130,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                     else
                                     {
                                         list =
-                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 300,
+                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
                                                 Player.Instance.CountEnemiesInRange(800) >= 1 ? 800 : 1300,
                                                 Player.Instance.CountEnemiesInRange(800) >= 1 ? 400 : 450)
                                                 .Where(x => x.Value < 2 && !x.Key.To3D().IsVectorUnderEnemyTower())
@@ -150,7 +150,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                 case 3:
                                 {
                                     var list =
-                                        SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 300, 1300, 550)
+                                        SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 1300, 550)
                                             .Where(x => x.Value < 2 && !x.Key.To3D().IsVectorUnderEnemyTower())
                                             .Select(source => source.Key)
                                             .ToList();
@@ -164,7 +164,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                     {
                                         Console.WriteLine("[DEBUG] 3v1 not found positions ");
                                         var list2 =
-                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 300, 1300,
+                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 1300,
                                                 450)
                                                 .Where(x => !x.Key.To3D().IsVectorUnderEnemyTower())
                                                 .Select(source => source.Key)
@@ -187,7 +187,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                 case 4:
                                 {
                                     var list =
-                                        SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 300, 1300, 650)
+                                        SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 1300, 650)
                                             .Where(x => x.Value <= 1 && !x.Key.To3D().IsVectorUnderEnemyTower())
                                             .Select(source => source.Key)
                                             .ToList();
@@ -198,7 +198,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                     else
                                     {
                                         var list2 =
-                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 300, 1300,
+                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 1300,
                                                 550)
                                                 .Where(x => !x.Key.To3D().IsVectorUnderEnemyTower())
                                                 .Select(source => source.Key)
@@ -218,7 +218,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                 default:
                                 {
                                     var list =
-                                        SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 300, 1300, 750)
+                                        SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 1300, 750)
                                             .Where(x => x.Value <= 1 && !x.Key.To3D().IsVectorUnderEnemyTower())
                                             .Select(source => source.Key)
                                             .ToList();
@@ -229,7 +229,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                     else
                                     {
                                         var list2 =
-                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 300, 1300,
+                                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 1300,
                                                 550)
                                                 .Where(x => !x.Key.To3D().IsVectorUnderEnemyTower())
                                                 .Select(source => source.Key)
@@ -248,7 +248,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
                                     break;
                             }
                             if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
-                                Q.Cast(Game.CursorPos.Extend(position, 285).To3D());
+                                Q.Cast(position.Distance(Player.Instance) > Q.Range ? Player.Instance.Position.Extend(position, Q.Range).To3D() : position);
                             break;
                         case 0:
                             var pos = Player.Instance.Position.Extend(Game.CursorPos, 299).To3D();

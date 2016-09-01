@@ -154,7 +154,7 @@ namespace Simple_Marksmans.Plugins.Graves.Modes
                                 .OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
 
                         var list =
-                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 420,
+                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
                                 1300,
                                 heroClient.IsMelee ? heroClient.GetAutoAttackRange() * 2 : heroClient.GetAutoAttackRange())
                                 .Where(
@@ -203,7 +203,7 @@ namespace Simple_Marksmans.Plugins.Graves.Modes
 
                     if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
                     {
-                        E.Cast(position);
+                        E.Cast(position.Distance(Player.Instance) > E.Range ? Player.Instance.Position.Extend(position, E.Range).To3D() : position);
                         return;
                     }
                 }
