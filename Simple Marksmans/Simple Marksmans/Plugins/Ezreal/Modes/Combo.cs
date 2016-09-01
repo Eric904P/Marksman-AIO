@@ -74,7 +74,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
 
                     if (melee.Any() && !(melee.Count == 1 && melee.FirstOrDefault().TotalHealthWithShields() < GetComboDamage(melee.FirstOrDefault())))
                     {
-                        var firstOrDefault = melee.OrderBy(x => x.Distance(Player.Instance)).FirstOrDefault();
+                        var firstOrDefault = melee.OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
 
                         if (firstOrDefault != null)
                         {
@@ -139,9 +139,18 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                 if (killable.Any() && Q.IsReady())
                     return;
 
-                //if (Settings.Combo.RMinEnemiesHit > 0 && Player.Instance.CountEnemiesInRange(600) < 2)
+                if (Settings.Combo.RMinEnemiesHit > 0 && Player.Instance.CountEnemiesInRange(600) < 2)
                 {
-                    R.CastIfItWillHit(Settings.Combo.RMinEnemiesHit, 25);
+                    foreach (var source in EntityManager.Heroes.Enemies.Where(x=>x.IsValidTarget(3000)))
+                    {
+                        var rPred = R.GetPrediction(source);
+                        if (rPred.HitChancePercent > 60 &&
+                            rPred.GetCollisionObjects<AIHeroClient>().Length >= Settings.Combo.RMinEnemiesHit)
+                        {
+                            R.Cast(rPred.CastPosition);
+                            return;
+                        }
+                    }
                 }
 
                 if (Player.Instance.CountEnemiesInRange(600) < 2)
