@@ -55,7 +55,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                             Player.Instance.Distance(immobileEnemy)/Q.Speed + 0.25f) && !Player.Instance.HasSheenBuff())
                         {
                             var qPrediction = Q.GetPrediction(immobileEnemy);
-                            if (qPrediction.HitChancePercent > 60)
+                            if (qPrediction.HitChancePercent > 60 && !IsPreAttack)
                             {
                                 Q.Cast(qPrediction.CastPosition);
                             }
@@ -66,7 +66,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                 {
                     var target = Q.GetTarget();
 
-                    if (target != null && !target.HasUndyingBuffA() && !target.HasSpellShield() && !Player.Instance.HasSheenBuff())
+                    if (target != null && !target.HasUndyingBuffA() && !target.HasSpellShield() && !Player.Instance.HasSheenBuff() && !IsPreAttack)
                     {
                         Q.CastMinimumHitchance(target, 75);
                     }
@@ -105,7 +105,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                 else if(Settings.Misc.EAntiMelee)
                 {
                     var melee =
-                        EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange() - 200) && x.IsMelee).ToList();
+                        EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 350 && x.IsMelee).ToList();
 
                     if (melee.Any() && !(melee.Count == 1 && melee.FirstOrDefault().TotalHealthWithShields() < GetComboDamage(melee.FirstOrDefault())))
                     {
@@ -113,7 +113,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
 
                         if (firstOrDefault != null)
                         {
-                            var pos = Misc.SortVectorsByDistanceDescending(SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 460, 900, 500).Where(x=>x.Value < 2).Select(x=>x.Key).ToList(), firstOrDefault.Position.To2D())[0];
+                            var pos = Misc.SortVectorsByDistanceDescending(SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 460, 900, 500).Where(x=>x.Value < 2 && !x.Key.To3D().IsVectorUnderEnemyTower()).Select(x=>x.Key).ToList(), firstOrDefault.Position.To2D())[0];
 
                             E.Cast(pos.To3D());
                         }

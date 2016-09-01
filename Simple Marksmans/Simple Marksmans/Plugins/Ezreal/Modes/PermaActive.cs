@@ -61,7 +61,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                 }
             }
 
-            if (Q.IsReady() && Settings.Misc.KeepPassiveStacks && GetPassiveBuffAmount >= 4 && GetPassiveBuff.EndTime - Game.Time < 1 && GetPassiveBuff.EndTime - Game.Time > 0.3f && Player.Instance.Mana > 350 && !EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(Q.Range)))
+            if (Q.IsReady() && !Player.Instance.IsRecalling() && Settings.Misc.KeepPassiveStacks && GetPassiveBuffAmount >= 4 && GetPassiveBuff.EndTime - Game.Time < 1.5f && GetPassiveBuff.EndTime - Game.Time > 0.3f && Player.Instance.Mana > 350 && !EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(Q.Range)))
             {
                 foreach (var minion in EntityManager.MinionsAndMonsters.CombinedAttackable.Where(x=>x.IsValidTarget(Q.Range)))
                 {
@@ -107,6 +107,20 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                         Q.CastMinimumHitchance(target, 75);
                     }
                 }
+            }
+
+            if (!R.IsReady() || !Settings.Combo.UseR)
+                return;
+
+            var t = TargetSelector.GetTarget(2000, DamageType.Physical);
+
+            if (t == null || !Settings.Combo.RKeybind)
+                return;
+
+            var rPrediciton = R.GetPrediction(t);
+            if (rPrediciton.HitChancePercent >= 65)
+            {
+                R.Cast(rPrediciton.CastPosition);
             }
         }
     }

@@ -110,7 +110,13 @@ namespace Simple_Marksmans.Plugins.Ezreal
             TearStacker.Initializer(new Dictionary<SpellSlot, float> {{SpellSlot.Q, 5000}, {SpellSlot.W, 15000}},
                 () => Player.Instance.CountEnemiesInRange(1000) == 0 && Player.Instance.CountEnemyMinionsInRange(1000) == 0 && !HasAnyOrbwalkerFlags());
 
-            Orbwalker.OnPreAttack += (a, b) => IsPreAttack = true;
+            Orbwalker.OnPreAttack += (a, b) =>
+            {
+                if (a.IsMe)
+                    return;
+
+                IsPreAttack = true;
+            };
             Orbwalker.OnPostAttack += (a, b) => IsPostAttack = true;
             Game.OnPostTick += args => { IsPreAttack = false; IsPostAttack = false; };
             
