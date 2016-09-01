@@ -112,7 +112,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
             if (!R.IsReady() || !Settings.Combo.UseR)
                 return;
 
-            var t = TargetSelector.GetTarget(2000, DamageType.Physical);
+            var t = TargetSelector.GetTarget(1500, DamageType.Physical);
 
             if (t == null || !Settings.Combo.RKeybind)
                 return;
