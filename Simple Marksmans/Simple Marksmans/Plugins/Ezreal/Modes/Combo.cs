@@ -69,19 +69,29 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                 }
                 else if (Settings.Misc.EAntiMelee)
                 {
-                    var melee = EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 350 && x.IsMelee).ToList();
-
-                    if (melee.Any() && !(melee.Count == 1 && melee.FirstOrDefault().TotalHealthWithShields() < GetComboDamage(melee.FirstOrDefault())))
+                    var melee = EntityManager.Heroes.Enemies.Where(x => !x.IsDead && x.IsValidTarget(400) && x.IsMelee).ToList();
+                    var melee2 = EntityManager.Heroes.Enemies.Where(x => !x.IsDead && Player.Instance.IsInAutoAttackRange(x) && x.IsMelee).ToList();
+                    if (melee.Any())
                     {
-                        var firstOrDefault = melee.OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
+                        var firstOrDefault = melee2.OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
 
                         if (firstOrDefault != null)
                         {
-                            var pos = Misc.SortVectorsByDistanceDescending(SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 900, 500).Where(x => !x.Key.To3D().IsVectorUnderEnemyTower()).Select(x => x.Key).ToList(), firstOrDefault.Position.To2D())[0];
+                            if (!(melee.Count == 1 &&
+                                  firstOrDefault.TotalHealthWithShields() < GetComboDamage(firstOrDefault)) || melee2.Count > 1)
+                            {
+                                var pos =
+                                    Misc.SortVectorsByDistanceDescending(
+                                        SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 900, 500)
+                                            .Where(x => !x.Key.To3D().IsVectorUnderEnemyTower())
+                                            .Select(x => x.Key)
+                                            .ToList(), firstOrDefault.Position.To2D())[0];
 
-                            E.Cast(pos.Distance(Player.Instance) > E.Range ? Player.Instance.Position.Extend(pos, E.Range).To3D() : pos.To3D());
+                                E.Cast(pos.Distance(Player.Instance) > E.Range
+                                    ? Player.Instance.Position.Extend(pos, E.Range).To3D()
+                                    : pos.To3D());
+                            }
                         }
-                        return;
                     }
                 }
             }
