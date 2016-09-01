@@ -69,8 +69,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
                 }
                 else if (Settings.Misc.EAntiMelee)
                 {
-                    var melee =
-                        EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 350 && x.IsMelee).ToList();
+                    var melee = EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 350 && x.IsMelee).ToList();
 
                     if (melee.Any() && !(melee.Count == 1 && melee.FirstOrDefault().TotalHealthWithShields() < GetComboDamage(melee.FirstOrDefault())))
                     {
@@ -78,7 +77,7 @@ namespace Simple_Marksmans.Plugins.Ezreal.Modes
 
                         if (firstOrDefault != null)
                         {
-                            var pos = Misc.SortVectorsByDistanceDescending(SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 900, 500).Where(x => x.Value < 2 && !x.Key.To3D().IsVectorUnderEnemyTower()).Select(x => x.Key).ToList(), firstOrDefault.Position.To2D())[0];
+                            var pos = Misc.SortVectorsByDistanceDescending(SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 900, 500).Where(x => !x.Key.To3D().IsVectorUnderEnemyTower()).Select(x => x.Key).ToList(), firstOrDefault.Position.To2D())[0];
 
                             E.Cast(pos.Distance(Player.Instance) > E.Range ? Player.Instance.Position.Extend(pos, E.Range).To3D() : pos.To3D());
                         }
