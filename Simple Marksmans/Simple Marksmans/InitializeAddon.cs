@@ -105,6 +105,16 @@ namespace Simple_Marksmans
                 (menu["MenuManager.GapcloserMenu.OnlyInCombo"] && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) || !Gapcloser.GapCloserList.Exists(e => e.ChampName == enemy.ChampionName))
                 return;
 
+            if (enemy.Hero == Champion.JarvanIV &&
+                               args.SData.Name.ToLower() == "jarvanivdemacianstandard" &&
+                               args.End.Distance(Player.Instance.Position) < 1000)
+            {
+                _flagPos.X = args.End.X;
+                _flagPos.Y = args.End.Y;
+                _flagPos.Z = NavMesh.GetHeightForPosition(args.End.X, args.End.Y);
+                _flagCreateTick = (int)Game.Time * 1000;
+            }
+
             foreach (
                 var gapcloser in
                     Gapcloser.GapCloserList.Where(x => x.ChampName == enemy.ChampionName && x.SpellSlot == args.Slot))
@@ -130,14 +140,6 @@ namespace Simple_Marksmans
                                     "MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot +
                                     ".Delay",
                                     true], enemies, hp, Game.Time*1000));
-                    } else if (enemy.Hero == Champion.JarvanIV &&
-                               args.SData.Name.ToLower() == "jarvanivdemacianstandard" &&
-                               args.End.Distance(Player.Instance.Position) < 1000)
-                    {
-                        _flagPos.X = args.End.X;
-                        _flagPos.Y = args.End.Y;
-                        _flagPos.Z = NavMesh.GetHeightForPosition(args.End.X, args.End.Y);
-                        _flagCreateTick = (int) Game.Time*1000;
                     } else if (enemy.Hero == Champion.JarvanIV &&
                                args.SData.Name.ToLower() == "jarvanivdragonstrike" &&
                                args.End.Distance(Player.Instance.Position) < 1000)
