@@ -1,4 +1,4 @@
-﻿#region Licensing
+﻿ #region Licensing
 // //  ---------------------------------------------------------------------
 // //  <copyright file="Caitlyn.cs" company="EloBuddy">
 // // 
@@ -780,8 +780,8 @@ namespace Simple_Marksmans.Plugins.Caitlyn
             public static float GetHeadShotDamage(AIHeroClient unit)
             {
                 if (HeadShotDamages.ContainsKey(unit.NetworkId) &&
-                    !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
-                    return Damages[unit.NetworkId].Values.FirstOrDefault();
+                    !HeadShotDamages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
+                    return HeadShotDamages[unit.NetworkId].Values.FirstOrDefault();
 
                 var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, Player.Instance.TotalAttackDamage * (1 + (0.5f + Player.Instance.FlatCritChanceMod * (1 + 0.5f * (Player.Instance.HasItem(ItemId.Infinity_Edge) ? 0.5f : 0)))), false, true) + (IsUnitImmobilizedByTrap(unit) ? GetTrapAdditionalHeadShotDamage(unit) : 0);
 
@@ -800,8 +800,8 @@ namespace Simple_Marksmans.Plugins.Caitlyn
             public static float GetTrapAdditionalHeadShotDamage(AIHeroClient unit)
             {
                 if (RDamages.ContainsKey(unit.NetworkId) &&
-                    !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
-                    return Damages[unit.NetworkId].Values.FirstOrDefault();
+                    !RDamages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
+                    return RDamages[unit.NetworkId].Values.FirstOrDefault();
 
                 int[] additionalDamage = {0, 30, 70, 110, 150, 190};
 
