@@ -771,16 +771,52 @@ namespace Simple_Marksmans.Plugins.Caitlyn
 
         protected internal static class Damage
         {
+            private static readonly Dictionary<int, Dictionary<float, float>> HeadShotDamages =
+                new Dictionary<int, Dictionary<float, float>>();
+
+            private static readonly Dictionary<int, Dictionary<float, float>> RDamages =
+                new Dictionary<int, Dictionary<float, float>>();
+
             public static float GetHeadShotDamage(AIHeroClient unit)
             {
-                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, Player.Instance.TotalAttackDamage * (1+(0.5f + Player.Instance.FlatCritChanceMod * (1 + 0.5f * (Player.Instance.HasItem(ItemId.Infinity_Edge) ? 0.5f : 0)))), false, true) + (IsUnitImmobilizedByTrap(unit) ? GetTrapAdditionalHeadShotDamage(unit) : 0);
+                if (HeadShotDamages.ContainsKey(unit.NetworkId) &&
+                    !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
+                    return Damages[unit.NetworkId].Values.FirstOrDefault();
+
+                var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, Player.Instance.TotalAttackDamage * (1 + (0.5f + Player.Instance.FlatCritChanceMod * (1 + 0.5f * (Player.Instance.HasItem(ItemId.Infinity_Edge) ? 0.5f : 0)))), false, true) + (IsUnitImmobilizedByTrap(unit) ? GetTrapAdditionalHeadShotDamage(unit) : 0);
+
+                if (!HeadShotDamages.ContainsKey(unit.NetworkId))
+                {
+                    HeadShotDamages.Add(unit.NetworkId, new Dictionary<float, float> { { Game.Time * 1000, damage } });
+                }
+                else
+                {
+                    HeadShotDamages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
+                }
+
+                return damage;
             }
 
             public static float GetTrapAdditionalHeadShotDamage(AIHeroClient unit)
             {
+                if (RDamages.ContainsKey(unit.NetworkId) &&
+                    !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
+                    return Damages[unit.NetworkId].Values.FirstOrDefault();
+
                 int[] additionalDamage = {0, 30, 70, 110, 150, 190};
 
-                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, additionalDamage[W.Level] + Player.Instance.TotalAttackDamage*0.7f);
+                var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, additionalDamage[W.Level] + Player.Instance.TotalAttackDamage * 0.7f);
+
+                if (!RDamages.ContainsKey(unit.NetworkId))
+                {
+                    RDamages.Add(unit.NetworkId, new Dictionary<float, float> { { Game.Time * 1000, damage } });
+                }
+                else
+                {
+                    RDamages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
+                }
+
+                return damage;
             }
         }
     }
