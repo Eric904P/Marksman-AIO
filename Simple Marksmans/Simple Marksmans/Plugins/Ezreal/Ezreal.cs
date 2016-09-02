@@ -66,7 +66,6 @@ namespace Simple_Marksmans.Plugins.Ezreal
         protected static bool IsPreAttack { get; private set; }
         protected static bool IsPostAttack { get; private set; }
 
-
         protected static bool HasPassiveBuff
             => Player.Instance.Buffs.Any(b => b.IsActive && b.Name.ToLowerInvariant() == "ezrealrisingspellforce");
 
@@ -176,7 +175,6 @@ namespace Simple_Marksmans.Plugins.Ezreal
 
         protected static float GetComboDamage(Obj_AI_Base unit)
         {
-
             var damage = 0f;
 
             if (unit.IsValidTarget(Q.Range))

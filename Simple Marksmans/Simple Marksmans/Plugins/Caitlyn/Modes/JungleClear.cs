@@ -26,12 +26,10 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
+
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using EloBuddy;
+using EloBuddy.SDK;
 
 namespace Simple_Marksmans.Plugins.Caitlyn.Modes
 {
@@ -39,7 +37,35 @@ namespace Simple_Marksmans.Plugins.Caitlyn.Modes
     {
         public static void Execute()
         {
-            Chat.Print("JungleClear mode !");
+            if (!Settings.LaneClear.UseQInJungleClear || !Q.IsReady() ||
+                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
+                return;
+
+            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+
+            if (!jungleMinions.Any())
+                return;
+
+            string[] allowedMonsters =
+            {
+                "SRU_Gromp", "SRU_Blue", "SRU_Red", "SRU_Razorbeak", "SRU_Krug", "SRU_Murkwolf", "Sru_Crab",
+                "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
+                "SRU_Dragon_Water", "SRU_Baron"
+            };
+
+            var farmLocation = EntityManager.MinionsAndMonsters.GetLineFarmLocation(jungleMinions, 90, 1250,
+                Player.Instance.ServerPosition.To2D());
+
+            if (farmLocation.HitNumber > 2)
+            {
+                Q.Cast(farmLocation.CastPosition);
+                return;
+            }
+
+            if (jungleMinions.Count == 1 && jungleMinions.Any(b => allowedMonsters.Any(x => x.Contains(b.BaseSkinName))))
+            {
+                Q.Cast(jungleMinions.First());
+            }
         }
     }
 }

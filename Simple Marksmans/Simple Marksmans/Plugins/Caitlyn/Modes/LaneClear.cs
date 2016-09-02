@@ -26,15 +26,47 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
+
+using System.Linq;
 using EloBuddy;
+using EloBuddy.SDK;
 
 namespace Simple_Marksmans.Plugins.Caitlyn.Modes
 {
     internal class LaneClear : Caitlyn
     {
+        public static bool CanILaneClear()
+        {
+            return !Settings.LaneClear.EnableIfNoEnemies ||
+                   Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <=
+                   Settings.LaneClear.AllowedEnemies;
+        }
+
         public static void Execute()
         {
-            Chat.Print("LaneClear mode !");
+            if (!Settings.LaneClear.UseQInLaneClear || !Q.IsReady() ||
+                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
+                return;
+
+            var laneMinions = EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
+                Player.Instance.Position, Q.Range).ToList();
+
+            if (!laneMinions.Any() || !CanILaneClear())
+                return;
+
+            foreach (var objAiMinion in from objAiMinion in laneMinions
+                let polygon =
+                    new Geometry.Polygon.Rectangle(objAiMinion.Position,
+                        Player.Instance.Position.Extend(objAiMinion.Position, Q.Range).To3D(), 90)
+                where
+                    laneMinions.Count(
+                        x => polygon.IsInside(x) && x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q)) >=
+                    Settings.LaneClear.MinMinionsKilledForQ
+                select objAiMinion)
+            {
+                Q.Cast(objAiMinion);
+                break;
+            }
         }
     }
 }
