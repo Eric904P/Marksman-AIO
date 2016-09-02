@@ -61,6 +61,9 @@ namespace Simple_Marksmans
             return true;
         }
 
+        private static Vector3 _flagPos;
+        private static int _flagCreateTick;
+
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
             if (sender.IsMe || Player.Instance.IsDead)
@@ -127,8 +130,40 @@ namespace Simple_Marksmans
                                     "MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot +
                                     ".Delay",
                                     true], enemies, hp, Game.Time*1000));
+                    } else if (enemy.Hero == Champion.JarvanIV &&
+                               args.SData.Name.ToLower() == "jarvanivdemacianstandard" &&
+                               args.End.Distance(Player.Instance.Position) < 1000)
+                    {
+                        _flagPos.X = args.End.X;
+                        _flagPos.Y = args.End.Y;
+                        _flagPos.Z = NavMesh.GetHeightForPosition(args.End.X, args.End.Y);
+                        _flagCreateTick = (int) Game.Time*1000;
+                    } else if (enemy.Hero == Champion.JarvanIV &&
+                               args.SData.Name.ToLower() == "jarvanivdragonstrike" &&
+                               args.End.Distance(Player.Instance.Position) < 1000)
+                    {
+                        var flagpolygon = new Geometry.Polygon.Circle(_flagPos, 150);
+                        var playerpolygon = new Geometry.Polygon.Circle(Player.Instance.Position, 150);
+
+                        for (var i = 900; i > 0; i -= 100)
+                        {
+                            if (flagpolygon.IsInside(enemy.Position.Extend(args.End, i)) &&
+                                playerpolygon.IsInside(enemy.ServerPosition.Extend(args.End, i)))
+                            {
+
+                                PluginInstance.OnGapcloser(enemy,
+                                    new GapCloserEventArgs(args.Target, args.Slot,
+                                        args.Target == null ? GapcloserTypes.Skillshot : GapcloserTypes.Targeted,
+                                        args.Start, args.End,
+                                        menu["MenuManager.GapcloserMenu." + enemy.ChampionName + "." +
+                                            gapcloser.SpellSlot +
+                                            ".Delay",
+                                            true], enemies, hp, Game.Time*1000));
+                                break;
+                            }
+                        }
                     }
-                    else if(enemy.Hero != Champion.Nidalee)
+                    else if (enemy.Hero != Champion.Nidalee && enemy.Hero != Champion.JarvanIV)
                     {
                         PluginInstance.OnGapcloser(enemy,
                             new GapCloserEventArgs(args.Target, args.Slot,
@@ -137,7 +172,7 @@ namespace Simple_Marksmans
                                 menu[
                                     "MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot +
                                     ".Delay",
-                                    true], enemies, hp, Game.Time * 1000));
+                                    true], enemies, hp, Game.Time*1000));
                     }
                 }
             }
@@ -172,6 +207,12 @@ namespace Simple_Marksmans
 
         private static void Game_OnTick(EventArgs args)
         {
+            if (_flagCreateTick != 0 && _flagCreateTick + 8500 < Game.Time * 1000)
+            {
+                _flagCreateTick = 0;
+                _flagPos = Vector3.Zero;
+            }
+
             foreach (var index in InterruptibleSpellsFound.Where(e=>(int)e.Key.GameTime + 9000 <= (int)Game.Time * 1000 || (!e.Value.Spellbook.IsChanneling && !e.Value.Spellbook.IsCharging && !e.Value.Spellbook.IsCastingSpell)).ToList())
             {
                 InterruptibleSpellsFound.Remove(index.Key);
