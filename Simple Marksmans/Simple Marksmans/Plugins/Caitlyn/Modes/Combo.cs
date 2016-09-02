@@ -124,7 +124,7 @@ namespace Simple_Marksmans.Plugins.Caitlyn.Modes
             if (Settings.Combo.UseR && R.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower())
             {
                 var possibleTargets =
-                       EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range) && x.Distance(Player.Instance) > Player.Instance.GetAutoAttackRange() && !EntityManager.Heroes.Enemies.Any(c => c.NetworkId != x.NetworkId && new Geometry.Polygon.Rectangle(Player.Instance.Position, x.Position, 90).IsInside(Prediction.Position.PredictUnitPosition(c, 1300))) && x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.R) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+                       EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range) && x.Distance(Player.Instance) > (IsUnitNetted(x) ? 1300 : Player.Instance.GetAutoAttackRange()) && !EntityManager.Heroes.Enemies.Any(c => c.NetworkId != x.NetworkId && new Geometry.Polygon.Rectangle(Player.Instance.Position, x.Position, 90).IsInside(Prediction.Position.PredictUnitPosition(c, 1300))) && x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.R) && !x.HasUndyingBuffA() && !x.HasSpellShield());
 
                 var rTarget = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
