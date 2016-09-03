@@ -51,7 +51,7 @@ namespace Simple_Marksmans.Plugins.Sivir.Modes
                         Console.WriteLine("[DEBUG] Casting Q on {0} variant 1", target.Hero);
                         Q.Cast(qPrediction.CastPosition);
                     }
-                    else if (qPrediction.HitChance >= HitChance.High && Player.Instance.Mana - 60 > 100 && Player.Instance.IsInRange(target, Player.Instance.GetAutoAttackRange()))
+                    else if (qPrediction.HitChance >= HitChance.High && Player.Instance.Mana - 60 > 100)
                     {
                         Console.WriteLine("[DEBUG] Casting Q on {0} variant 2", target.Hero);
                         Q.Cast(qPrediction.CastPosition);

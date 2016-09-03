@@ -370,7 +370,6 @@ namespace Simple_Marksmans.Plugins.Caitlyn
         protected override void PermaActive()
         {
             R.Range = 2000 + (uint)(500*(R.Level - 1));
-
             Modes.PermaActive.Execute();
         }
 
