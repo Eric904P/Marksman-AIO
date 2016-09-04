@@ -27,6 +27,7 @@
 // //  ---------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using EloBuddy;
@@ -105,7 +106,7 @@ namespace Simple_Marksmans.Plugins.Twitch
         {
             if (Q.IsReady() && Settings.Combo.UseQAfterKill)
             {
-                if (Player.Instance.CountEnemiesInRange(1500) >= 1 &&
+                if (EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(1500)) &&
                         args.NetworkId == Player.Instance.NetworkId && args.EventId == GameEventId.OnChampionKill)
                 {
                     Q.Cast();
@@ -1021,8 +1022,18 @@ namespace Simple_Marksmans.Plugins.Twitch
             private static float EDamagePerStackBounsApMod { get; } = 0.2f;
             public static int[] RBonusAd { get; } = {0, 20, 30, 40};
 
+            private static readonly Dictionary<int, Dictionary<float, float>> ComboDamages =
+                new Dictionary<int, Dictionary<float, float>>();
+            private static readonly Dictionary<int, Dictionary<float, float>> EDamages =
+                new Dictionary<int, Dictionary<float, float>>();
+            private static readonly Dictionary<int, Dictionary<float, float>> PassiveDamages =
+                new Dictionary<int, Dictionary<float, float>>();
+
             public static float GetComboDamage(AIHeroClient enemy, int autos = 0)
             {
+                if (ComboDamages.ContainsKey(enemy.NetworkId) && !ComboDamages.Any(x => x.Key == enemy.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
+                    return ComboDamages[enemy.NetworkId].Values.FirstOrDefault();
+
                 float damage = 0;
 
                 if (Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing] != null &&
@@ -1041,7 +1052,8 @@ namespace Simple_Marksmans.Plugins.Twitch
                     damage += GetEDamage(enemy, true, autos > 0 ? autos : CountEStacks(enemy));
                 
                 damage += Player.Instance.GetAutoAttackDamage(enemy, true) * autos < 1 ? 1 : autos;
-
+                ComboDamages[enemy.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
+                
                 return damage;
             }
 
@@ -1091,6 +1103,9 @@ namespace Simple_Marksmans.Plugins.Twitch
                 if (!HasDeadlyVenomBuff(target))
                     return 0;
 
+                if (PassiveDamages.ContainsKey(target.NetworkId) && !PassiveDamages.Any(x => x.Key == target.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
+                    return PassiveDamages[target.NetworkId].Values.FirstOrDefault();
+
                 var damagePerStack = 0;
 
                 if (Player.Instance.Level < 5)
@@ -1106,7 +1121,9 @@ namespace Simple_Marksmans.Plugins.Twitch
 
                 var time = Math.Max(0, GetDeadlyVenomBuff(target).EndTime - Game.Time);
 
-                return (damagePerStack * (stacks > 0 ? stacks : CountEStacks(target)) * time) - target.HPRegenRate * time;
+                PassiveDamages[target.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damagePerStack * (stacks > 0 ? stacks : CountEStacks(target)) * time - target.HPRegenRate * time } };
+
+                return damagePerStack * (stacks > 0 ? stacks : CountEStacks(target)) * time - target.HPRegenRate * time;
             }
 
             public static float GetEDamage(Obj_AI_Base unit, bool includePassive = false, int stacks = 0)
@@ -1114,18 +1131,23 @@ namespace Simple_Marksmans.Plugins.Twitch
                 if (unit == null)
                     return 0;
 
+                if (EDamages.ContainsKey(unit.NetworkId) && !EDamages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
+                    return EDamages[unit.NetworkId].Values.FirstOrDefault();
+
                 var stack = stacks > 0 ? stacks : CountEStacks(unit);
 
                 if (stack == 0)
                     return 0;
 
-                if (!(unit is AIHeroClient))
+                if (unit.GetType() != typeof(AIHeroClient))
                 {
                     var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical,
                         EDamage[E.Level] + stack*
                         (Player.Instance.FlatMagicDamageMod*EDamagePerStackBounsApMod +
                          Player.Instance.FlatPhysicalDamageMod*EDamagePerStackBounsAdMod +
                          EDamagePerStack[E.Level]));
+
+                    EDamages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0)} };
 
                     return damage + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0);
                 }
@@ -1135,11 +1157,13 @@ namespace Simple_Marksmans.Plugins.Twitch
                 if (client.HasSpellShield() || client.HasUndyingBuffA())
                     return 0;
 
-                float dmg = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical,
+                var dmg = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical,
                     EDamage[E.Level] + stack*
                     (Player.Instance.FlatMagicDamageMod*EDamagePerStackBounsApMod +
                      Player.Instance.FlatPhysicalDamageMod*EDamagePerStackBounsAdMod +
                      EDamagePerStack[E.Level]), false, true);
+
+                EDamages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, dmg + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0) } };
 
                 return dmg+ (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0);
             }

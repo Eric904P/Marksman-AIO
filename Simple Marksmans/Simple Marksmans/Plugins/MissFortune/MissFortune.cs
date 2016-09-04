@@ -271,25 +271,18 @@ namespace Simple_Marksmans.Plugins.MissFortune
                 x => x.IsValidTarget(Q.Range) && x.Distance(target) <= 400))
                 return null;
 
-            foreach (var minion in EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
-                x =>
-                    x.IsValidTarget(Q.Range) && !x.IsMoving && x.Distance(target) <= 400 &&
-                    Prediction.Health.GetPrediction(x, 500) > 20 &&
-                    Prediction.Health.GetPrediction(x, 500) < Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
-            {
-                var closest = GetQBouncePossibleObject(minion);
-
-                if (closest == null || closest.Type != GameObjectType.AIHeroClient || closest.NetworkId != target.NetworkId)
-                    continue;
-
-                //var qPrediction = Prediction.Position.PredictLinearMissile(target, 400, 900,(int) (Player.Instance.Distance(target)/1300*1000 + 250), int.MaxValue, int.MaxValue,minion.Position, true);
-                
-                //if (qPrediction.HitChance >= HitChance.High)
-                {
-                    return minion;
-                }
-            }
-            return null;
+            return
+                (from minion in
+                    EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
+                        x =>
+                            x.IsValidTarget(Q.Range) && !x.IsMoving && x.Distance(target) <= 400 &&
+                            Prediction.Health.GetPrediction(x, 500) > 20 &&
+                            Prediction.Health.GetPrediction(x, 500) < Player.Instance.GetSpellDamage(x, SpellSlot.Q))
+                    let closest = GetQBouncePossibleObject(minion)
+                    where
+                        closest != null && closest.Type == GameObjectType.AIHeroClient &&
+                        closest.NetworkId == target.NetworkId
+                    select minion).FirstOrDefault();
         }
 
         protected static Obj_AI_Base GetQBouncePossibleObject(Obj_AI_Base from)
