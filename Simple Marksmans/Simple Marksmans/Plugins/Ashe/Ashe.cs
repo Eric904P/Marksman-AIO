@@ -73,16 +73,20 @@ namespace Simple_Marksmans.Plugins.Ashe
                 Width = 20
             };
             E = new Spell.Skillshot(SpellSlot.E, 30000, SkillShotType.Linear);
-            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 250, 1600, 120);
+            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 250, 1600, 120)
+            {
+                AllowedCollisionCount = 0
+            };
 
             ColorPicker = new ColorPicker[2];
 
             ColorPicker[0] = new ColorPicker("AsheW", new ColorBGRA(10, 106, 138, 255));
             ColorPicker[1] = new ColorPicker("AsheR", new ColorBGRA(177, 67, 191, 255));
 
-            Orbwalker.OnPreAttack += (a,b) => IsPreAttack = true;
-            Game.OnPostTick += a => IsPreAttack = false;
+            ChampionTracker.Initialize(ChampionTrackerFlags.VisibilityTracker);
 
+            Orbwalker.OnPreAttack += (a,b) => IsPreAttack = true;
+            Orbwalker.OnPostAttack += (a, b) => IsPreAttack = false;
         }
         
         protected override void OnDraw()

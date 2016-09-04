@@ -26,11 +26,7 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 using EloBuddy;
 
 namespace Simple_Marksmans.Plugins.MissFortune.Modes
@@ -39,7 +35,20 @@ namespace Simple_Marksmans.Plugins.MissFortune.Modes
     {
         public static void Execute()
         {
-            Chat.Print("Harass mode !");
+            if (!Q.IsReady() || !Settings.Harass.UseQ || IsPreAttack ||
+                !(Player.Instance.ManaPercent >= Settings.Harass.MinManaQ))
+                return;
+
+            var qTarget = Q.GetTarget();
+
+            if (qTarget == null)
+                return;
+
+            if (Settings.Misc.BounceQFromMinions)
+            {
+                var minion = GetQMinion(qTarget);
+                Q.Cast(minion ?? qTarget);
+            } else Q.Cast(qTarget);
         }
     }
 }

@@ -105,16 +105,11 @@ namespace Simple_Marksmans.Plugins.Twitch
         {
             if (Q.IsReady() && Settings.Combo.UseQAfterKill)
             {
-                var rand = new Random();
-
-                Core.DelayAction(() =>
-                {
-                    if (Player.Instance.CountEnemiesInRange(1500) >= 1 &&
+                if (Player.Instance.CountEnemiesInRange(1500) >= 1 &&
                         args.NetworkId == Player.Instance.NetworkId && args.EventId == GameEventId.OnChampionKill)
-                    {
-                        Q.Cast();
-                    }
-                }, rand.Next(100, 300));
+                {
+                    Q.Cast();
+                }
             }
         }
 

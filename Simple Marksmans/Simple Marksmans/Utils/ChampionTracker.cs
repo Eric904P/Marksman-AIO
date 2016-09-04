@@ -64,8 +64,13 @@ namespace Simple_Marksmans.Utils
         
         public static ChampionTrackerFlags Flags { get; private set; }
 
+        private static bool Initialized;
+
         public static void Initialize(ChampionTrackerFlags flags)
         {
+            if (Initialized && Flags.HasFlag(flags))
+                return;
+
             Flags = flags;
 
             if (Flags.HasFlag(ChampionTrackerFlags.VisibilityTracker))
@@ -80,6 +85,8 @@ namespace Simple_Marksmans.Utils
             {
                 Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             }
+
+            Initialized = true;
         }
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
@@ -121,9 +128,14 @@ namespace Simple_Marksmans.Utils
             foreach (var visibilityTracker in ChampionVisibility.Where(x=> Game.Time * 1000 - x.LastVisibleGameTime * 1000 < 1000))
             {
                 foreach (var unit in EntityManager.Heroes.Enemies.Where(
-                        x => x.Hero == visibilityTracker.Hero.Hero && !visibilityTracker.Hero.IsDead && !visibilityTracker.Hero.IsHPBarRendered))
+                        x => x.Hero == visibilityTracker.Hero.Hero && !visibilityTracker.Hero.IsDead && !visibilityTracker.Hero.IsZombie && !visibilityTracker.Hero.IsHPBarRendered))
                 {
-                    OnLoseVisibility?.Invoke(null, new OnLoseVisibilityEventArgs(unit, visibilityTracker.LastVisibleGameTime, visibilityTracker.LastPosition));
+                    if (unit.Hero == Champion.KogMaw && unit.Buffs.Any(x=>x.Name.ToLowerInvariant() == "kogmawicathiansurprise"))
+                        return;
+
+                    OnLoseVisibility?.Invoke(null,
+                        new OnLoseVisibilityEventArgs(unit, visibilityTracker.LastVisibleGameTime,
+                            visibilityTracker.LastPosition));
                 }
             }
 

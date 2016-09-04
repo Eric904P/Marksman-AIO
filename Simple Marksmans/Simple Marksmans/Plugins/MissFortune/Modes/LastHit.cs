@@ -34,7 +34,6 @@ namespace Simple_Marksmans.Plugins.MissFortune.Modes
     {
         public static void Execute()
         {
-            Chat.Print("LastHit mode !");
         }
     }
 }

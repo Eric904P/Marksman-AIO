@@ -93,12 +93,12 @@ namespace Simple_Marksmans.Plugins.Jinx
             Q = new Spell.Active(SpellSlot.Q);
             W = new Spell.Skillshot(SpellSlot.W, 1500, SkillShotType.Linear, 700, 3200, 60)
             {
-                AllowedCollisionCount = -1
+                AllowedCollisionCount = 0
             };
             E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 1100, 1300, 100);
             R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 1000, 1500, 130)
             {
-                AllowedCollisionCount = -1
+                AllowedCollisionCount = 0
             };
 
             ColorPicker = new ColorPicker[2];
@@ -107,7 +107,7 @@ namespace Simple_Marksmans.Plugins.Jinx
             ColorPicker[1] = new ColorPicker("JinxW", new ColorBGRA(255, 21, 95, 255));
 
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
-            Game.OnPostTick += args => IsPreAttack = false;
+            Orbwalker.OnPostAttack += (target, args) => IsPreAttack = false;
 
             ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
@@ -317,6 +317,14 @@ namespace Simple_Marksmans.Plugins.Jinx
         protected override void PermaActive()
         {
             Q.Range = (uint)GetRealRocketLauncherRange();
+
+            if (Orbwalker.ForcedTarget != null && !Orbwalker.ForcedTarget.IsValidTarget(GetRealRocketLauncherRange()) && HasRocketLauncher)
+            {
+                Orbwalker.ForcedTarget = null;
+            } else if (Orbwalker.ForcedTarget != null && !Orbwalker.ForcedTarget.IsValidTarget(GetRealMinigunRange()) && HasMinigun)
+            {
+                Orbwalker.ForcedTarget = null;
+            }
 
             Modes.PermaActive.Execute();
         }

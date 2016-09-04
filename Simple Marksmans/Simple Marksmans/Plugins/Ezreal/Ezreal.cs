@@ -116,9 +116,8 @@ namespace Simple_Marksmans.Plugins.Ezreal
 
                 IsPreAttack = true;
             };
-            Orbwalker.OnPostAttack += (a, b) => IsPostAttack = true;
-            Game.OnPostTick += args => { IsPreAttack = false; IsPostAttack = false; };
-            
+            Orbwalker.OnPostAttack += (a, b) => { IsPreAttack = false; IsPostAttack = true; };
+
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
 
             PermaShow = new PermaShow("Ezreal PermaShow", new Vector2(200, 200));

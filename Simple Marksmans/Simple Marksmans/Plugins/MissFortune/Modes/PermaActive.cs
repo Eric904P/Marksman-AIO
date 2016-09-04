@@ -32,6 +32,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EloBuddy;
+using EloBuddy.SDK;
 
 namespace Simple_Marksmans.Plugins.MissFortune.Modes
 {
@@ -39,6 +40,10 @@ namespace Simple_Marksmans.Plugins.MissFortune.Modes
     {
         public static void Execute()
         {
+            if (Settings.Misc.EnableKillsteal)
+            {
+                
+            }
         }
     }
 }

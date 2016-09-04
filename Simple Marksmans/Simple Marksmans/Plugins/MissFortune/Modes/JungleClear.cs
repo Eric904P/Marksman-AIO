@@ -32,6 +32,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EloBuddy;
+using EloBuddy.SDK;
 
 namespace Simple_Marksmans.Plugins.MissFortune.Modes
 {
@@ -39,7 +40,60 @@ namespace Simple_Marksmans.Plugins.MissFortune.Modes
     {
         public static void Execute()
         {
-            Chat.Print("JungleClear mode !");
+            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+
+            if (!jungleMinions.Any())
+                return;
+
+            string[] allowedMonsters =
+            {
+                "SRU_Gromp", "SRU_Blue", "SRU_Red", "SRU_Razorbeak", "SRU_Krug", "SRU_Murkwolf", "Sru_Crab", "SRU_Crab",
+                "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
+                "SRU_Dragon_Water", "SRU_Baron"
+            };
+
+            if (Settings.LaneClear.UseQInJungleClear && Q.IsReady() &&
+                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ && !IsPreAttack)
+            {
+                if (jungleMinions.Any(x => x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                {
+                    foreach (
+                        var objAiMinion in
+                            jungleMinions.Where(
+                                x =>
+                                    x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q) &&
+                                    GetObjectsWithinQBounceRange<Obj_AI_Minion>(x.Position)
+                                        .Any(b => b.IsValidTarget() && b.NetworkId != x.NetworkId) &&
+                                    Prediction.Health.GetPrediction(x, 600) > 25))
+                    {
+                        Q.Cast(objAiMinion);
+                        break;
+                    }
+                }
+                else if(jungleMinions.Any(minion => allowedMonsters.Contains(minion.BaseSkinName) && minion.Health > Player.Instance.GetAutoAttackDamage(minion) * 2))
+                {
+                    Q.Cast(jungleMinions.FirstOrDefault(minion => allowedMonsters.Contains(minion.BaseSkinName)));
+                }
+            }
+
+            if (Settings.LaneClear.UseWInJungleClear && W.IsReady() &&
+                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaW && (jungleMinions.Count(x => x.IsValidTarget(Q.Range)) >= 2 || jungleMinions.Any(minion => allowedMonsters.Contains(minion.BaseSkinName) && minion.Health > Player.Instance.GetAutoAttackDamage(minion) * 2)) && IsPreAttack)
+            {
+                W.Cast();
+            }
+
+            if (!Settings.LaneClear.UseEInJungleClear || !E.IsReady() ||
+                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE) ||
+                jungleMinions.Count(x => x.IsValidTarget(E.Range)) < 2)
+                return;
+
+            var farmLocation = EntityManager.MinionsAndMonsters.GetCircularFarmLocation(jungleMinions, E.Width, (int)E.Range,
+                E.CastDelay, E.Speed, Player.Instance.ServerPosition.To2D());
+
+            if (farmLocation.HitNumber >= 2)
+            {
+                E.Cast(farmLocation.CastPosition);
+            }
         }
     }
 }

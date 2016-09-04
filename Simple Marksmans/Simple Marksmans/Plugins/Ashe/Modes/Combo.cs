@@ -69,7 +69,7 @@ namespace Simple_Marksmans.Plugins.Ashe.Modes
 
             if (E.IsReady() && Settings.Combo.UseE)
             {
-                foreach (var source in EntityManager.Heroes.Enemies.Where(x=> x.IsUserInvisibleFor(500)))
+                foreach (var source in EntityManager.Heroes.Enemies.Where(x=> !x.IsDead && x.IsUserInvisibleFor(500)))
                 {
                     var data = source.GetVisibilityTrackerData();
 

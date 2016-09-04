@@ -90,7 +90,6 @@ namespace Simple_Marksmans.Plugins.Lucian
             ColorPicker[2].OnColorChange += (a, b) => { DamageIndicator.Color = System.Drawing.Color.FromArgb(b.Color.A, b.Color.R, b.Color.G, b.Color.B); };
 
             Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;
-            Game.OnPostTick += args => IsPreAttack = false;
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
 
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
@@ -120,6 +119,8 @@ namespace Simple_Marksmans.Plugins.Lucian
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
+            IsPreAttack = false;
+
             if (!Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 

@@ -59,7 +59,7 @@ namespace Simple_Marksmans.Plugins.Jinx.Modes
                         Q.Cast();
                         return;
                     }
-                    if (HasMinigun &&  GetMinigunStacks >= 2 &&
+                    if (HasMinigun && GetMinigunStacks >= 2 &&
                         target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(target, true)*2.2f && target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(target, true) * 2f)
                     {
                         Q.Cast();
@@ -68,7 +68,7 @@ namespace Simple_Marksmans.Plugins.Jinx.Modes
                 }
             }
 
-            if (W.IsReady() && Settings.Combo.UseW && !Player.Instance.Position.IsVectorUnderEnemyTower())
+            if (W.IsReady() && Settings.Combo.UseW && !Player.Instance.Position.IsVectorUnderEnemyTower() && Player.Instance.Mana - (50+10*(W.Level-1)) > 100)
             {
                 var target =
                     EntityManager.Heroes.Enemies.Where(
@@ -88,14 +88,14 @@ namespace Simple_Marksmans.Plugins.Jinx.Modes
                 }
             }
 
-            if (E.IsReady() && Settings.Combo.UseE)
+            if (E.IsReady() && Settings.Combo.UseE && Player.Instance.Mana - 50 > 100)
             {
                 var target = TargetSelector.GetTarget(E.Range, DamageType.Physical);
 
                 if (target != null)
                 {
                     var ePrediction = E.GetPrediction(target);
-                    if (ePrediction.HitChance == HitChance.High && ePrediction.CastPosition.Distance(target) > 150)
+                    if (ePrediction.HitChance == HitChance.High && ePrediction.CastPosition.Distance(target) > 125)
                     {
                         E.Cast(ePrediction.CastPosition);
                         return;
@@ -108,7 +108,7 @@ namespace Simple_Marksmans.Plugins.Jinx.Modes
 
             var t = TargetSelector.GetTarget(3000, DamageType.Physical);
 
-            if (t == null || t.HasUndyingBuffA() || !(t.Distance(Player.Instance) > GetRealRocketLauncherRange() + 100))
+            if (t == null || t.HasUndyingBuffA() || !(t.Distance(Player.Instance) > GetRealRocketLauncherRange() + 50))
                 return;
 
             var health = t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t);

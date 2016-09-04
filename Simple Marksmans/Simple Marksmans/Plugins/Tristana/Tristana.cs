@@ -77,8 +77,9 @@ namespace Simple_Marksmans.Plugins.Tristana
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
-            Game.OnPostTick += a => IsPreAttack = false;
 
+            Orbwalker.OnPostAttack += (sender, args) => IsPreAttack = false;
+            
             DamageIndicator.Initalize(System.Drawing.Color.FromArgb(ColorPicker[1].Color.R, ColorPicker[1].Color.G, ColorPicker[1].Color.B), 1300);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 

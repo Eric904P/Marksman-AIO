@@ -164,7 +164,8 @@ namespace Simple_Marksmans.Plugins.Jhin
                 IsPreAttack = false;
             };
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
-            Game.OnPostTick += a => IsPreAttack = false;
+            Orbwalker.OnPostAttack += (target, args) => IsPreAttack = false;
+
             ChampionTracker.Initialize(ChampionTrackerFlags.VisibilityTracker);
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
 
