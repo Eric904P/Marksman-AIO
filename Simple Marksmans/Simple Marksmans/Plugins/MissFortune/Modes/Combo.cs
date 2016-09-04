@@ -90,7 +90,7 @@ namespace Simple_Marksmans.Plugins.MissFortune.Modes
                     if (target != null && target.Distance(Player.Instance) < 600)
                     {
                         var waves = (int) Math.Floor(target.Health/Player.Instance.GetSpellDamage(target, SpellSlot.R));
-                        if (waves < RWaves[R.Level])
+                        if (waves < RWaves[R.Level] && !Player.Instance.IsMoving && !IsPreAttack && !IsAfterAttack)
                         {
                             R.Cast(target.ServerPosition);
                             return;
@@ -125,23 +125,23 @@ namespace Simple_Marksmans.Plugins.MissFortune.Modes
 
                             var dist = enemy.Distance(Player.Instance);
 
-                            if (dist < 800 && tuple.Value.Item1 < 10)
+                            if (dist < 800 && tuple.Value.Item1 < 10 && !Player.Instance.IsMoving && !IsPreAttack && !IsAfterAttack)
                             {
                                 R.CastMinimumHitchance(enemy, HitChance.High);
                                 break;
                             }
-                            if (dist < 1000 && dist > 800 && tuple.Value.Item1 < 8)
+                            if (dist < 1000 && dist > 800 && tuple.Value.Item1 < 8 && !Player.Instance.IsMoving && !IsPreAttack && !IsAfterAttack)
                             {
                                 R.CastMinimumHitchance(enemy, HitChance.High);
                                 break;
                             }
-                            if (dist < 1200 && dist > 1000 && tuple.Value.Item1 <= 4)
+                            if (dist < 1200 && dist > 1000 && tuple.Value.Item1 <= 4 && !Player.Instance.IsMoving && !IsPreAttack && !IsAfterAttack)
                             {
                                 R.CastMinimumHitchance(enemy, HitChance.High);
                                 break;
                             }
 
-                            if (!(dist < 1300) || !(dist > 1200) || tuple.Value.Item1 > 2)
+                            if (!(dist < 1300) || !(dist > 1200) || tuple.Value.Item1 > 2 || Player.Instance.IsMoving || IsPreAttack || IsAfterAttack)
                                 continue;
 
                             R.CastMinimumHitchance(enemy, HitChance.High);
@@ -157,7 +157,7 @@ namespace Simple_Marksmans.Plugins.MissFortune.Modes
                                     x.NetworkId ==
                                     wavesNeeded.FirstOrDefault(l => l.Value.Item2 >= Settings.Combo.RWhenXEnemies).Key);
 
-                        if (enemy.IsValidTarget(1280))
+                        if (enemy.IsValidTarget(1280) && !Player.Instance.IsMoving && !IsPreAttack && !IsAfterAttack)
                         {
                             R.CastMinimumHitchance(enemy, HitChance.High);
                         }
