@@ -26,15 +26,40 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
+
+using System.Linq;
 using EloBuddy;
+using EloBuddy.SDK;
+using EloBuddy.SDK.Enumerations;
 
 namespace Simple_Marksmans.Plugins.Quinn.Modes
 {
     internal class LaneClear : Quinn
     {
+        public static bool CanILaneClear()
+        {
+            return !Settings.LaneClear.EnableIfNoEnemies ||
+                   Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <=
+                   Settings.LaneClear.AllowedEnemies;
+        }
+
         public static void Execute()
         {
-            Chat.Print("LaneClear mode !");
+            if (!Settings.LaneClear.UseQInLaneClear || !Q.IsReady() || Player.Instance.IsUnderTurret() ||
+                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
+                return;
+
+            var laneMinions = EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
+                Player.Instance.Position, Q.Range).ToList();
+
+            if (!laneMinions.Any() || !CanILaneClear())
+                return;
+
+            foreach (var minion in laneMinions.Where(x=>x.IsValidTarget(Q.Range) && Q.GetPrediction(x).HitChance == HitChance.High).Where(minion => minion.CountEnemyMinionsInRange(200) >= Settings.LaneClear.MinMinionsKilledForQ))
+            {
+                Q.Cast(minion);
+                break;
+            }
         }
     }
 }

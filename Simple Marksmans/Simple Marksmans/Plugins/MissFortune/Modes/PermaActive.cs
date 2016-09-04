@@ -26,13 +26,12 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
+
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using EloBuddy;
 using EloBuddy.SDK;
+using EloBuddy.SDK.Enumerations;
+using Simple_Marksmans.Utils;
 
 namespace Simple_Marksmans.Plugins.MissFortune.Modes
 {
@@ -42,7 +41,46 @@ namespace Simple_Marksmans.Plugins.MissFortune.Modes
         {
             if (Settings.Misc.EnableKillsteal)
             {
-                
+                if (Q.IsReady())
+                {
+                    foreach (
+                        var enemy in
+                            EntityManager.Heroes.Enemies.Where(
+                                x =>
+                                    x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
+                                    x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                    {
+                        Q.Cast(enemy);
+                        break;
+                    }
+                }
+                if (E.IsReady())
+                {
+                    foreach (
+                        var enemy in
+                            EntityManager.Heroes.Enemies.Where(
+                                x =>
+                                    x.IsValidTarget(E.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
+                                    x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.E) && E.GetPrediction(x).HitChance == HitChance.High))
+                    {
+                        E.CastMinimumHitchance(enemy, HitChance.High);
+                        break;
+                    }
+                }
+            }
+
+            if (!R.IsReady() || !Settings.Combo.UseR)
+                return;
+
+            var target = TargetSelector.GetTarget(R.Range, DamageType.Physical);
+
+            if (target == null || !Settings.Combo.SemiAutoRKeybind)
+                return;
+
+            var rPrediciton = R.GetPrediction(target);
+            if (rPrediciton.HitChancePercent >= 65)
+            {
+                R.Cast(rPrediciton.CastPosition);
             }
         }
     }

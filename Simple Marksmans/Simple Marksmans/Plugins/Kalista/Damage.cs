@@ -27,6 +27,9 @@
 // //  ---------------------------------------------------------------------
 #endregion
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using Simple_Marksmans.Utils;
@@ -40,8 +43,20 @@ namespace Simple_Marksmans.Plugins.Kalista
         private static readonly int[] EDamagePerSpear = { 0, 10, 14, 19, 25, 32 };
         private static readonly float[] EDamagePerSpearMod = { 0, 0.2f, 0.225f, 0.25f, 0.275f, 0.3f };
 
+        private static readonly Dictionary<int, Tuple<Dictionary<float, float>, int>> ComboDamages =
+            new Dictionary<int, Tuple<Dictionary<float, float>, int>>();
+        private static readonly Dictionary<int, Tuple<Dictionary<float, float>, int>> EDamagesStacks =
+            new Dictionary<int, Tuple<Dictionary<float, float>, int>>();
+        private static readonly Dictionary<int, Dictionary<float, float>> EDamages =
+            new Dictionary<int, Dictionary<float, float>>();
+        private static readonly Dictionary<int, Dictionary<float, bool>> IsKillable =
+            new Dictionary<int, Dictionary<float, bool>>();
+
         public static float GetComboDamage(this AIHeroClient enemy, int stacks)
         {
+            if (ComboDamages.ContainsKey(enemy.NetworkId) && !ComboDamages.Any(x => x.Key == enemy.NetworkId && x.Value.Item2 == stacks && x.Value.Item1.Any(k => Game.Time * 1000 - k.Key > 200)))
+                return ComboDamages[enemy.NetworkId].Item1.Values.FirstOrDefault();
+
             float damage = 0;
 
             if (Kalista.Q.IsReady())
@@ -60,6 +75,8 @@ namespace Simple_Marksmans.Plugins.Kalista
                 damage += enemy.GetRendDamageOnTarget(stacks);
 
             damage += Player.Instance.GetAutoAttackDamage(enemy, true) * stacks;
+
+            ComboDamages[enemy.NetworkId] = new Tuple<Dictionary<float, float>, int>(new Dictionary<float, float> { { Game.Time * 1000, damage } }, stacks);
 
             return damage;
         }
@@ -84,8 +101,12 @@ namespace Simple_Marksmans.Plugins.Kalista
                 !Kalista.E.IsReady() || target.GetRendBuff().Count < 1)
                 return false;
 
-            if (!(target is AIHeroClient))
+            if (IsKillable.ContainsKey(target.NetworkId) && !IsKillable.Any(x => x.Key == target.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
+                return IsKillable[target.NetworkId].Values.FirstOrDefault();
+
+            if (target.GetType() != typeof(AIHeroClient))
             {
+                IsKillable[target.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, target.GetRendDamageOnTarget() > target.TotalHealthWithShields() } };
                 return target.GetRendDamageOnTarget() > target.TotalHealthWithShields();
             }
 
@@ -93,16 +114,23 @@ namespace Simple_Marksmans.Plugins.Kalista
 
             if (heroClient.HasUndyingBuffA() || heroClient.HasSpellShield())
             {
+                IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, false } };
                 return false;
             }
 
             if (heroClient.ChampionName != "Blitzcrank")
+            {
+                IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, heroClient.GetRendDamageOnTarget() >= heroClient.TotalHealthWithShields() } };
                 return heroClient.GetRendDamageOnTarget() >= heroClient.TotalHealthWithShields();
-
+            }
             if (!heroClient.HasBuff("BlitzcrankManaBarrierCD") && !heroClient.HasBuff("ManaBarrier"))
             {
+                IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, heroClient.GetRendDamageOnTarget() > heroClient.TotalHealthWithShields() + heroClient.Mana / 2 } };
                 return heroClient.GetRendDamageOnTarget() > heroClient.TotalHealthWithShields() + heroClient.Mana / 2;
             }
+
+            IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, heroClient.GetRendDamageOnTarget() > heroClient.TotalHealthWithShields() } };
+
             return heroClient.GetRendDamageOnTarget() > heroClient.TotalHealthWithShields();
         }
 
@@ -110,6 +138,9 @@ namespace Simple_Marksmans.Plugins.Kalista
         {
             if (!CanCastEOnUnit(target))
                 return 0f;
+
+            if (EDamages.ContainsKey(target.NetworkId) && !EDamages.Any(x => x.Key == target.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
+                return EDamages[target.NetworkId].Values.FirstOrDefault();
 
             var damageReduction = 100 - Kalista.Settings.Misc.ReduceEDmg;
             var damage = EDamage[Kalista.E.Level] + Player.Instance.TotalAttackDamage * EDamageMod +
@@ -119,13 +150,21 @@ namespace Simple_Marksmans.Plugins.Kalista
                                (target.GetRendBuff().Count - 1)
                              : 0);
 
-            return Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical, damage * damageReduction / 100);
+            var finalDamage = Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
+                damage*damageReduction/100);
+
+            EDamages[target.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, finalDamage } };
+
+            return finalDamage;
         }
 
         public static float GetRendDamageOnTarget(this Obj_AI_Base target, int stacks)
         {
             if (target == null || stacks < 1)
                 return 0f;
+
+            if (EDamagesStacks.ContainsKey(target.NetworkId) && !EDamagesStacks.Any(x => x.Key == target.NetworkId && x.Value.Item2 == stacks && x.Value.Item1.Any(k => Game.Time * 1000 - k.Key > 200)))
+                return EDamagesStacks[target.NetworkId].Item1.Values.FirstOrDefault();
 
             var damageReduction = 100 - Kalista.Settings.Misc.ReduceEDmg;
 
@@ -135,8 +174,12 @@ namespace Simple_Marksmans.Plugins.Kalista
                                 Player.Instance.TotalAttackDamage * EDamagePerSpearMod[Kalista.E.Level]) *
                                (stacks - 1)
                              : 0);
+            var finalDamage = Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
+                damage*damageReduction/100);
 
-            return Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical, damage * damageReduction / 100);
+            ComboDamages[target.NetworkId] = new Tuple<Dictionary<float, float>, int>(new Dictionary<float, float> { { Game.Time * 1000, finalDamage } }, stacks);
+
+            return finalDamage;
         }
 
         public static BuffInstance GetRendBuff(this Obj_AI_Base target)

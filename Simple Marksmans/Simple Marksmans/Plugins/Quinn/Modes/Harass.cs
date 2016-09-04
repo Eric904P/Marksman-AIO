@@ -26,12 +26,12 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
+
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using EloBuddy;
+using EloBuddy.SDK;
+using EloBuddy.SDK.Enumerations;
+using Simple_Marksmans.Utils;
 
 namespace Simple_Marksmans.Plugins.Quinn.Modes
 {
@@ -39,7 +39,21 @@ namespace Simple_Marksmans.Plugins.Quinn.Modes
     {
         public static void Execute()
         {
-            Chat.Print("Harass mode !");
+            if (Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)
+            {
+                var possibleTargets =
+                    EntityManager.Heroes.Enemies.Where(
+                        x => x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+
+                Q.CastIfItWillHit();
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                if (target != null && !HasWBuff(target) && !HasRBuff)
+                {
+                    Q.CastMinimumHitchance(target, HitChance.High);
+                }
+            }
         }
     }
 }

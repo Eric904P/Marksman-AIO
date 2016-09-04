@@ -392,7 +392,6 @@ namespace Simple_Marksmans.Plugins.MissFortune
             ComboMenu.Add("Plugins.MissFortune.ComboMenu.SemiAutoRKeybind",
                 new KeyBind("Semi-Auto R", false, KeyBind.BindTypes.HoldActive, 'T'));
 
-
             HarassMenu = MenuManager.Menu.AddSubMenu("Harass");
             HarassMenu.AddGroupLabel("Harass mode settings for Miss Fortune addon");
 
