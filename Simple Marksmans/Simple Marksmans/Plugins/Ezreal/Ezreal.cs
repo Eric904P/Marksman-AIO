@@ -27,7 +27,6 @@
 // //  ---------------------------------------------------------------------
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
@@ -39,7 +38,6 @@ using SharpDX;
 using Simple_Marksmans.Utils;
 using EloBuddy.SDK.Rendering;
 using EloBuddy.SDK.Utils;
-using Simple_Marksmans.Utils.PermaShow;
 
 namespace Simple_Marksmans.Plugins.Ezreal
 {
@@ -59,9 +57,6 @@ namespace Simple_Marksmans.Plugins.Ezreal
         private static ColorPicker[] ColorPicker { get; }
 
         private static bool _changingRangeScan;
-
-        protected static PermaShow PermaShow;
-        protected static BoolItemData AutoHarassBoolItemData;
 
         protected static bool IsPreAttack { get; private set; }
         protected static bool IsPostAttack { get; private set; }
@@ -119,8 +114,6 @@ namespace Simple_Marksmans.Plugins.Ezreal
             Orbwalker.OnPostAttack += (a, b) => { IsPreAttack = false; IsPostAttack = true; };
 
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
-
-            PermaShow = new PermaShow("Ezreal PermaShow", new Vector2(200, 200));
         }
 
         private static void ChampionTracker_OnLongSpellCast(object sender, OnLongSpellCastEventArgs e)
@@ -243,14 +236,8 @@ namespace Simple_Marksmans.Plugins.Ezreal
             HarassMenu.AddGroupLabel("Harass mode settings for Ezreal addon");
 
             HarassMenu.AddLabel("Mystic Shot (Q) settings :");
-            HarassMenu.Add("Plugins.Ezreal.HarassMenu.UseQ", new KeyBind("Enable auto harass", false, KeyBind.BindTypes.PressToggle, 'A')).OnValueChange +=
-                (a, b) =>
-                {
-                    if (AutoHarassBoolItemData != null)
-                    {
-                        AutoHarassBoolItemData.Value = b.NewValue;
-                    }
-                };
+            HarassMenu.Add("Plugins.Ezreal.HarassMenu.UseQ",
+                new KeyBind("Enable auto harass", false, KeyBind.BindTypes.PressToggle, 'A'));
             HarassMenu.Add("Plugins.Ezreal.HarassMenu.MinManaQ", new Slider("Min mana percentage ({0}%) to use Q", 30, 1));
             HarassMenu.AddSeparator(5);
 
@@ -378,9 +365,6 @@ namespace Simple_Marksmans.Plugins.Ezreal
                 ColorPicker[3].Initialize(System.Drawing.Color.Aquamarine);
                 a.CurrentValue = false;
             };
-
-            AutoHarassBoolItemData = PermaShow.AddItem("Auto harass", new BoolItemData("Enable Auto harass", Settings.Harass.UseQ, 14));
-            
             TearStacker.Enabled = Settings.Misc.EnableTearStacker;
             TearStacker.OnlyInFountain = Settings.Misc.StackOnlyInFountain;
             TearStacker.MinimumManaPercent = Settings.Misc.MinimalManaPercentTearStacker;

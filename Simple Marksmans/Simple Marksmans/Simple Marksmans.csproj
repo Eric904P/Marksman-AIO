@@ -81,6 +81,25 @@
     <Compile Include="Activator\Items\Botrk.cs" />
     <Compile Include="Activator\Items\HealthPotion.cs" />
     <Compile Include="Activator\Items\Quicksilver.cs" />
+    <Compile Include="PermaShow\Interfaces\IDrawable.cs" />
+    <Compile Include="PermaShow\Interfaces\IModule.cs" />
+    <Compile Include="PermaShow\Interfaces\IPermaShowItem.cs" />
+    <Compile Include="PermaShow\Interfaces\IValue.cs" />
+    <Compile Include="PermaShow\Interfaces\IPermaShow.cs" />
+    <Compile Include="PermaShow\ItemTypes.cs" />
+    <Compile Include="PermaShow\Modules\DataHandlerModule.cs" />
+    <Compile Include="PermaShow\Separator.cs" />
+    <Compile Include="PermaShow\Values\BoolItem.cs" />
+    <Compile Include="PermaShow\Values\MenuItem.cs" />
+    <Compile Include="PermaShow\Modules\DrawModule.cs" />
+    <Compile Include="PermaShow\Modules\ModuleBase.cs" />
+    <Compile Include="PermaShow\Modules\CreateMenuModule.cs" />
+    <Compile Include="PermaShow\Modules\Wrapper.cs" />
+    <Compile Include="PermaShow\PermaShow.cs" />
+    <Compile Include="PermaShow\PermashowBase.cs" />
+    <Compile Include="PermaShow\Text.cs" />
+    <Compile Include="PermaShow\Values\StringItem.cs" />
+    <Compile Include="PermaShow\Values\ValueBase.cs" />
     <Compile Include="Bootstrap.cs" />
     <Compile Include="ChampionPlugin.cs" />
     <Compile Include="Interfaces\IItem.cs" />
@@ -255,9 +274,6 @@
     <Compile Include="Utils\MenuValues.cs" />
     <Compile Include="Utils\Misc.cs" />
     <Compile Include="Utils\ObjAiBaseExtensions.cs" />
-    <Compile Include="Utils\PermaShow\PermaShow.cs" />
-    <Compile Include="Utils\PermaShow\Rectangle.cs" />
-    <Compile Include="Utils\PermaShow\Text.cs" />
     <Compile Include="Utils\SafeSpotFinder.cs" />
     <Compile Include="Utils\TearStacker.cs" />
   </ItemGroup>

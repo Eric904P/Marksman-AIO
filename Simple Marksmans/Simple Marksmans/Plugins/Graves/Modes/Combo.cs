@@ -266,7 +266,7 @@ namespace Simple_Marksmans.Plugins.Graves.Modes
 
             if (R.IsReady() && Settings.Combo.UseR)
             {
-                var t = R.GetTarget();
+                var t = TargetSelector.GetTarget(R.Range, DamageType.Physical);
 
                 if (t != null)
                 {

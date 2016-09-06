@@ -35,8 +35,7 @@ using EloBuddy.SDK;
 using EloBuddy.SDK.Rendering;
 using SharpDX; 
 using Color = System.Drawing.Color;
-using Rectangle = Simple_Marksmans.Utils.PermaShow.Rectangle;
-using Text = Simple_Marksmans.Utils.PermaShow.Text;
+using Text = Simple_Marksmans.PermaShow.Text;
 
 namespace Simple_Marksmans.Utils
 {
@@ -152,27 +151,14 @@ namespace Simple_Marksmans.Utils
                 _posUpdated = false;
             }
 
-            var background = new Rectangle(Width, Position, new ColorBGRA(62, 59, 59, 255));
-            background.Draw();
+            Drawing.DrawLine(Position[0], Position[1], Width, System.Drawing.Color.FromArgb(255, 62, 59, 59));
+            Drawing.DrawLine(new Vector2(Position[0].X - Width / 2f, Position[0].Y),
+                new Vector2(Position[0].X + Width / 2f, Position[0].Y), 25, System.Drawing.Color.FromArgb(255, 4, 76, 61));
+            Drawing.DrawLine(new Vector2(Position[0].X, Position[0].Y + 40),
+                new Vector2(Position[0].X + 25, Position[0].Y + 40), 25, System.Drawing.Color.FromArgb(255, _slider1.Value, _slider2.Value, _slider3.Value));
 
-            var separator = new Rectangle(25,
-                new[]
-                {
-                    new Vector2(Position[0].X - Width/2f, Position[0].Y),
-                    new Vector2(Position[0].X + Width/2f, Position[0].Y)
-                }, new ColorBGRA(4, 76, 61, 255));
-            separator.Draw();
-
-            var preview = new Rectangle(25,
-                new[]
-                {
-                    new Vector2(Position[0].X, Position[0].Y + 40),
-                    new Vector2(Position[0].X + 25, Position[0].Y + 40)
-                }, new ColorBGRA((byte)_slider1.Value, (byte)_slider2.Value, (byte)_slider3.Value, 255));
-            preview.Draw();
-
-            var fontPositionX = (int) (Position[0].X - Width/2f + 25);
-            var fontPositionY = (int) Position[0].Y - (int) _text.Height/2;
+            var fontPositionX = (int)(Position[0].X - Width / 2f + 25);
+            var fontPositionY = (int)Position[0].Y - (int)_text.Height / 2;
             var sliderPositionX = (int)(Position[0].X + Width / 2f);
 
             _text.Font.DrawText(null, "Color Picker", fontPositionX, fontPositionY, new ColorBGRA(13, 168, 97, 255));
@@ -185,32 +171,23 @@ namespace Simple_Marksmans.Utils
             _slider2.Positions = new[] { new Vector2(fontPositionX, fontPositionY + 150), new Vector2(sliderPositionX - 25, fontPositionY + 150) };
             _slider3.Positions = new[] { new Vector2(fontPositionX, fontPositionY + 190), new Vector2(sliderPositionX - 25, fontPositionY + 190) };
 
-            if(!_posUpdated)
+            if (!_posUpdated)
             {
                 _slider1.UpdatePosition();
                 _slider2.UpdatePosition();
                 _slider3.UpdatePosition();
             }
-            
+
             _slider1.Draw();
             _slider2.Draw();
             _slider3.Draw();
-            
-            var cancelButton = new Rectangle(25,
-                new[]
-                {
-                    new Vector2(Position[0].X - Width / 2f + 25, fontPositionY + 225),
-                    new Vector2(Position[0].X - Width / 2f + Width/2f, fontPositionY + 225)
-                }, new ColorBGRA(252, 113, 106, IsMouseOverCancelButton() ? (byte)255 : (byte)150));
-            cancelButton.Draw();
 
-            var okButton = new Rectangle(25,
-                new[]
-                {
-                    new Vector2(Position[0].X - Width / 2f + Width/2f, fontPositionY + 225),
-                    new Vector2(Position[0].X + Width / 2f - 25, fontPositionY + 225)
-                }, new ColorBGRA(53, 188, 156, IsMouseOverConfirmButton() ? (byte)255 : (byte)150));
-            okButton.Draw();
+
+            Drawing.DrawLine(new Vector2(Position[0].X - Width / 2f + 25, fontPositionY + 225),
+                new Vector2(Position[0].X - Width / 2f + Width / 2f, fontPositionY + 225), 25, System.Drawing.Color.FromArgb(IsMouseOverCancelButton() ? 255 : 150, 252, 113, 106));
+
+            Drawing.DrawLine(new Vector2(Position[0].X - Width / 2f + Width / 2f, fontPositionY + 225),
+                new Vector2(Position[0].X + Width / 2f - 25, fontPositionY + 225), 25, System.Drawing.Color.FromArgb(IsMouseOverConfirmButton() ? 255 : 150, 53, 188, 156));
 
             _text.Message = "Cancel";
             _text.Font.DrawText(null, "Cancel", (int)(Position[0].X - Width / 2f + 25) + +_text.GetTextRectangle().Width / 3, fontPositionY + 215,

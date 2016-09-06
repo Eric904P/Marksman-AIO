@@ -247,7 +247,7 @@ namespace Simple_Marksmans.Plugins.Caitlyn
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Ace in the Hole (R) settings :");
-            ComboMenu.Add("Plugins.Caitlyn.ComboMenu.UseR", new CheckBox("Use R"));
+            ComboMenu.Add("Plugins.Caitlyn.ComboMenu.UseR", new CheckBox("Use R", false));
 
             HarassMenu = MenuManager.Menu.AddSubMenu("Harass");
             HarassMenu.AddGroupLabel("Harass mode settings for Caitlyn addon");

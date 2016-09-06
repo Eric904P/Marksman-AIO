@@ -26,15 +26,21 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using System;
-using EloBuddy;
-using SharpDX;
-using SharpDX.Direct3D9;
-using Font = SharpDX.Direct3D9.Font;
-
-namespace Simple_Marksmans.Utils.PermaShow
+namespace Simple_Marksmans.PermaShow
 {
-    internal sealed class Text : IDisposable
+    using System;
+
+    using EloBuddy;
+
+    using SharpDX;
+    
+    using SharpDX.Direct3D9;
+
+    using Interfaces;
+
+    using Font = SharpDX.Direct3D9.Font;
+
+    internal sealed class Text : IDisposable, IDrawable
     {
         public Font Font { get; set; }
 
@@ -103,19 +109,19 @@ namespace Simple_Marksmans.Utils.PermaShow
             Drawing.OnPreReset -= Drawing_OnPreReset;
             Drawing.OnPostReset -= Drawing_OnPostReset;
         }
-        /*
+        
         public void Draw()
         {
-            if (Font == null || Font.IsDisposed || Device == null || Device.IsDisposed || Height < 1 || string.IsNullOrEmpty(Message))
+            if (Font == null || Font.IsDisposed || Drawing.Direct3DDevice == null || Drawing.Direct3DDevice.IsDisposed || Height < 1 || string.IsNullOrEmpty(Message))
                 return;
 
-            using (this)
+            //using (Font)
             {
                 Font.DrawText(null, Message, X, Y, Color);
             }
-        }*/
+        }
 
-        public SharpDX.Rectangle GetTextRectangle()
+        public Rectangle GetTextRectangle()
         {
             return Font.MeasureText(null, Message, FontDrawFlags.Right);
         }

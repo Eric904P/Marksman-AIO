@@ -59,7 +59,7 @@ namespace Simple_Marksmans.Plugins.Ashe
         private static readonly ColorPicker[] ColorPicker;
         private static bool _changingRangeScan;
         public static bool IsPreAttack { get; private set; }
-
+        
         static Ashe()
         {
             Q = new Spell.Active(SpellSlot.Q);

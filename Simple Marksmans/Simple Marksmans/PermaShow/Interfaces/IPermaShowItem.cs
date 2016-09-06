@@ -1,6 +1,6 @@
 ﻿#region Licensing
 // //  ---------------------------------------------------------------------
-// //  <copyright file="Combo.cs" company="EloBuddy">
+// //  <copyright file="IPermaShowItem.cs" company="EloBuddy">
 // // 
 // //  Marksman AIO
 // // 
@@ -26,14 +26,10 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using EloBuddy;
-
-namespace Simple_Marksmans.Plugins.Varus.Modes
+namespace Simple_Marksmans.PermaShow.Interfaces
 {
-    internal class Combo : Varus
+    public interface IPermaShowItem
     {
-        public static void Execute()
-        {
-        }
+        T Get<T>();
     }
 }

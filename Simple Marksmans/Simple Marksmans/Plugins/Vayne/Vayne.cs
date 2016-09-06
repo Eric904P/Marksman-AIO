@@ -38,7 +38,6 @@ using EloBuddy.SDK.Rendering;
 using Simple_Marksmans.Utils;
 using EloBuddy.SDK.Utils;
 using SharpDX;
-using Simple_Marksmans.Utils.PermaShow;
 using Color = SharpDX.Color;
 using Text = EloBuddy.SDK.Rendering.Text;
 
@@ -56,11 +55,7 @@ namespace Simple_Marksmans.Plugins.Vayne
         private static Menu LaneClearMenu { get; set; }
         private static Menu MiscMenu { get; set; }
         private static Menu DrawingsMenu { get; set; }
-
-        public static PermaShow PermaShow;
-        public static BoolItemData SafetyChecksPermaShowItem;
-        public static BoolItemData NoAaStealthPermaShowItem;
-
+        
         public static BuffInstance GetTumbleBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
@@ -113,8 +108,6 @@ namespace Simple_Marksmans.Plugins.Vayne
                 GameObject.OnCreate += Obj_AI_Base_OnCreate;
             }
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
-
-            PermaShow = new PermaShow("Vayne PermaShow", new Vector2(200, 200));
         }
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
@@ -350,15 +343,7 @@ namespace Simple_Marksmans.Plugins.Vayne
 
             MiscMenu.AddLabel("Basic settings :");
             MiscMenu.Add("Plugins.Vayne.MiscMenu.NoAAWhileStealth",
-                new KeyBind("Dont AutoAttack while stealth", false, KeyBind.BindTypes.PressToggle, 'T')).OnValueChange
-                +=
-                (a, b) =>
-                {
-                    if (NoAaStealthPermaShowItem != null)
-                    {
-                        NoAaStealthPermaShowItem.Value = b.NewValue;
-                    }
-                };
+                new KeyBind("Dont AutoAttack while stealth", false, KeyBind.BindTypes.PressToggle, 'T'));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.NoAADelay", new Slider("Delay", 1000, 0, 1000));
             MiscMenu.AddSeparator(5);
 
@@ -371,21 +356,11 @@ namespace Simple_Marksmans.Plugins.Vayne
 
             MiscMenu.AddLabel("Additional Tumble (Q) settings :");
             MiscMenu.Add("Plugins.Vayne.MiscMenu.QMode", new ComboBox("Q Mode", 0, "CursorPos", "Auto"));
-            MiscMenu.Add("Plugins.Vayne.MiscMenu.QSafetyChecks", new CheckBox("Enable safety checks")).OnValueChange +=
-                (a, b) =>
-                {
-                    if (SafetyChecksPermaShowItem != null)
-                    {
-                        SafetyChecksPermaShowItem.Value = b.NewValue;
-                    }
-                };
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.QSafetyChecks", new CheckBox("Enable safety checks"));
 
             DrawingsMenu = MenuManager.Menu.AddSubMenu("Drawings");
             DrawingsMenu.AddGroupLabel("Drawing settings for Vayne addon");
             DrawingsMenu.Add("Plugins.Vayne.DrawingsMenu.DrawInfo", new CheckBox("Draw info"));
-
-            SafetyChecksPermaShowItem = PermaShow.AddItem("Safety Checks", new BoolItemData("Enable safety checks", Settings.Misc.QSafetyChecks, 14));
-            NoAaStealthPermaShowItem = PermaShow.AddItem("No Aa While stealth", new BoolItemData("No AA while stealth", Settings.Misc.NoAaWhileStealth, 14));
         }
 
         protected override void PermaActive()

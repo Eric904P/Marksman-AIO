@@ -39,7 +39,6 @@ using Color = System.Drawing.Color;
 using EloBuddy.SDK.Rendering;
 using EloBuddy.SDK.Utils;
 using SharpDX;
-using Simple_Marksmans.Utils.PermaShow;
 
 namespace Simple_Marksmans.Plugins.Urgot
 {
@@ -72,9 +71,6 @@ namespace Simple_Marksmans.Plugins.Urgot
             return CorrosiveDebufTargets.Contains(unit);
         }
 
-        public static PermaShow PermaShow { get; }
-        public static BoolItemData AutoHarassBoolItemData { get; private set; }
-
         static Urgot()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 900, SkillShotType.Linear, 250, 1550, 60);
@@ -102,8 +98,6 @@ namespace Simple_Marksmans.Plugins.Urgot
                 (a, b) =>
                     DamageIndicator.Color =
                         Color.FromArgb(ColorPicker[3].Color.R, ColorPicker[3].Color.G, ColorPicker[3].Color.B);
-
-            PermaShow = new PermaShow("Urgot PermaShow", new Vector2(200, 200));
 
             Game.OnTick += Game_OnTick;
             Game.OnPostTick += args =>
@@ -273,14 +267,7 @@ namespace Simple_Marksmans.Plugins.Urgot
 
             MiscMenu.AddLabel("Acid Hunter (Q) settings :");
             MiscMenu.Add("Plugins.Urgot.MiscMenu.AutoHarass",
-                new KeyBind("Auto harass", true, KeyBind.BindTypes.PressToggle, 'T')).OnValueChange +=
-                (a, b) =>
-                {
-                    if (AutoHarassBoolItemData != null)
-                    {
-                        AutoHarassBoolItemData.Value = b.NewValue;
-                    }
-                };
+                new KeyBind("Auto harass", true, KeyBind.BindTypes.PressToggle, 'T'));
             MiscMenu.AddLabel("Enables Auto harass on enemies with E debuff in Lane Clear and Harass mode !");
             MiscMenu.AddSeparator(5);
 
@@ -355,8 +342,6 @@ namespace Simple_Marksmans.Plugins.Urgot
                 a.CurrentValue = false;
             };
             DrawingsMenu.AddLabel("Draws damage indicator");
-
-            AutoHarassBoolItemData = PermaShow.AddItem("Auto harass", new BoolItemData("Enable Auto harass", Settings.Misc.AutoHarass, 14));
         }
 
         protected override void PermaActive()

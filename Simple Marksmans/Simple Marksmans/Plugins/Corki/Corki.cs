@@ -38,7 +38,6 @@ using EloBuddy.SDK.Rendering;
 using EloBuddy.SDK.Utils;
 using SharpDX;
 using Simple_Marksmans.Utils;
-using Simple_Marksmans.Utils.PermaShow;
 using Color = System.Drawing.Color;
 
 namespace Simple_Marksmans.Plugins.Corki
@@ -65,8 +64,6 @@ namespace Simple_Marksmans.Plugins.Corki
         private static bool _changingRangeScan;
         
         private static readonly ColorPicker[] ColorPicker;
-        public static PermaShow PermaShow;
-        public static BoolItemData AutoHarassPermaShowItem;
 
         public static BuffInstance GetRBigMissileBuff
             =>
@@ -132,7 +129,6 @@ namespace Simple_Marksmans.Plugins.Corki
             ColorPicker[2] = new ColorPicker("CorkiR", new ColorBGRA(1, 109, 160, 255));
             ColorPicker[3] = new ColorPicker("CorkiHpBar", new ColorBGRA(255, 134, 0, 255));
             
-            PermaShow = new PermaShow("Corki PermaShow", new Vector2(200, 200));
             DamageIndicator.Initalize(Color.FromArgb(ColorPicker[3].Color.R, ColorPicker[3].Color.G, ColorPicker[3].Color.B), 1300);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
@@ -284,14 +280,8 @@ namespace Simple_Marksmans.Plugins.Corki
             MiscMenu = MenuManager.Menu.AddSubMenu("Misc");
             MiscMenu.AddGroupLabel("Misc settings for Corki addon");
             MiscMenu.AddLabel("Auto harass settings : ");
-            MiscMenu.Add("Plugins.Corki.MiscMenu.AutoHarassEnabled", new KeyBind("Enable auto harass", true, KeyBind.BindTypes.PressToggle, 'T')).OnValueChange +=
-                (a, b) =>
-                {
-                    if (AutoHarassPermaShowItem != null)
-                    {
-                        AutoHarassPermaShowItem.Value = b.NewValue;
-                    }
-                };
+            MiscMenu.Add("Plugins.Corki.MiscMenu.AutoHarassEnabled",
+                new KeyBind("Enable auto harass", true, KeyBind.BindTypes.PressToggle, 'T'));
             MiscMenu.Add("Plugins.Corki.MiscMenu.UseBigBomb", new CheckBox("Use big bomb", false));
             MiscMenu.Add("Plugins.Corki.MiscMenu.MinStacksToUseR", new Slider("Minimum stacks to use R", 3, 0, 7));
             MiscMenu.AddSeparator(5);
@@ -358,8 +348,6 @@ namespace Simple_Marksmans.Plugins.Corki
                     ColorPicker[3].Initialize(Color.Aquamarine);
                     a.CurrentValue = false;
                 };
-            
-            AutoHarassPermaShowItem = PermaShow.AddItem("Auto Harass", new BoolItemData("Auto Harass", Settings.Misc.AutoHarassEnabled, 14));
         }
         
         public static List<T> GetCollisionObjects<T>(Obj_AI_Base unit) where T : Obj_AI_Base
