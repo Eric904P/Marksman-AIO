@@ -182,7 +182,7 @@ namespace Marksman_Master
 
         public static void LoadPlugin()
         {
-            var typeName = "Simple_Marksmans.Plugins." + Player.Instance.ChampionName + "." + Player.Instance.ChampionName;
+            var typeName = "Marksman_Master.Plugins." + Player.Instance.ChampionName + "." + Player.Instance.ChampionName;
 
             var type = Type.GetType(typeName);
 
