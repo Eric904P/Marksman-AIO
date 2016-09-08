@@ -86,13 +86,12 @@ namespace Simple_Marksmans.Plugins.Twitch
             ColorPicker[2] = new ColorPicker("TwitchR", new ColorBGRA(241, 188, 160, 255));
             ColorPicker[3] = new ColorPicker("TwitchHpBar", new ColorBGRA(255, 134, 0, 255));
 
-            DamageIndicator.Initalize(System.Drawing.Color.FromArgb(ColorPicker[3].Color.R, ColorPicker[3].Color.G, ColorPicker[3].Color.B), (int)E.Range);
+            DamageIndicator.Initalize(ColorPicker[3].Color, (int)E.Range);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ColorPicker[3].OnColorChange += (sender, args) =>
             {
-                DamageIndicator.Color = System.Drawing.Color.FromArgb(args.Color.R, args.Color.G,
-                    args.Color.B);
+                DamageIndicator.Color = args.Color;
             };
 
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
@@ -166,7 +165,6 @@ namespace Simple_Marksmans.Plugins.Twitch
 
             if (enemy != null)
             {
-                
                 return Damage.GetEDamage(enemy);
             }
             return 0;
@@ -1028,6 +1026,8 @@ namespace Simple_Marksmans.Plugins.Twitch
                 new Dictionary<int, Dictionary<float, float>>();
             private static readonly Dictionary<int, Dictionary<float, float>> PassiveDamages =
                 new Dictionary<int, Dictionary<float, float>>();
+            private static readonly Dictionary<int, Dictionary<float, int>> EStacks =
+                new Dictionary<int, Dictionary<float, int>>();
 
             public static float GetComboDamage(AIHeroClient enemy, int autos = 0)
             {
@@ -1175,38 +1175,54 @@ namespace Simple_Marksmans.Plugins.Twitch
                     return 0;
                 }
 
-                var index = ObjectManager.Get<Obj_GeneralParticleEmitter>().ToList().Where(e => e.Name.Contains("twitch_poison_counter") &&
-                e.Position.Distance(unit.ServerPosition) <= (unit.Type == GameObjectType.obj_AI_Minion ? 65 : 175));
-
-                var stacks = 0;
-
-                foreach (var x in index)
+                if (EStacks.ContainsKey(unit.NetworkId) &&
+                    !EStacks.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
                 {
-                    switch (x.Name)
-                    {
-                        case "twitch_poison_counter_01.troy":
-                            stacks = 1;
-                            break;
-                        case "twitch_poison_counter_02.troy":
-                            stacks = 2;
-                            break;
-                        case "twitch_poison_counter_03.troy":
-                            stacks = 3;
-                            break;
-                        case "twitch_poison_counter_04.troy":
-                            stacks = 4;
-                            break;
-                        case "twitch_poison_counter_05.troy":
-                            stacks = 5;
-                            break;
-                        case "twitch_poison_counter_06.troy":
-                            stacks = 6;
-                            break;
-                        default:
-                            stacks = 0;
-                            break;
-                    }
+                    return EStacks[unit.NetworkId].Values.FirstOrDefault();
                 }
+
+                var index = (from i in ObjectManager.Get<Obj_GeneralParticleEmitter>()
+                    where
+                        i.Name.Contains("twitch_poison_counter") &&
+                        i.Position.Distance(unit.ServerPosition) <=
+                        (unit.Type == GameObjectType.obj_AI_Minion ? 65 : 176.7768f)
+                    orderby i.Distance(unit)
+                    select i.Name).FirstOrDefault();
+
+                if (index == null)
+                    return 0;
+
+                Console.WriteLine();
+
+                int stacks;
+
+                switch (index)
+                {
+                    case "twitch_poison_counter_01.troy":
+                        stacks = 1;
+                        break;
+                    case "twitch_poison_counter_02.troy":
+                        stacks = 2;
+                        break;
+                    case "twitch_poison_counter_03.troy":
+                        stacks = 3;
+                        break;
+                    case "twitch_poison_counter_04.troy":
+                        stacks = 4;
+                        break;
+                    case "twitch_poison_counter_05.troy":
+                        stacks = 5;
+                        break;
+                    case "twitch_poison_counter_06.troy":
+                        stacks = 6;
+                        break;
+                    default:
+                        stacks = 0;
+                        break;
+                }
+
+                EStacks[unit.NetworkId] = new Dictionary<float, int> { { Game.Time * 1000, stacks } };
+
                 return stacks;
             }
         }

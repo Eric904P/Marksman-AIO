@@ -80,10 +80,10 @@ namespace Simple_Marksmans.Plugins.Tristana
 
             Orbwalker.OnPostAttack += (sender, args) => IsPreAttack = false;
             
-            DamageIndicator.Initalize(System.Drawing.Color.FromArgb(ColorPicker[1].Color.R, ColorPicker[1].Color.G, ColorPicker[1].Color.B), 1300);
+            DamageIndicator.Initalize(ColorPicker[1].Color, 1300);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
-            ColorPicker[1].OnColorChange += (a, b) => { DamageIndicator.Color = System.Drawing.Color.FromArgb(b.Color.A, b.Color.R, b.Color.G, b.Color.B); };
+            ColorPicker[1].OnColorChange += (a, b) => { DamageIndicator.Color = b.Color; };
         }
         
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)

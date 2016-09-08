@@ -26,15 +26,45 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
+
+using System.Linq;
 using EloBuddy;
+using EloBuddy.SDK;
 
 namespace Simple_Marksmans.Plugins.Varus.Modes
 {
     internal class LaneClear : Varus
     {
+        public static bool CanILaneClear()
+        {
+            return !Settings.LaneClear.EnableIfNoEnemies ||
+                   Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <=
+                   Settings.LaneClear.AllowedEnemies;
+        }
+
         public static void Execute()
         {
-            Chat.Print("LaneClear mode !");
+            var laneMinions = EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
+                Player.Instance.Position, 1500).ToList();
+
+            if (!laneMinions.Any() || !CanILaneClear())
+                return;
+
+            if (Q.IsReady() && !Player.Instance.IsUnderTurret() && Settings.LaneClear.UseQInLaneClear && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ && laneMinions.Count >= Settings.LaneClear.MinMinionsHitQ)
+            {
+                if (!Q.IsCharging && !IsPreAttack)
+                {
+                    Q.StartCharging();
+                } else if (Q.IsCharging && Q.IsFullyCharged)
+                {
+                    Q.CastOnBestFarmPosition(Settings.LaneClear.MinMinionsHitQ);
+                }
+            }
+
+            if (E.IsReady() && !Player.Instance.IsUnderTurret() && Settings.LaneClear.UseEInLaneClear && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE && laneMinions.Count >= Settings.LaneClear.MinMinionsHitE)
+            {
+                E.CastOnBestFarmPosition(Settings.LaneClear.MinMinionsHitE);
+            }
         }
     }
 }

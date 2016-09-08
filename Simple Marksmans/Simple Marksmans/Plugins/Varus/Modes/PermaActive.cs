@@ -26,12 +26,14 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using EloBuddy;
+using EloBuddy.SDK;
+using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Spells;
+using Simple_Marksmans.Utils;
 
 namespace Simple_Marksmans.Plugins.Varus.Modes
 {
@@ -39,6 +41,71 @@ namespace Simple_Marksmans.Plugins.Varus.Modes
     {
         public static void Execute()
         {
+            if (Settings.Misc.EnableKillsteal)
+            {
+                if(Q.IsCharging && EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(Q.Range) && x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x)))
+                {
+                    Q.CastMinimumHitchance(
+                        EntityManager.Heroes.Enemies.First(
+                            x => !x.IsDead &&
+                                x.IsValidTarget(Q.Range) &&
+                                x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x)), HitChance.Medium);
+                } else if (E.IsReady() && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(E.Range) && x.TotalHealthWithShields() <= Player.Instance.GetSpellDamage(x, SpellSlot.E) + Damage.GetWDamage(x)))
+                {
+                    E.CastMinimumHitchance(EntityManager.Heroes.Enemies.First(x => !x.IsDead && x.IsValidTarget(E.Range) && x.TotalHealthWithShields() <= Player.Instance.GetSpellDamage(x, SpellSlot.E) + Damage.GetWDamage(x)), HitChance.Medium);
+                }
+            }
+
+            if (Settings.Harass.AutoHarassWithQ && Q.IsReady() &&
+                Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)
+            {
+                if (
+                    EntityManager.Heroes.Enemies.Any(x =>
+                                                     x.IsValidTarget(Q.MaximumRange) && Settings.Harass.IsAutoHarassEnabledFor(x)))
+                {
+                    if (!Q.IsCharging && !EntityManager.Heroes.Enemies.Any(x =>
+                                                                          x.IsValidTarget(Settings.Combo.QMinDistanceToTarget)))
+                    {
+                        Q.StartCharging();
+                    } else if (Q.IsCharging && Q.IsFullyCharged)
+                    {
+                        foreach (var target in EntityManager.Heroes.Enemies.Where(x =>
+                                                                                  x.IsValidTarget(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x)))
+                        {
+                            if (!Q.IsReady())
+                                break;
+
+                            Q.CastMinimumHitchance(target, 65);
+                        }
+                    }
+                }
+            }
+
+            if (!R.IsReady() || !Settings.Combo.UseR)
+                return;
+
+            var t = TargetSelector.GetTarget(R.Range, DamageType.Physical);
+
+            if (t == null || !Settings.Combo.RKeybind)
+                return;
+
+            var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+            {
+                CollisionTypes = new HashSet<CollisionType> { CollisionType.AiHeroClient, CollisionType.YasuoWall },
+                Delay = 250,
+                From = Player.Instance.Position,
+                Radius = 115,
+                Range = R.Range,
+                RangeCheckFrom = Player.Instance.Position,
+                Speed = R.Speed,
+                Target = t,
+                Type = SkillShotType.Linear
+            });
+
+            if (rPrediciton.HitChancePercent >= 70)
+            {
+                R.Cast(rPrediciton.CastPosition);
+            }
         }
     }
 }

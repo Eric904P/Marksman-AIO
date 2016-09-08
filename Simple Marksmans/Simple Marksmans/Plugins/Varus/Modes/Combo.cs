@@ -26,7 +26,14 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
+
+using System.Collections.Generic;
+using System.Linq;
 using EloBuddy;
+using EloBuddy.SDK;
+using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Spells;
+using Simple_Marksmans.Utils;
 
 namespace Simple_Marksmans.Plugins.Varus.Modes
 {
@@ -34,6 +41,118 @@ namespace Simple_Marksmans.Plugins.Varus.Modes
     {
         public static void Execute()
         {
+            if (Settings.Combo.UseR && R.IsReady() && !IsPreAttack)
+            {
+                var possibleTargets = EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA() && x.TotalHealthWithShields() < GetComboDamage(x) && x.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(x, true) * 2 && R.GetPrediction(x).HitChancePercent >= 70).ToList();
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                if (target != null)
+                {
+                    var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                    {
+                        CollisionTypes = new HashSet<CollisionType> { CollisionType.AiHeroClient, CollisionType.YasuoWall },
+                        Delay = 250,
+                        From = Player.Instance.Position,
+                        Radius = 115,
+                        Range = R.Range,
+                        RangeCheckFrom = Player.Instance.Position,
+                        Speed = R.Speed,
+                        Target = target,
+                        Type = SkillShotType.Linear
+                    });
+
+                    if (rPrediciton.HitChancePercent >= 70)
+                    {
+                        R.Cast(rPrediciton.CastPosition);
+                    }
+                }
+                else
+                {
+                    var t = EntityManager.Heroes.Enemies.FirstOrDefault(
+                            x => x.IsValidTarget(R.Range) && !x.HasSpellShield() && x.CountEnemiesInRange(850) >= 3);
+
+                    if (t != null)
+                    {
+                        var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                        {
+                            CollisionTypes = new HashSet<CollisionType> { CollisionType.AiHeroClient, CollisionType.YasuoWall },
+                            Delay = 250,
+                            From = Player.Instance.Position,
+                            Radius = 115,
+                            Range = R.Range,
+                            RangeCheckFrom = Player.Instance.Position,
+                            Speed = R.Speed,
+                            Target = t,
+                            Type = SkillShotType.Linear
+                        });
+
+                        if (rPrediciton.HitChancePercent >= 70)
+                        {
+                            R.Cast(rPrediciton.CastPosition);
+                        }
+                    }
+                }
+            }
+
+            if (Q.IsReady() && Settings.Combo.UseQ)
+            {
+                var possibleTargets =
+                    EntityManager.Heroes.Enemies.Where(
+                        x => x.IsValidTarget(Q.MaximumRange) && !x.HasSpellShield() && !x.HasUndyingBuffA()).ToList();
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                if (target != null)
+                {
+                    if (!Q.IsCharging &&
+                        (possibleTargets.Any(
+                            x =>
+                                x.IsValidTarget(Settings.Combo.QMinDistanceToTarget) &&
+                                x.TotalHealthWithShields() < Damage.GetQDamage(x) + Damage.GetWDamage(x)) ||
+                         !possibleTargets.Any(x => x.IsValidTarget(Settings.Combo.QMinDistanceToTarget))) && !IsPreAttack)
+                    {
+                        Q.StartCharging();
+                        return;
+                    }
+
+                    if (Q.IsCharging)
+                    {
+                        var damage = Damage.GetQDamage(target);
+
+                        if(HasWDebuff(target) && (GetWDebuff(target).EndTime - Game.Time > 0.25 + Player.Instance.Distance(target)/Q.Speed))
+                            damage += Damage.GetWDamage(target);
+
+                        if (damage >= target.TotalHealthWithShields())
+                        {
+                            Q.CastMinimumHitchance(target, HitChance.Medium);
+                        }
+                        else if (Q.IsFullyCharged)
+                        {
+                            Q.CastMinimumHitchance(target, 70);
+                        }
+                    }
+                }
+            }
+
+            if (Settings.Combo.UseE && E.IsReady() && !IsPreAttack)
+            {
+                if (EntityManager.Heroes.Enemies.Count(x => x.IsValidTarget(E.Range)) >= 2)
+                {
+                    E.CastIfItWillHit();
+                }
+
+                var possibleTargets =
+                    EntityManager.Heroes.Enemies.Where(
+                        x => !x.IsDead && x.IsValidTarget(E.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA() && (!Settings.Combo.UseEToProc || HasWDebuff(x) && GetWDebuff(x).Count == 3)).ToList();
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                if (target != null)
+                {
+                    E.CastMinimumHitchance(target, 70);
+                }
+            }
         }
     }
 }

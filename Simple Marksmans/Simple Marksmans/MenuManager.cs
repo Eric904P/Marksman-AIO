@@ -33,22 +33,23 @@ using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
+using SharpDX;
 using Simple_Marksmans.Utils;
-
 namespace Simple_Marksmans
 {
-    public static class MenuManager
+    internal static class MenuManager
     {
-        public static Menu Menu { get; set; }
-        public static Menu GapcloserMenu { get; set; }
-        public static Menu InterrupterMenu { get; set; }
-        public static int GapclosersFound { get; private set; }
-        public static int InterruptibleSpellsFound { get; private set; }
-        public static int GapcloserScanRange { get; set; } = 1250;
+        internal static Menu Menu { get; set; }
+        internal static PermaShow.PermaShow PermaShow { get; set; } = new PermaShow.PermaShow("PermaShow", new Vector2(200, 200));
+        internal static Menu GapcloserMenu { get; set; }
+        internal static Menu InterrupterMenu { get; set; }
+        internal static int GapclosersFound { get; private set; }
+        internal static int InterruptibleSpellsFound { get; private set; }
+        internal static int GapcloserScanRange { get; set; } = 1250;
 
-        public static MenuValues MenuValues { get; set; } = new MenuValues();
+        internal static MenuValues MenuValues { get; set; } = new MenuValues();
 
-        public static void CreateMenu()
+        internal static void CreateMenu()
         {
             Menu = MainMenu.AddMenu("Marksman AIO", "MarksmanAIO");
             Menu.AddGroupLabel("Welcome back, Buddy !");
@@ -57,14 +58,11 @@ namespace Simple_Marksmans
                           "hope you will have fun. Good luck !");
             Menu.AddSeparator(40);
             Menu.AddLabel("Marksman AIO is currently in early beta phase.\nIf you experienced any bugs please report them in the forum thread.");
-
-            //BuildAntiGapcloserMenu();
-            //BuildInterrupterMenu();
-
+            
             InitializeAddon.PluginInstance.CreateMenu();
         }
 
-        public static void BuildInterrupterMenu()
+        internal static void BuildInterrupterMenu()
         {
             if (
                 !EntityManager.Heroes.Enemies.Any(
@@ -124,7 +122,7 @@ namespace Simple_Marksmans
             }
         }
 
-        public static void BuildAntiGapcloserMenu()
+        internal static void BuildAntiGapcloserMenu()
         {
             if (!EntityManager.Heroes.Enemies.Any(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName)))
             {

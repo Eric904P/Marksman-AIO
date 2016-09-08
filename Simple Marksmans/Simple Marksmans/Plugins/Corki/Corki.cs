@@ -129,13 +129,12 @@ namespace Simple_Marksmans.Plugins.Corki
             ColorPicker[2] = new ColorPicker("CorkiR", new ColorBGRA(1, 109, 160, 255));
             ColorPicker[3] = new ColorPicker("CorkiHpBar", new ColorBGRA(255, 134, 0, 255));
             
-            DamageIndicator.Initalize(Color.FromArgb(ColorPicker[3].Color.R, ColorPicker[3].Color.G, ColorPicker[3].Color.B), 1300);
+            DamageIndicator.Initalize(ColorPicker[3].Color, 1300);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ColorPicker[3].OnColorChange += (sender, args) =>
             {
-                DamageIndicator.Color = Color.FromArgb(args.Color.R, args.Color.G,
-                    args.Color.B);
+                DamageIndicator.Color = args.Color;
             };
         }
 

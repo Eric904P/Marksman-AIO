@@ -100,14 +100,13 @@ namespace Simple_Marksmans.Plugins.MissFortune
             ColorPicker[2] = new ColorPicker("MissFortuneR", new ColorBGRA(255, 134, 0, 255));
             ColorPicker[3] = new ColorPicker("MissFortuneHpBar", new ColorBGRA(255, 134, 0, 255));
 
-            DamageIndicator.Initalize(Color.FromArgb(ColorPicker[3].Color.R, ColorPicker[3].Color.G,
-                ColorPicker[3].Color.B), (int)R.Range);
+            DamageIndicator.Initalize(ColorPicker[3].Color, (int)R.Range);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ColorPicker[3].OnColorChange +=
                 (a, b) =>
                 {
-                    DamageIndicator.Color = Color.FromArgb(b.Color.A, b.Color.R, b.Color.G, b.Color.B);
+                    DamageIndicator.Color = b.Color;
                 };
 
             Orbwalker.OnPostAttack += (sender, args) =>

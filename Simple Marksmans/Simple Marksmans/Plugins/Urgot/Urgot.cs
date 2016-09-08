@@ -91,13 +91,10 @@ namespace Simple_Marksmans.Plugins.Urgot
             ColorPicker[3] = new ColorPicker("UrgotHpBar", new ColorBGRA(255, 134, 0, 255));
 
 
-            DamageIndicator.Initalize(Color.FromArgb(ColorPicker[3].Color.R, ColorPicker[3].Color.G, ColorPicker[3].Color.B));
+            DamageIndicator.Initalize(ColorPicker[3].Color);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
-            ColorPicker[3].OnColorChange +=
-                (a, b) =>
-                    DamageIndicator.Color =
-                        Color.FromArgb(ColorPicker[3].Color.R, ColorPicker[3].Color.G, ColorPicker[3].Color.B);
+            ColorPicker[3].OnColorChange += (a, b) => DamageIndicator.Color = b.Color;
 
             Game.OnTick += Game_OnTick;
             Game.OnPostTick += args =>

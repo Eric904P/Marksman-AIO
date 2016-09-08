@@ -35,6 +35,7 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using Simple_Marksmans.Activator.Items;
 using Simple_Marksmans.Interfaces;
+using Simple_Marksmans.PermaShow.Values;
 using Simple_Marksmans.Utils;
 
 namespace Simple_Marksmans.Activator
@@ -363,6 +364,8 @@ namespace Simple_Marksmans.Activator
 
             CleanseMenu.Add("Activator.CleanseMenu.MinimumDelay", new Slider("Minimum delay", 0, 0, 500));
             CleanseMenu.Add("Activator.CleanseMenu.MaximumDelay", new Slider("Maximum delay", 350, 0, 500));
+
+            MenuManager.PermaShow.AddItem("Activator.Enabled", new MenuItem("Activator Enabled", "Activator.Enable"));
         }
 
         public static void LoadItem(int id)

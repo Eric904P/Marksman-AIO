@@ -87,14 +87,13 @@ namespace Simple_Marksmans.Plugins.Caitlyn
             ColorPicker[2] = new ColorPicker("CaitlynR", new ColorBGRA(255, 134, 0, 255));
             ColorPicker[3] = new ColorPicker("CaitlynHpBar", new ColorBGRA(255, 134, 0, 255));
 
-            DamageIndicator.Initalize(System.Drawing.Color.FromArgb(ColorPicker[3].Color.R, ColorPicker[3].Color.G,
-                ColorPicker[3].Color.B), (int)R.Range);
+            DamageIndicator.Initalize(ColorPicker[3].Color, (int)R.Range);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ColorPicker[3].OnColorChange +=
                 (a, b) =>
                 {
-                    DamageIndicator.Color = System.Drawing.Color.FromArgb(b.Color.A, b.Color.R, b.Color.G, b.Color.B);
+                    DamageIndicator.Color = b.Color;
                 };
 
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));

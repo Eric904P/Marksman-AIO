@@ -91,14 +91,13 @@ namespace Simple_Marksmans.Plugins.Ezreal
             ColorPicker[2] = new ColorPicker("EzrealE", new ColorBGRA(255, 134, 0, 255));
             ColorPicker[3] = new ColorPicker("EzrealHpBar", new ColorBGRA(255, 134, 0, 255));
 
-            DamageIndicator.Initalize(System.Drawing.Color.FromArgb(ColorPicker[3].Color.R, ColorPicker[3].Color.G,
-                ColorPicker[3].Color.B));
+            DamageIndicator.Initalize(ColorPicker[3].Color);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ColorPicker[3].OnColorChange +=
                 (a, b) =>
                 {
-                    DamageIndicator.Color = System.Drawing.Color.FromArgb(b.Color.A, b.Color.R, b.Color.G, b.Color.B);
+                    DamageIndicator.Color = b.Color;
                 };
 
             TearStacker.Initializer(new Dictionary<SpellSlot, float> {{SpellSlot.Q, 5000}, {SpellSlot.W, 15000}},

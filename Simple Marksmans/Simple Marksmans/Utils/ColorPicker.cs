@@ -44,6 +44,7 @@ namespace Simple_Marksmans.Utils
         private Slider _slider1;
         private Slider _slider2;
         private Slider _slider3;
+        private Slider _slider4;
 
         private Text _text;
         private bool _pickingColor;
@@ -56,7 +57,7 @@ namespace Simple_Marksmans.Utils
         public event OnColorChangeEvent OnColorChange;
         
         public ColorBGRA Color { get; set; }
-        public Vector2[] Position { get; set; } = {new Vector2(500, 200), new Vector2(500, 450)};
+        public Vector2[] Position { get; set; } = {new Vector2(500, 200), new Vector2(500, 470)};
         public int Width { get; set; } = 200;
 
         public ColorPicker(string uniqueId, ColorBGRA defaultColor)
@@ -82,9 +83,11 @@ namespace Simple_Marksmans.Utils
                 sliderColor);
             _slider2 = new Slider(0, Color.G, 255, new[] {new Vector2(425, 0), new Vector2(575, 340)},
                 sliderColor);
-            _slider3 = new Slider(0, Color.B, 255, new[] {new Vector2(425, 0), new Vector2(575, 380)},
+            _slider3 = new Slider(0, Color.B, 255, new[] { new Vector2(425, 0), new Vector2(575, 380) },
                 sliderColor);
-            
+            _slider4 = new Slider(0, Color.A, 255, new[] { new Vector2(425, 0), new Vector2(575, 420) },
+                sliderColor);
+
             _pickingColor = true;
         }
 
@@ -114,9 +117,9 @@ namespace Simple_Marksmans.Utils
                 if (!IsMouseOverConfirmButton())
                     return;
 
-                Color = new ColorBGRA((byte) _slider1.Value, (byte) _slider2.Value, (byte) _slider3.Value, 255);
+                Color = new ColorBGRA((byte) _slider1.Value, (byte) _slider2.Value, (byte) _slider3.Value, (byte)_slider4.Value);
 
-                FileHandler.WriteToDataFile(_uniqueId, new ColorBGRA((byte)_slider1.Value, (byte)_slider2.Value, (byte)_slider3.Value, 255));
+                FileHandler.WriteToDataFile(_uniqueId, new ColorBGRA((byte)_slider1.Value, (byte)_slider2.Value, (byte)_slider3.Value, (byte)_slider4.Value));
 
                 OnColorChange?.Invoke(this, new OnColorChangeArgs(Color));
 
@@ -146,7 +149,7 @@ namespace Simple_Marksmans.Utils
                 Position = new[]
                 {
                     new Vector2(Game.CursorPos2D.X, Game.CursorPos2D.Y),
-                    new Vector2(Game.CursorPos2D.X, Game.CursorPos2D.Y + 250)
+                    new Vector2(Game.CursorPos2D.X, Game.CursorPos2D.Y + 270)
                 };
                 _posUpdated = false;
             }
@@ -155,7 +158,7 @@ namespace Simple_Marksmans.Utils
             Drawing.DrawLine(new Vector2(Position[0].X - Width / 2f, Position[0].Y),
                 new Vector2(Position[0].X + Width / 2f, Position[0].Y), 25, System.Drawing.Color.FromArgb(255, 4, 76, 61));
             Drawing.DrawLine(new Vector2(Position[0].X, Position[0].Y + 40),
-                new Vector2(Position[0].X + 25, Position[0].Y + 40), 25, System.Drawing.Color.FromArgb(255, _slider1.Value, _slider2.Value, _slider3.Value));
+                new Vector2(Position[0].X + 25, Position[0].Y + 40), 25, System.Drawing.Color.FromArgb(_slider4.Value, _slider1.Value, _slider2.Value, _slider3.Value));
 
             var fontPositionX = (int)(Position[0].X - Width / 2f + 25);
             var fontPositionY = (int)Position[0].Y - (int)_text.Height / 2;
@@ -166,34 +169,37 @@ namespace Simple_Marksmans.Utils
             _text.Font.DrawText(null, "Red : " + _slider1.Value, fontPositionX, fontPositionY + 80, new ColorBGRA(109, 101, 64, 255));
             _text.Font.DrawText(null, "Green : " + _slider2.Value, fontPositionX, fontPositionY + 120, new ColorBGRA(109, 101, 64, 255));
             _text.Font.DrawText(null, "Blue : " + _slider3.Value, fontPositionX, fontPositionY + 160, new ColorBGRA(109, 101, 64, 255));
+            _text.Font.DrawText(null, "Alpha : " + _slider4.Value, fontPositionX, fontPositionY + 200, new ColorBGRA(109, 101, 64, 255));
 
             _slider1.Positions = new[] { new Vector2(fontPositionX, fontPositionY + 110), new Vector2(sliderPositionX - 25, fontPositionY + 110) };
             _slider2.Positions = new[] { new Vector2(fontPositionX, fontPositionY + 150), new Vector2(sliderPositionX - 25, fontPositionY + 150) };
             _slider3.Positions = new[] { new Vector2(fontPositionX, fontPositionY + 190), new Vector2(sliderPositionX - 25, fontPositionY + 190) };
+            _slider4.Positions = new[] { new Vector2(fontPositionX, fontPositionY + 230), new Vector2(sliderPositionX - 25, fontPositionY + 230) };
 
             if (!_posUpdated)
             {
                 _slider1.UpdatePosition();
                 _slider2.UpdatePosition();
                 _slider3.UpdatePosition();
+                _slider4.UpdatePosition();
             }
 
             _slider1.Draw();
             _slider2.Draw();
             _slider3.Draw();
+            _slider4.Draw();
 
+            Drawing.DrawLine(new Vector2(Position[0].X - Width / 2f + 25, fontPositionY + 255),
+                new Vector2(Position[0].X - Width / 2f + Width / 2f, fontPositionY + 255), 25, System.Drawing.Color.FromArgb(IsMouseOverCancelButton() ? 255 : 150, 252, 113, 106));
 
-            Drawing.DrawLine(new Vector2(Position[0].X - Width / 2f + 25, fontPositionY + 225),
-                new Vector2(Position[0].X - Width / 2f + Width / 2f, fontPositionY + 225), 25, System.Drawing.Color.FromArgb(IsMouseOverCancelButton() ? 255 : 150, 252, 113, 106));
-
-            Drawing.DrawLine(new Vector2(Position[0].X - Width / 2f + Width / 2f, fontPositionY + 225),
-                new Vector2(Position[0].X + Width / 2f - 25, fontPositionY + 225), 25, System.Drawing.Color.FromArgb(IsMouseOverConfirmButton() ? 255 : 150, 53, 188, 156));
+            Drawing.DrawLine(new Vector2(Position[0].X - Width / 2f + Width / 2f, fontPositionY + 255),
+                new Vector2(Position[0].X + Width / 2f - 25, fontPositionY + 255), 25, System.Drawing.Color.FromArgb(IsMouseOverConfirmButton() ? 255 : 150, 53, 188, 156));
 
             _text.Message = "Cancel";
-            _text.Font.DrawText(null, "Cancel", (int)(Position[0].X - Width / 2f + 25) + +_text.GetTextRectangle().Width / 3, fontPositionY + 215,
+            _text.Font.DrawText(null, "Cancel", (int)(Position[0].X - Width / 2f + 25) + +_text.GetTextRectangle().Width / 3, fontPositionY + 245,
                 new ColorBGRA(255, 243, 242, IsMouseOverCancelButton() ? (byte)255 : (byte)150));
             _text.Message = "Confirm";
-            _text.Font.DrawText(null, "Confirm", (int)(Position[0].X - Width / 2f + Width / 2f) + (int)(_text.GetTextRectangle().Width / 4.5f), fontPositionY + 215,
+            _text.Font.DrawText(null, "Confirm", (int)(Position[0].X - Width / 2f + Width / 2f) + (int)(_text.GetTextRectangle().Width / 4.5f), fontPositionY + 245,
                 new ColorBGRA(255, 243, 242, IsMouseOverConfirmButton() ? (byte)255 : (byte)150));
 
             _posUpdated = true;
@@ -210,17 +216,17 @@ namespace Simple_Marksmans.Utils
         private bool IsMouseOverCancelButton()
         {
             var pos = Game.CursorPos2D;
-            var posY = Position[0].Y - _text.Height / 2f + 225;
+            var posY = Position[0].Y - _text.Height / 2f + 250;
 
-            return pos.X >= Position[0].X - Width / 2f + 25 && pos.X <= Position[0].X - Width / 2f + Width / 2f && pos.Y >= posY - 25 / 2f && pos.Y <= posY + 25/2f;
+            return pos.X >= Position[0].X - Width / 2f + 25 && pos.X <= Position[0].X - Width / 2f + Width / 2f && pos.Y >= posY - 25 / 2f && pos.Y <= posY + 45 / 2f;
         }
 
         private bool IsMouseOverConfirmButton()
         {
             var pos = Game.CursorPos2D;
-            var posY = Position[0].Y - _text.Height / 2f + 225;
+            var posY = Position[0].Y - _text.Height / 2f + 250;
 
-            return pos.X >= Position[0].X - Width / 2f + Width / 2f && pos.X <= Position[0].X + Width / 2f - 25 && pos.Y >= posY - 25 / 2f && pos.Y <= posY + 25 / 2f;
+            return pos.X >= Position[0].X - Width / 2f + Width / 2f && pos.X <= Position[0].X + Width / 2f - 25 && pos.Y >= posY - 25 / 2f && pos.Y <= posY + 45 / 2f;
         }
 
 

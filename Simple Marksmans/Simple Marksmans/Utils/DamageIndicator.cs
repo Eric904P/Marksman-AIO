@@ -32,7 +32,6 @@ using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Rendering;
 using SharpDX;
-using Color = System.Drawing.Color;
 
 namespace Simple_Marksmans.Utils
 {
@@ -169,7 +168,7 @@ namespace Simple_Marksmans.Utils
                     var start = unit.HPBarPosition.X + xOffset + (damageAfter * width);
                     var end = unit.HPBarPosition.X + xOffset + (currentHealth * width);
 
-                    Drawing.DrawLine(start, unit.HPBarPosition.Y + yOffset, end, unit.HPBarPosition.Y + yOffset, height, JungleColor);
+                    Drawing.DrawLine(start, unit.HPBarPosition.Y + yOffset, end, unit.HPBarPosition.Y + yOffset, height, System.Drawing.Color.FromArgb(JungleColor.A, JungleColor.R, JungleColor.G, JungleColor.B));
                 }
             }
 
@@ -181,8 +180,8 @@ namespace Simple_Marksmans.Utils
                 if (DamageDelegate(unit) <= 0)
                     return;
 
-                const int height = 9;
-                const int width = 104;
+                const int height = 10;
+                const int width = 109;
 
                 int xOffset;
                 int yOffset;
@@ -198,7 +197,7 @@ namespace Simple_Marksmans.Utils
                         yOffset = -5;
                         break;
                     default:
-                        xOffset = 2;
+                        xOffset = 1;
                         yOffset = 9;
                         break;
 
@@ -210,7 +209,7 @@ namespace Simple_Marksmans.Utils
                 var start = new Vector2(unit.HPBarPosition.X + xOffset + damageAfter * width, unit.HPBarPosition.Y + yOffset);
                 var end = new Vector2(unit.HPBarPosition.X + currentHealth * width, unit.HPBarPosition.Y + yOffset);
 
-                Line.DrawLine(Color, height, start, end);
+                Line.DrawLine(System.Drawing.Color.FromArgb(Color.A, Color.R, Color.G, Color.B), height, start, end);
             }
         }
     }

@@ -38,6 +38,7 @@ using EloBuddy.SDK.Rendering;
 using Simple_Marksmans.Utils;
 using EloBuddy.SDK.Utils;
 using SharpDX;
+using Simple_Marksmans.PermaShow.Values;
 using Color = SharpDX.Color;
 using Text = EloBuddy.SDK.Rendering.Text;
 
@@ -45,43 +46,46 @@ namespace Simple_Marksmans.Plugins.Vayne
 {
     internal class Vayne : ChampionPlugin
     {
-        public static Spell.Skillshot Q { get; }
-        public static Spell.Active W { get; }
-        public static Spell.Targeted E { get; }
-        public static Spell.Active R { get; }
+        protected static Spell.Skillshot Q { get; }
+        protected static Spell.Active W { get; }
+        protected static Spell.Targeted E { get; }
+        protected static Spell.Active R { get; }
 
         private static Menu ComboMenu { get; set; }
         private static Menu HarassMenu { get; set; }
         private static Menu LaneClearMenu { get; set; }
         private static Menu MiscMenu { get; set; }
         private static Menu DrawingsMenu { get; set; }
-        
-        public static BuffInstance GetTumbleBuff
+
+        private BoolItem DontAa { get; set; }
+        private BoolItem SafetyChecks { get; set; }
+
+        protected static BuffInstance GetTumbleBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vaynetumble");
 
-        public static bool HasTumbleBuff
+        protected static bool HasTumbleBuff
             =>
                 Player.Instance.Buffs.Any(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vaynetumble");
 
-        public static bool HasSilverDebuff(Obj_AI_Base unit)
+        protected static bool HasSilverDebuff(Obj_AI_Base unit)
             =>
                 unit.Buffs.Any(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff");
 
-        public static BuffInstance GetSilverDebuff(Obj_AI_Base unit)
+        protected static BuffInstance GetSilverDebuff(Obj_AI_Base unit)
             =>
                 unit.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff");
 
-        public static bool HasInquisitionBuff
+        protected static bool HasInquisitionBuff
             =>
                 Player.Instance.Buffs.Any(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vayneinquisition");
 
-        public static BuffInstance GetInquisitionBuff
+        protected static BuffInstance GetInquisitionBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vayneinquisition");
@@ -89,11 +93,12 @@ namespace Simple_Marksmans.Plugins.Vayne
         private static bool _changingRangeScan;
         private static float _lastQCastTime;
         private static readonly Text Text;
-        public static bool IsPostAttack { get; private set; }
+
+        protected static bool IsPostAttack { get; private set; }
 
         static Vayne()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 315, SkillShotType.Linear);
+            Q = new Spell.Skillshot(SpellSlot.Q, 300, SkillShotType.Linear);
             W = new Spell.Active(SpellSlot.W);
             E = new Spell.Targeted(SpellSlot.E, 650);
             R = new Spell.Active(SpellSlot.R);
@@ -343,7 +348,11 @@ namespace Simple_Marksmans.Plugins.Vayne
 
             MiscMenu.AddLabel("Basic settings :");
             MiscMenu.Add("Plugins.Vayne.MiscMenu.NoAAWhileStealth",
-                new KeyBind("Dont AutoAttack while stealth", false, KeyBind.BindTypes.PressToggle, 'T'));
+                new KeyBind("Dont AutoAttack while stealth", false, KeyBind.BindTypes.PressToggle, 'T')).OnValueChange +=
+                (sender, args) =>
+                {
+                    DontAa.Value = args.NewValue;
+                };
             MiscMenu.Add("Plugins.Vayne.MiscMenu.NoAADelay", new Slider("Delay", 1000, 0, 1000));
             MiscMenu.AddSeparator(5);
 
@@ -356,11 +365,18 @@ namespace Simple_Marksmans.Plugins.Vayne
 
             MiscMenu.AddLabel("Additional Tumble (Q) settings :");
             MiscMenu.Add("Plugins.Vayne.MiscMenu.QMode", new ComboBox("Q Mode", 0, "CursorPos", "Auto"));
-            MiscMenu.Add("Plugins.Vayne.MiscMenu.QSafetyChecks", new CheckBox("Enable safety checks"));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.QSafetyChecks", new CheckBox("Enable safety checks")).OnValueChange +=
+                (sender, args) =>
+                {
+                    SafetyChecks.Value = args.NewValue;
+                };
 
             DrawingsMenu = MenuManager.Menu.AddSubMenu("Drawings");
             DrawingsMenu.AddGroupLabel("Drawing settings for Vayne addon");
             DrawingsMenu.Add("Plugins.Vayne.DrawingsMenu.DrawInfo", new CheckBox("Draw info"));
+
+            DontAa = MenuManager.PermaShow.AddItem("Vanye.SafetyChecks", new BoolItem("Don't auto attack while in stealth", Settings.Misc.NoAaWhileStealth));
+            SafetyChecks = MenuManager.PermaShow.AddItem("Vanye.SafetyChecks", new BoolItem("Enable safety checks", Settings.Misc.QSafetyChecks));
         }
 
         protected override void PermaActive()

@@ -111,7 +111,7 @@ namespace Simple_Marksmans.Plugins.Vayne.Modes
 
                             if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
                             {
-                                Q.Cast(position.Distance(Player.Instance) > Q.Range ? Player.Instance.Position.Extend(position, Q.Range).To3D() : position);
+                                Q.Cast(Player.Instance.Position.Extend(position, 285).To3D());
                                 return;
                             }
                             break;

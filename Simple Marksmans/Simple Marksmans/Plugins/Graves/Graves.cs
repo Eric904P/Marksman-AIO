@@ -103,14 +103,13 @@ namespace Simple_Marksmans.Plugins.Graves
             ColorPicker[1] = new ColorPicker("GravesR", new ColorBGRA(177, 67, 191, 255));
             ColorPicker[2] = new ColorPicker("GravesHpBar", new ColorBGRA(255, 134, 0, 255));
 
-            DamageIndicator.Initalize(System.Drawing.Color.FromArgb(ColorPicker[2].Color.R, ColorPicker[2].Color.G,
-                ColorPicker[2].Color.B));
+            DamageIndicator.Initalize(ColorPicker[2].Color);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ColorPicker[2].OnColorChange +=
                 (a, b) =>
                 {
-                    DamageIndicator.Color = System.Drawing.Color.FromArgb(b.Color.A, b.Color.R, b.Color.G, b.Color.B);
+                    DamageIndicator.Color = b.Color;
                 };
 
             Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;

@@ -217,7 +217,7 @@ namespace Simple_Marksmans.PermaShow
             var width = Position.X + GetMaxTextLength() + DefaultSpacing*2 - Position.X;
             
             Drawing.DrawLine(new Vector2(Position.X + width/2, Position.Y), new Vector2(Position.X + width/2, lastSeparator.Positions[0].Y + 5), (int) width + 8, ToColor(new ColorBGRA(BackgroundColor.R, BackgroundColor.G, BackgroundColor.B, (byte) Opacity)));
-            Wrapper.Bind<DataHandlerModule>().HeaderText.Font.DrawText(null, Wrapper.Bind<DataHandlerModule>().HeaderText.Message, (int) Position.X + DefaultSpacing, (int) Position.Y, new ColorBGRA(Wrapper.Bind<DataHandlerModule>().HeaderText.Color.R, Wrapper.Bind<DataHandlerModule>().HeaderText.Color.G, Wrapper.Bind<DataHandlerModule>().HeaderText.Color.B, (byte) Opacity));
+            Wrapper.Bind<DataHandlerModule>().HeaderText.Font.DrawText(null, Wrapper.Bind<DataHandlerModule>().HeaderText.Message, (int) Position.X + DefaultSpacing, (int) Position.Y, new ColorBGRA(TextColor.R, TextColor.G, TextColor.B, (byte)Opacity));
 
             Drawing.DrawLine(new Vector2(Position.X, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height*1.15f), new Vector2(Position.X + GetMaxTextLength() + DefaultSpacing*2, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height*1.15f), 3, ToColor(new ColorBGRA(SeparatorColor.R, SeparatorColor.G, SeparatorColor.B, (byte) Opacity)));
 
@@ -227,6 +227,8 @@ namespace Simple_Marksmans.PermaShow
             {
                 if (permaShowItem.Value.GetType() == typeof (MenuItem))
                 {
+                    permaShowItem.Key.ItemNameText.Color = new ColorBGRA(TextColor.R, TextColor.G, TextColor.B, (byte)Opacity);
+                    permaShowItem.Key.ItemValueText.Color = new ColorBGRA(TextColor.R, TextColor.G, TextColor.B, (byte)Opacity);
                     permaShowItem.Key.ItemNameText.Message = permaShowItem.Value.Get<MenuItem>().ItemName;
                     permaShowItem.Key.ItemNameText.Draw();
                     permaShowItem.Key.ItemValueText.Message = permaShowItem.Value.Get<MenuItem>().Value
@@ -235,6 +237,8 @@ namespace Simple_Marksmans.PermaShow
                     permaShowItem.Key.ItemValueText.Draw();
                 } else if (permaShowItem.Value.GetType() == typeof(BoolItem))
                 {
+                    permaShowItem.Key.ItemNameText.Color = new ColorBGRA(TextColor.R, TextColor.G, TextColor.B, (byte)Opacity);
+                    permaShowItem.Key.ItemValueText.Color = new ColorBGRA(TextColor.R, TextColor.G, TextColor.B, (byte)Opacity);
                     permaShowItem.Key.ItemNameText.Message = permaShowItem.Value.Get<BoolItem>().ItemName;
                     permaShowItem.Key.ItemNameText.Draw();
                     permaShowItem.Key.ItemValueText.Message = permaShowItem.Value.Get<BoolItem>().Value
@@ -244,6 +248,8 @@ namespace Simple_Marksmans.PermaShow
                 }
                 else if (permaShowItem.Value.GetType() == typeof(StringItem))
                 {
+                    permaShowItem.Key.ItemNameText.Color = new ColorBGRA(TextColor.R, TextColor.G, TextColor.B, (byte)Opacity);
+                    permaShowItem.Key.ItemValueText.Color = new ColorBGRA(TextColor.R, TextColor.G, TextColor.B, (byte)Opacity);
                     permaShowItem.Key.ItemNameText.Message = permaShowItem.Value.Get<StringItem>().ItemName;
                     permaShowItem.Key.ItemNameText.Draw();
                     permaShowItem.Key.ItemValueText.Message = permaShowItem.Value.Get<StringItem>().Value;
@@ -251,14 +257,14 @@ namespace Simple_Marksmans.PermaShow
                 }
             }
 
-            foreach (var xd in Wrapper.Bind<DataHandlerModule>().Separators)
+            foreach (var separator in Wrapper.Bind<DataHandlerModule>().Separators)
             {
-                Drawing.DrawLine(xd.Positions[0], xd.Positions[1], xd.Width, ToColor(xd.Color));
+                Drawing.DrawLine(separator.Positions[0], separator.Positions[1], separator.Width, ToColor(new ColorBGRA(separator.Color.R, separator.Color.G, separator.Color.B, (byte)Opacity)));
             }
 
-            foreach (var xd in Wrapper.Bind<DataHandlerModule>().Underlines)
+            foreach (var underline in Wrapper.Bind<DataHandlerModule>().Underlines)
             {
-                Drawing.DrawLine(xd.Positions[0], xd.Positions[1], xd.Width, ToColor(xd.Color));
+                Drawing.DrawLine(underline.Positions[0], underline.Positions[1], underline.Width, ToColor(new ColorBGRA(underline.Color.R, underline.Color.G, underline.Color.B, (byte)Opacity)));
             }
         }
 

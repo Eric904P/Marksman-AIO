@@ -80,10 +80,10 @@ namespace Simple_Marksmans.Plugins.Kalista
             ColorPicker[2] = new ColorPicker("KalistaR", new ColorBGRA(1, 109, 160, 255));
             ColorPicker[3] = new ColorPicker("KalistaDamageIndicator", new ColorBGRA(255, 134, 0, 255));
 
-            DamageIndicator.Initalize(Color.FromArgb(ColorPicker[3].Color.A, ColorPicker[3].Color.R, ColorPicker[3].Color.G, ColorPicker[3].Color.B), true, Color.Azure, (int)E.Range);
+            DamageIndicator.Initalize(ColorPicker[3].Color, true, SharpDX.Color.Azure, (int)E.Range);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
-            ColorPicker[3].OnColorChange += (a, b) => { DamageIndicator.Color = Color.FromArgb(b.Color.A, b.Color.R, b.Color.G, b.Color.B);};
+            ColorPicker[3].OnColorChange += (a, b) => { DamageIndicator.Color = b.Color;};
 
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 

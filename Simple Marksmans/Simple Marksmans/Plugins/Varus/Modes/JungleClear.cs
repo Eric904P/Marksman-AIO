@@ -26,12 +26,10 @@
 // //  </summary>
 // //  ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
+
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using EloBuddy;
+using EloBuddy.SDK;
 
 namespace Simple_Marksmans.Plugins.Varus.Modes
 {
@@ -39,7 +37,52 @@ namespace Simple_Marksmans.Plugins.Varus.Modes
     {
         public static void Execute()
         {
-            Chat.Print("JungleClear mode !");
+            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+
+            if (!jungleMinions.Any())
+                return;
+
+            string[] allowedMonsters =
+            {
+                "SRU_Gromp", "SRU_Blue", "SRU_Red", "SRU_Razorbeak", "SRU_Krug", "SRU_Murkwolf", "Sru_Crab", "SRU_Crab",
+                "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
+                "SRU_Dragon_Water", "SRU_Baron"
+            };
+
+            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ && (jungleMinions.Count >= Settings.LaneClear.MinMinionsHitQ || allowedMonsters.Any(x=> jungleMinions.Any(k=>x.Contains(k.BaseSkinName)))))
+            {
+                if (!Q.IsCharging && !IsPreAttack)
+                {
+                    Q.StartCharging();
+                }
+                else if (Q.IsCharging && Q.IsFullyCharged)
+                {
+                    var bigMonster = jungleMinions.FirstOrDefault(k => allowedMonsters.Any(x => x.Contains(k.BaseSkinName)));
+                    if (bigMonster != null)
+                    {
+                        Q.Cast(bigMonster);
+                    }
+                }
+            }
+
+            if (E.IsReady() && Settings.LaneClear.UseEInLaneClear &&
+                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE &&
+                (jungleMinions.Count >= Settings.LaneClear.MinMinionsHitQ ||
+                 allowedMonsters.Any(x => jungleMinions.Any(k => x.Contains(k.BaseSkinName)))))
+            {
+                if (jungleMinions.Count >= Settings.LaneClear.MinMinionsHitE)
+                {
+                    E.CastOnBestFarmPosition(Settings.LaneClear.MinMinionsHitE);
+                }
+                else
+                {
+                    var bigMonster = jungleMinions.FirstOrDefault(k => allowedMonsters.Any(x => x.Contains(k.BaseSkinName)));
+                    if (bigMonster != null)
+                    {
+                        E.Cast(bigMonster);
+                    }
+                }
+            }
         }
     }
 }

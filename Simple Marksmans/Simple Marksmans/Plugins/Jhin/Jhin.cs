@@ -169,12 +169,10 @@ namespace Simple_Marksmans.Plugins.Jhin
             ChampionTracker.Initialize(ChampionTrackerFlags.VisibilityTracker);
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
 
-            DamageIndicator.Initalize(
-                System.Drawing.Color.FromArgb(ColorPicker[4].Color.R, ColorPicker[4].Color.G, ColorPicker[4].Color.B),
-                (int) W.Range);
+            DamageIndicator.Initalize(ColorPicker[4].Color,(int) W.Range);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
-            ColorPicker[4].OnColorChange += (a, b) => { DamageIndicator.Color = System.Drawing.Color.FromArgb(b.Color.A, b.Color.R, b.Color.G, b.Color.B); };
+            ColorPicker[4].OnColorChange += (a, b) => { DamageIndicator.Color = b.Color; };
         }
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
