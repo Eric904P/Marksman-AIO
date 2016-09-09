@@ -1,30 +1,30 @@
 ﻿#region Licensing
-// //  ---------------------------------------------------------------------
-// //  <copyright file="Activator.cs" company="EloBuddy">
-// // 
-// //  Marksman AIO
-// // 
-// //  Copyright (C) 2016 Krystian Tenerowicz
-// // 
-// //  This program is free software: you can redistribute it and/or modify
-// //  it under the terms of the GNU General Public License as published by
-// //  the Free Software Foundation, either version 3 of the License, or
-// //  (at your option) any later version.
-// // 
-// //  This program is distributed in the hope that it will be useful,
-// //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-// //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// //  GNU General Public License for more details.
-// // 
-// //  You should have received a copy of the GNU General Public License
-// //  along with this program.  If not, see http://www.gnu.org/licenses/. 
-// //  </copyright>
-// //  <summary>
-// // 
-// //  Email: geroelobuddy@gmail.com
-// //  PayPal: geroelobuddy@gmail.com
-// //  </summary>
-// //  ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// <copyright file="Activator.cs" company="EloBuddy">
+// 
+// Marksman Master
+// Copyright (C) 2016 by gero
+// All rights reserved
+// 
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/. 
+// </copyright>
+// <summary>
+// 
+// Email: geroelobuddy@gmail.com
+// PayPal: geroelobuddy@gmail.com
+// </summary>
+// ---------------------------------------------------------------------
 #endregion
 using System;
 using System.Collections.Generic;
@@ -49,6 +49,7 @@ namespace Marksman_Master.Activator
 
         public static Menu PotionsAndElixirsMenu { get; set; }
         public static Menu ItemsMenu { get; set; }
+        public static Menu SummonersMenu { get; set; }
         public static Menu CleanseMenu { get; set; }
         public static ItemsCollection Items { get; set; } = new ItemsCollection();
 
@@ -88,31 +89,199 @@ namespace Marksman_Master.Activator
             {itemId => itemId == ItemIds.BladeOfTheRuinedKing, () => Items[ItemsEnum.BladeOfTheRuinedKing] = null}
         };
 
-        public static void InitializeActivator()
+        private static readonly Dictionary<SpellSlot, Tuple<Summoner, SpellDataInst>> Summoners = new Dictionary<SpellSlot, Tuple<Summoner, SpellDataInst>>();
+
+        private static readonly string[] BigMonstersNames =
         {
+            "SRU_Gromp", "SRU_Razorbeak", "SRU_Krug", "SRU_Murkwolf", "Sru_Crab", "SRU_Crab"
+        };
+
+        private static readonly string[] BuffsNames =
+        {
+            "SRU_Blue", "SRU_Red"
+        };
+
+        private static readonly string[] EpicMonstersNames =
+        {
+            "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
+            "SRU_Dragon_Water", "SRU_Baron"
+        };
+
+       // //private static readonly Tuple<Champion, SpellSlot> DangerousSpells =  new Tuple<Champion, SpellSlot>
+     //   {
+      //      {Champion.Aatrox, SpellSlot.Q}
+     //   }; 
+
+        public static void InitializeActivator() //TODO EXHAUST LOGICS such as zed ult etc
+        {
+            LoadSummoners();
+
             ActivatorMenu = MainMenu.AddMenu("Marksman AIO : Activator", "MarksmanAIOActivator");
             ActivatorMenu.AddGroupLabel("Activator settings : ");
             ActivatorMenu.Add("Activator.Enable", new CheckBox("Enable activator"));
             ScanForItems();
             InitializeMenu();
-
+            
             Shop.OnBuyItem += Shop_OnBuyItem;
             Shop.OnSellItem += Shop_OnSellItem;
             Game.OnTick += Game_OnTick;
             Obj_AI_Base.OnBuffGain += Obj_AI_Base_OnBuffGain;
             Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;
             AttackableUnit.OnDamage += Obj_AI_Base_OnDamage;
-        }
-        
 
+            Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
+        }
+
+        private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+        }
+
+        private static void LoadSummoners()
+        {
+            var summoner1 = Player.Instance.Spellbook.GetSpell(SpellSlot.Summoner1);
+            var summoner2 = Player.Instance.Spellbook.GetSpell(SpellSlot.Summoner2);
+
+            Summoners[SpellSlot.Summoner1] = GetSummoner(summoner1.Name) != Summoner.Unknown
+                ? new Tuple<Summoner, SpellDataInst>(GetSummoner(summoner1.Name), summoner1)
+                : null;
+            Summoners[SpellSlot.Summoner2] = GetSummoner(summoner2.Name) != Summoner.Unknown
+                ? new Tuple<Summoner, SpellDataInst>(GetSummoner(summoner2.Name), summoner2)
+                : null;
+        }
+
+        private static Summoner GetSummoner(string name)
+        {
+            switch (name)
+            {
+                case "SummonerHeal":
+                    return Summoner.Heal;
+                case "SummonerBarrier":
+                    return Summoner.Barrier;
+                case "SummonerDot":
+                    return Summoner.Ignite;
+                case "SummonerExhaust":
+                    return Summoner.Exhaust;
+                case "SummonerSmite":
+                    return Summoner.Smite;
+                case "S5_SummonerSmitePlayerGanker":
+                    return Summoner.Smite | Summoner.ChillingSmite;
+                case "S5_SummonerSmiteDuel":
+                    return Summoner.Smite | Summoner.ChallengingSmite;
+                default: return Summoner.Unknown;
+            }
+        }
+
+
+        private static void HandleSummoners()
+        {
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Heal) && MenuManager.MenuValues["Activator.SummonersMenu.UseHeal"] && IncomingDamage.GetIncomingDamage(Player.Instance) > Player.Instance.TotalHealthWithShields() - 100)
+            {
+                var heal = Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Heal).Key);
+
+                if (heal.IsReady)
+                {
+                    Player.Instance.Spellbook.CastSpell(heal.Slot);
+                    return;
+                }
+            }
+
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Barrier) && MenuManager.MenuValues["Activator.SummonersMenu.UseBarrier"] && IncomingDamage.GetIncomingDamage(Player.Instance) > Player.Instance.TotalHealthWithShields() - 100)
+            {
+                var barrier = Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Barrier).Key);
+
+                if (barrier.IsReady)
+                {
+                    Player.Instance.Spellbook.CastSpell(barrier.Slot);
+                    return;
+                }
+            }
+
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Ignite) && MenuManager.MenuValues["Activator.SummonersMenu.UseIgnite"] && EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(620)))
+            {
+                var ignite = Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Ignite).Key);
+
+                if (ignite.IsReady)
+                {
+                    foreach (var target in EntityManager.Heroes.Enemies.Where(x=>x.IsValidTarget(620) && Player.Instance.GetSummonerSpellDamage(x, DamageLibrary.SummonerSpells.Ignite) > x.TotalHealthWithShields() && !x.HasUndyingBuffA()))
+                    {
+                        Player.Instance.Spellbook.CastSpell(ignite.Slot, target);
+                        break;
+                    }
+                }
+            }
+
+            if (Summoners.Any(x => x.Value.Item1.HasFlag(Summoner.Smite)) && MenuManager.MenuValues["Activator.SummonersMenu.UseSmite"])
+            {
+                var smite = Player.Instance.Spellbook.GetSpell(Summoners.First(x=>x.Value.Item1.HasFlag(Summoner.Smite)).Key);
+
+                if (smite.IsReady)
+                {
+                    if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(520)) &&
+                        MenuManager.MenuValues["Activator.SummonersMenu.UseSmiteInCombo"] && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+                    {
+                        if(Summoners.Any(x => x.Value.Item1.HasFlag(Summoner.ChillingSmite) || x.Value.Item1.HasFlag(Summoner.ChallengingSmite)))
+                        {
+                            var target = TargetSelector.GetTarget(520, DamageType.Physical);
+                            if (target != null)
+                            {
+                                Player.Instance.Spellbook.CastSpell(smite.Slot, target);
+                                return;
+                            }
+                        }
+                    }
+                    if (EntityManager.MinionsAndMonsters.CombinedAttackable.Any(x => x.IsValidTarget(520)))
+                    {
+                        var bigMonster =
+                            EntityManager.MinionsAndMonsters.CombinedAttackable.FirstOrDefault(
+                                x => BigMonstersNames.Any(m => m.Contains(x.BaseSkinName)));
+
+                        var buff =
+                            EntityManager.MinionsAndMonsters.CombinedAttackable.FirstOrDefault(
+                                x => BuffsNames.Any(m => m.Contains(x.BaseSkinName)));
+
+                        var epicMonster =
+                            EntityManager.MinionsAndMonsters.CombinedAttackable.FirstOrDefault(
+                                x => EpicMonstersNames.Any(m => m.Contains(x.BaseSkinName)));
+
+                        if (bigMonster != null && MenuManager.MenuValues["Activator.SummonersMenu.SmiteBigMonsters"] && 
+                            Player.Instance.GetSummonerSpellDamage(bigMonster, DamageLibrary.SummonerSpells.Smite) >
+                            bigMonster.Health)
+                        {
+                            Player.Instance.Spellbook.CastSpell(smite.Slot, bigMonster);
+                        } else if (buff != null && MenuManager.MenuValues["Activator.SummonersMenu.SmiteBuffs"] &&
+                            Player.Instance.GetSummonerSpellDamage(buff, DamageLibrary.SummonerSpells.Smite) >
+                            buff.Health)
+                        {
+                            Player.Instance.Spellbook.CastSpell(smite.Slot, buff);
+                        } else if (epicMonster != null && MenuManager.MenuValues["Activator.SummonersMenu.SmiteEpicMonsters"] &&
+                            Player.Instance.GetSummonerSpellDamage(epicMonster, DamageLibrary.SummonerSpells.Smite) >
+                            epicMonster.Health)
+                        {
+                            Player.Instance.Spellbook.CastSpell(smite.Slot, epicMonster);
+                        }
+                    }
+                }
+            }
+        }
 
         private static void Obj_AI_Base_OnBuffGain(Obj_AI_Base sender, Obj_AI_BaseBuffGainEventArgs args)
         {
             if (!sender.IsMe || !MenuManager.MenuValues["Activator.Enable"])
                 return;
-            
+
+            Cleasne(args.Buff);
+        }
+
+        private static void Cleasne(BuffInstance buffInstance)
+        {
+            var buffType = buffInstance.Type == BuffType.Flee ? BuffType.Fear : buffInstance.Type;
+
+            if (CleanseMenu["Activator.CleanseMenu." + buffType] == null ||
+                (CleanseMenu["Activator.CleanseMenu." + buffType] != null &&
+                 !CleanseMenu["Activator.CleanseMenu." + buffType].Cast<CheckBox>().CurrentValue))
+                return;
+
             var menu = MenuManager.MenuValues;
-            var buffType = args.Buff.Type == BuffType.Flee ? BuffType.Fear : args.Buff.Type;
             var scimitar = menu["Activator.CleanseMenu.Scimitar"];
             var qss = menu["Activator.CleanseMenu.Quicksilver"];
             var onlyInCombo = menu["Activator.CleanseMenu.OnlyInCombo"];
@@ -120,10 +289,8 @@ namespace Marksman_Master.Activator
             var minDelay = menu["Activator.CleanseMenu.MinimumDelay", true];
             var maxDelay = menu["Activator.CleanseMenu.MaximumDelay", true];
             var hpPercentage = menu["Activator.CleanseMenu.QssHP", true];
-            IItem item;
 
-            if (CleanseMenu["Activator.CleanseMenu." + buffType] == null)
-                return;
+            IItem item;
 
             if (scimitar && Items[ItemsEnum.Scimitar] != null && Items[ItemsEnum.Scimitar].ToItem().IsReady())
                 item = Items[ItemsEnum.Scimitar];
@@ -131,9 +298,8 @@ namespace Marksman_Master.Activator
                 item = Items[ItemsEnum.Quicksilver];
             else
                 return;
-            
-            if (!menu["Activator.CleanseMenu." + buffType] ||
-                !((args.Buff.EndTime - args.Buff.StartTime)*1000 >= buffDuration) ||
+
+            if (!((buffInstance.EndTime - buffInstance.StartTime)*1000 >= buffDuration) ||
                 !(Player.Instance.HealthPercent <= hpPercentage))
                 return;
 
@@ -146,7 +312,7 @@ namespace Marksman_Master.Activator
                     Misc.PrintInfoMessage("Using <font color=\"#2ED139\">" + item.ItemName +
                                           "</font> to cleanse <font color=\"#D1492E\">" + buffType + "</font>");
                 }, random.Next(minDelay, maxDelay));
-            else if(!onlyInCombo)
+            else if (!onlyInCombo)
                 Core.DelayAction(() =>
                 {
                     item.UseItem();
@@ -160,7 +326,7 @@ namespace Marksman_Master.Activator
             if (!MenuManager.MenuValues["Activator.Enable"])
                 return;
 
-            if ((Game.Time * 1000 - _lastTick) < 60)
+            if (Game.Time * 1000 - _lastTick < 60)
             {
                 return;
             }
@@ -169,72 +335,104 @@ namespace Marksman_Master.Activator
                 ScanForItems();
             }
 
-            foreach (var enumValues in Enum.GetValues(typeof(ItemsEnum)).Cast<ItemsEnum>())
+            Player.Instance.Buffs.ForEach(Cleasne);
+
+            HandleSummoners();
+
+            foreach (var enumValues in Enum.GetValues(typeof (ItemsEnum)).Cast<ItemsEnum>())
             {
-                if (MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.UsePotions"] && Items[enumValues] != null && Items[enumValues].ItemType == ItemType.Potion &&
+                if (MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.UsePotions"] && Items[enumValues] != null &&
+                    Items[enumValues].ItemType == ItemType.Potion &&
                     MenuManager.MenuValues["Activator.PotionsAndElixirsMenu." + Items[enumValues].ItemName])
                 {
                     if (Player.Instance.IsRecalling() ||
                         Player.Instance.Position.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 250) == 0)
-                        return;
+                        continue;
 
-                    if (!MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.OnlyIfTakingDamage"] && (int) Player.Instance.HealthPercent <=
+                    if (!MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.OnlyIfTakingDamage"] &&
+                        (int) Player.Instance.HealthPercent <=
                         MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.BelowHealth", true] &&
-                        !Items[enumValues].ItemName.Contains("Elixir") && Items[enumValues].ToItem().IsReady() && !Player.Instance.IsUsingHealingPotion())
+                        !Items[enumValues].ItemName.Contains("Elixir") && Items[enumValues].ToItem().IsReady() &&
+                        !Player.Instance.IsUsingHealingPotion())
                     {
                         Items[enumValues].UseItem();
                     }
                 }
-                if (Items[enumValues] != null && Items[enumValues].ItemType != ItemType.Potion && Items[enumValues].ItemType != ItemType.Cleanse && MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName])
-                {
-                    var myMinHp = MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".MyMinHP", true];
-                    var targetsMinHp = MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".TargetsMinHP", true];
-                    var ifEnemiesNear = MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".IfEnemiesNear", true];
-                    var target = TargetSelector.GetTarget(Items[enumValues].Range, DamageType.Physical);
 
-                    if (target == null || ((!MenuManager.MenuValues["Activator.ItemsMenu.OnlyInCombo"] || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) && MenuManager.MenuValues["Activator.ItemsMenu.OnlyInCombo"]))
-                        return;
-                    
-                    if ((int) Player.Instance.HealthPercent <= myMinHp && (int) target.HealthPercent <= targetsMinHp &&
-                        Player.Instance.Position.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 250) >=
-                        ifEnemiesNear)
+                if (Items[enumValues] == null || Items[enumValues].ItemType == ItemType.Potion || Items[enumValues].ItemUsageWhen == ItemUsageWhen.AfterAttack ||
+                    Items[enumValues].ItemType == ItemType.Cleanse ||
+                    !MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName])
+                    continue;
+
+                var target = TargetSelector.GetTarget(Items[enumValues].Range, DamageType.Physical);
+
+                if (target == null ||
+                    ((!MenuManager.MenuValues["Activator.ItemsMenu.OnlyInCombo"] ||
+                      !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) &&
+                     MenuManager.MenuValues["Activator.ItemsMenu.OnlyInCombo"]))
+                    continue;
+
+                if ((int) Player.Instance.HealthPercent >
+                    MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".MyMinHP", true] ||
+                    (int) target.HealthPercent >
+                    MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".TargetsMinHP", true] ||
+                    Player.Instance.Position.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 250) <
+                    MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".IfEnemiesNear", true])
+                    continue;
+
+                if (Items[enumValues].ToItem().IsReady() && Items[enumValues].Range > 0 &&
+                    Items[enumValues].ToItem().IsInRange(target))
+                {
+                    Items[enumValues].ToItem().Cast(target);
+                }
+                else if (Items[enumValues].ToItem().IsReady() && Items[enumValues].Range <= 0f)
+                {
+                    switch (Items[enumValues].ItemTargettingType)
                     {
-                        if (Items[enumValues].ToItem().IsReady() && Items[enumValues].Range > 0 &&
-                            Items[enumValues].ToItem().IsInRange(target))
-                        {
+                        case ItemTargettingType.None:
+                            Items[enumValues].ToItem().Cast();
+                            break;
+                        case ItemTargettingType.Unit:
                             Items[enumValues].ToItem().Cast(target);
-                        }
-                        else if (Items[enumValues].ToItem().IsReady() && Items[enumValues].Range <= 0f)
-                        {
-                            switch (Items[enumValues].ItemTargettingType)
-                            {
-                                case ItemTargettingType.None:
-                                    Items[enumValues].ToItem().Cast();
-                                    break;
-                                case ItemTargettingType.Unit:
-                                    Items[enumValues].ToItem().Cast(target);
-                                    break;
-                                case ItemTargettingType.Self:
-                                    Items[enumValues].ToItem().Cast(Player.Instance);
-                                    break;
-                                default:
-                                    throw new ArgumentOutOfRangeException();
-                            }
-                        }
+                            break;
+                        case ItemTargettingType.Self:
+                            Items[enumValues].ToItem().Cast(Player.Instance);
+                            break;
+                        default:
+                            return;
                     }
                 }
             }
-
             _lastTick = Game.Time * 1000;
         }
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
-            if (!(target is AIHeroClient) || !MenuManager.MenuValues["Activator.Enable"] ||
-                Items[ItemsEnum.ElixirofIron] == null || Items[ItemsEnum.ElixirofSorcery] == null ||
-                Items[ItemsEnum.ElixirofWrath] == null)
+            if (target == null || target.IsMe || target.GetType() != typeof (AIHeroClient) || !MenuManager.MenuValues["Activator.Enable"])
                 return;
 
+            foreach (var enumValues in from enumValues in Enum.GetValues(typeof (ItemsEnum)).Cast<ItemsEnum>()
+                where
+                    Items[enumValues] != null && Items[enumValues].ItemUsageWhen == ItemUsageWhen.AfterAttack &&
+                    Items[enumValues].ItemType == ItemType.Offensive
+                where
+                    (int) Player.Instance.HealthPercent <=
+                    MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".MyMinHP", true] &&
+                    (int) target.HealthPercent <=
+                    MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".TargetsMinHP", true] &&
+                    Player.Instance.Position.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 250) >=
+                    MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".IfEnemiesNear", true]
+                where Items[enumValues].ToItem().IsReady() && Items[enumValues].Range > 0 &&
+                      Items[enumValues].ToItem().IsInRange(target as AIHeroClient)
+                select enumValues)
+            {
+                Items[enumValues].ToItem().Cast(target as AIHeroClient);
+            }
+
+            if (Items[ItemsEnum.ElixirofIron] == null || Items[ItemsEnum.ElixirofSorcery] == null ||
+                Items[ItemsEnum.ElixirofWrath] == null)
+                return;
+            
             Items[ItemsEnum.ElixirofIron]?.UseItem();
             Items[ItemsEnum.ElixirofSorcery]?.UseItem();
             Items[ItemsEnum.ElixirofWrath]?.UseItem();
@@ -242,7 +440,10 @@ namespace Marksman_Master.Activator
 
         private static void Obj_AI_Base_OnDamage(AttackableUnit sender, AttackableUnitDamageEventArgs args)
         {
-            if (!MenuManager.MenuValues["Activator.Enable"] || !MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.OnlyIfTakingDamage"] || !args.Target.IsMe || (int) Player.Instance.HealthPercent >= MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.BelowHealth", true] || Player.Instance.IsUsingHealingPotion())
+            if (!MenuManager.MenuValues["Activator.Enable"] ||
+                !MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.OnlyIfTakingDamage"] || !args.Target.IsMe ||
+                (int) Player.Instance.HealthPercent >= MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.BelowHealth", true] ||
+                Player.Instance.IsUsingHealingPotion())
                 return;
 
             if (Items[ItemsEnum.HealthPotion] != null)
@@ -337,6 +538,48 @@ namespace Marksman_Master.Activator
             ItemsMenu.AddSeparator(10);
             ItemsMenu.AddLabel("Misc settings : ");
             ItemsMenu.Add("Activator.ItemsMenu.OnlyInCombo", new CheckBox("Use items only in combo mode"));
+
+            SummonersMenu = ActivatorMenu.AddSubMenu("Summoners");
+
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Heal))
+            {
+                SummonersMenu.AddLabel("Heal : ");
+                SummonersMenu.Add("Activator.SummonersMenu.UseHeal", new CheckBox("Use Heal"));
+                SummonersMenu.AddSeparator(10);
+            }
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Barrier))
+            {
+                SummonersMenu.AddLabel("Barrier : ");
+                SummonersMenu.Add("Activator.SummonersMenu.UseBarrier", new CheckBox("Use Barrier"));
+                SummonersMenu.AddSeparator(10);
+            }
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Ignite))
+            {
+                SummonersMenu.AddLabel("Ignite : ");
+                SummonersMenu.Add("Activator.SummonersMenu.UseIgnite", new CheckBox("Use Ignite"));
+                SummonersMenu.AddSeparator(10);
+            }
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Exhaust))
+            {
+                SummonersMenu.AddLabel("Exhaust : ");
+                SummonersMenu.Add("Activator.SummonersMenu.UseExhaust", new CheckBox("Use Exhaust"));
+                SummonersMenu.AddSeparator(10);
+            }
+            if (Summoners.Any(x => x.Value.Item1.HasFlag(Summoner.Smite)))
+            {
+                SummonersMenu.AddLabel("Smite : ");
+                SummonersMenu.Add("Activator.SummonersMenu.UseSmite", new CheckBox("Use Smite"));
+                SummonersMenu.AddSeparator(2);
+                SummonersMenu.Add("Activator.SummonersMenu.UseSmiteInCombo", new CheckBox("Use smite in combo"));
+                SummonersMenu.AddSeparator(2);
+                SummonersMenu.Add("Activator.SummonersMenu.SmiteBigMonsters", new CheckBox("Smite big monsters", false));
+                SummonersMenu.Add("Activator.SummonersMenu.SmiteBuffs", new CheckBox("Smite buffs"));
+                SummonersMenu.Add("Activator.SummonersMenu.SmiteEpicMonsters", new CheckBox("Smite epic monsters"));
+                SummonersMenu.AddSeparator(10);
+
+                MenuManager.PermaShow.AddItem("Activator.SmiteEnabled", new MenuItem("Use Smite", "Activator.SummonersMenu.UseSmite"));
+            }
+            
             CleanseMenu = ActivatorMenu.AddSubMenu("Cleanse");
             CleanseMenu.AddLabel("Cleanse items : ");
             CleanseMenu.Add("Activator.CleanseMenu.Scimitar", new CheckBox("Use Scimitar"));
@@ -375,6 +618,9 @@ namespace Marksman_Master.Activator
 
             var output = ObjectInitializer.FirstOrDefault(comparer => comparer.Key((ItemIds) id)).Value;
 
+            if (Items[(ItemsEnum)id] != null)
+                return;
+
             output?.Invoke();
         }
 
@@ -384,7 +630,7 @@ namespace Marksman_Master.Activator
                 return;
 
             var output = ObjectDestroyer.FirstOrDefault(comparer => comparer.Key((ItemIds) id)).Value;
-
+            
             output?.Invoke();
         }
     }

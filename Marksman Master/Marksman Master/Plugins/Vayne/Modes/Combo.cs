@@ -1,30 +1,30 @@
 ﻿#region Licensing
-// //  ---------------------------------------------------------------------
-// //  <copyright file="Combo.cs" company="EloBuddy">
-// // 
-// //  Marksman AIO
-// // 
-// //  Copyright (C) 2016 Krystian Tenerowicz
-// // 
-// //  This program is free software: you can redistribute it and/or modify
-// //  it under the terms of the GNU General Public License as published by
-// //  the Free Software Foundation, either version 3 of the License, or
-// //  (at your option) any later version.
-// // 
-// //  This program is distributed in the hope that it will be useful,
-// //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-// //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// //  GNU General Public License for more details.
-// // 
-// //  You should have received a copy of the GNU General Public License
-// //  along with this program.  If not, see http://www.gnu.org/licenses/. 
-// //  </copyright>
-// //  <summary>
-// // 
-// //  Email: geroelobuddy@gmail.com
-// //  PayPal: geroelobuddy@gmail.com
-// //  </summary>
-// //  ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// <copyright file="Combo.cs" company="EloBuddy">
+// 
+// Marksman Master
+// Copyright (C) 2016 by gero
+// All rights reserved
+// 
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/. 
+// </copyright>
+// <summary>
+// 
+// Email: geroelobuddy@gmail.com
+// PayPal: geroelobuddy@gmail.com
+// </summary>
+// ---------------------------------------------------------------------
 #endregion
 using System;
 using System.Linq;
@@ -122,7 +122,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                             {
                                 if (target != null)
                                 {
-                                    if (enemies == 1 && target.HealthPercent + 15 < Player.Instance.HealthPercent)
+                                    if (enemies == 1)
                                     {
                                         if (target.IsMelee && !pos.IsInRange(Prediction.Position.PredictUnitPosition(target, 850), target.GetAutoAttackRange() + 150))
                                         {
@@ -134,10 +134,6 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                             Q.Cast(pos);
                                             return;
                                         }
-                                    } else if (enemies == 1 && !pos.IsInRange(Prediction.Position.PredictUnitPosition(target, 850), target.GetAutoAttackRange()))
-                                    {
-                                        Q.Cast(pos);
-                                        return;
                                     } else if (enemies == 2 && Player.Instance.CountAlliesInRange(850) >= 1)
                                     {
                                         Q.Cast(pos);
@@ -148,7 +144,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                         if (
                                             !EntityManager.Heroes.Enemies.Any(
                                                 x =>
-                                                    pos.IsInRange(Prediction.Position.PredictUnitPosition(x, 850),
+                                                    pos.IsInRange(Prediction.Position.PredictUnitPosition(x, 400),
                                                         x.IsMelee ? x.GetAutoAttackRange() + 150 : x.GetAutoAttackRange())))
                                         {
                                             Q.Cast(pos);

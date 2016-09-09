@@ -1,30 +1,30 @@
 ﻿#region Licensing
-// //  ---------------------------------------------------------------------
-// //  <copyright file="IncomingDamage.cs" company="EloBuddy">
-// // 
-// //  Marksman AIO
-// // 
-// //  Copyright (C) 2016 Krystian Tenerowicz
-// // 
-// //  This program is free software: you can redistribute it and/or modify
-// //  it under the terms of the GNU General Public License as published by
-// //  the Free Software Foundation, either version 3 of the License, or
-// //  (at your option) any later version.
-// // 
-// //  This program is distributed in the hope that it will be useful,
-// //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-// //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// //  GNU General Public License for more details.
-// // 
-// //  You should have received a copy of the GNU General Public License
-// //  along with this program.  If not, see http://www.gnu.org/licenses/. 
-// //  </copyright>
-// //  <summary>
-// // 
-// //  Email: geroelobuddy@gmail.com
-// //  PayPal: geroelobuddy@gmail.com
-// //  </summary>
-// //  ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// <copyright file="IncomingDamage.cs" company="EloBuddy">
+// 
+// Marksman Master
+// Copyright (C) 2016 by gero
+// All rights reserved
+// 
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/. 
+// </copyright>
+// <summary>
+// 
+// Email: geroelobuddy@gmail.com
+// PayPal: geroelobuddy@gmail.com
+// </summary>
+// ---------------------------------------------------------------------
 #endregion
 using System;
 using System.Collections.Generic;
@@ -32,14 +32,13 @@ using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Constants;
-using EloBuddy.SDK.Spells;
 
 namespace Marksman_Master.Utils
 {
     internal class IncomingDamage
     {
         private static readonly Dictionary<int, IncomingDamageArgs> IncomingDamages = new Dictionary<int, IncomingDamageArgs>();
-        private static readonly List<int> Champions = new List<int>();// don't check for every champion
+        private static readonly List<int> Champions = new List<int>();
 
         static IncomingDamage()
         {
@@ -167,7 +166,7 @@ namespace Marksman_Master.Utils
                         }
                     }
                 }
-            }
+            }/*
             else if (args.SData.TargettingType == SpellDataTargetType.Location ||
                      args.SData.TargettingType == SpellDataTargetType.Location2 ||
                      args.SData.TargettingType == SpellDataTargetType.Location3 ||
@@ -202,8 +201,8 @@ namespace Marksman_Master.Utils
                     }
 
                     Console.WriteLine("[DEBUG] Skillshot ["+hero.Hero+"] " + heroSender.GetSpellDamage(hero, heroSender.GetSpellSlotFromName(args.SData.Name)));
-                }
-            }
+                
+            }*/
         }
 
         public static float GetIncomingDamage(AIHeroClient hero)
