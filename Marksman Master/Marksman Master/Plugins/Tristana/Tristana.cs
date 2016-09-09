@@ -206,7 +206,7 @@ namespace Marksman_Master.Plugins.Tristana
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Rocket Jump (W) settings :");
-            ComboMenu.Add("Plugins.Tristana.ComboMenu.UseW", new CheckBox("Use W"));
+            ComboMenu.Add("Plugins.Tristana.ComboMenu.UseW", new CheckBox("Use W", false));
             ComboMenu.AddLabel("Only if W - E - R combo will kill an enemy");
             ComboMenu.AddSeparator(2);
             ComboMenu.Add("Plugins.Tristana.ComboMenu.UseWVsGapclosers", new CheckBox("Use W against gapclosers"));
