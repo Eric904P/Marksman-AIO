@@ -50,7 +50,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 {
                     var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {
-                        CollisionTypes = new HashSet<CollisionType> { CollisionType.AiHeroClient, CollisionType.YasuoWall },
+                        CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
                         Delay = 250,
                         From = Player.Instance.Position,
                         Radius = 115,
@@ -75,7 +75,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                     {
                         var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                         {
-                            CollisionTypes = new HashSet<CollisionType> { CollisionType.AiHeroClient, CollisionType.YasuoWall },
+                            CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
                             Delay = 250,
                             From = Player.Instance.Position,
                             Radius = 115,
@@ -98,7 +98,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
             {
                 var possibleTargets =
                     EntityManager.Heroes.Enemies.Where(
-                        x => x.IsValidTarget(Q.MaximumRange) && !x.HasSpellShield() && !x.HasUndyingBuffA()).ToList();
+                        x => x.IsValidTarget(Q.MaximumRange) && !x.HasSpellShield() && !x.HasUndyingBuffA() && Q.GetPrediction(x).HitChance != HitChance.Impossible).ToList();
 
                 var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
@@ -128,6 +128,15 @@ namespace Marksman_Master.Plugins.Varus.Modes
                         }
                         else if (Q.IsFullyCharged)
                         {
+                            var qPrediction = Q.GetPrediction(target);
+                            if (qPrediction.HitChance == HitChance.Impossible &&
+                                Player.Instance.CountEnemiesInRange(400) > 1)
+                            {
+                                Q.Cast(
+                                    EntityManager.Heroes.Enemies.OrderBy(x => x.Distance(Player.Instance))
+                                        .FirstOrDefault());
+                                return;
+                            }
                             Q.CastMinimumHitchance(target, 70);
                         }
                     }

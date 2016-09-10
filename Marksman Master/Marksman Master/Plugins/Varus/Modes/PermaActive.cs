@@ -69,7 +69,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                     } else if (Q.IsCharging && Q.IsFullyCharged)
                     {
                         foreach (var target in EntityManager.Heroes.Enemies.Where(x =>
-                                                                                  x.IsValidTarget(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x)))
+                                                                                  x.IsValidTarget(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) && Q.GetPrediction(x).HitChancePercent > 65))
                         {
                             if (!Q.IsReady())
                                 break;
@@ -80,7 +80,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 }
             }
 
-            if (!R.IsReady() || !Settings.Combo.UseR)
+            if (!R.IsReady())
                 return;
 
             var t = TargetSelector.GetTarget(R.Range, DamageType.Physical);
@@ -90,7 +90,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
 
             var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
-                CollisionTypes = new HashSet<CollisionType> { CollisionType.AiHeroClient, CollisionType.YasuoWall },
+                CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
                 Delay = 250,
                 From = Player.Instance.Position,
                 Radius = 115,
@@ -101,7 +101,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 Type = SkillShotType.Linear
             });
 
-            if (rPrediciton.HitChancePercent >= 70)
+            if (rPrediciton.HitChance >= HitChance.Medium)
             {
                 R.Cast(rPrediciton.CastPosition);
             }

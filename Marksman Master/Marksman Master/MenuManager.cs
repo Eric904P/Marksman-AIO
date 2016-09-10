@@ -59,7 +59,7 @@ namespace Marksman_Master
         private static readonly List<ExtensionBase> Extensions = new List<ExtensionBase>(); 
 
         internal static void CreateMenu()
-        {/*
+        {
             ExtensionsMenu = MainMenu.AddMenu("Marksman AIO : Extensions", "MarksmanAIO.Extensions");
 
             foreach (var source in Assembly.GetAssembly(typeof(ExtensionBase)).GetTypes().Where(x=>x.IsSubclassOf(typeof(ExtensionBase)) && x.IsSealed))
@@ -106,7 +106,7 @@ namespace Marksman_Master
                             Extensions.RemoveAll(x=>x.Name == source.Name);
                         }
                     };
-            }*/
+            }
 
             Menu = MainMenu.AddMenu("Marksman AIO", "MarksmanAIO");
             Menu.AddGroupLabel("Welcome back, Buddy !");
