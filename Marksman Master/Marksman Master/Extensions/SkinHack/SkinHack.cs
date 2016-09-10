@@ -309,6 +309,7 @@
             
             SkinId.OnValueChange -= SkinId_OnValueChange;
             MainMenu.OnClose -= MainMenu_OnClose;
+            Obj_AI_Base.OnUpdateModel -= Obj_AI_Base_OnUpdateModel;
         }
     }
 }
