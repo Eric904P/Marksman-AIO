@@ -61,7 +61,7 @@ namespace Marksman_Master.Plugins.Draven
 
         private static readonly List<AxeObjectData> AxeObjects = new List<AxeObjectData>();
         private static readonly Text Text;
-        private static readonly Utils.ColorPicker[] ColorPicker;
+        private static readonly ColorPicker[] ColorPicker;
 
         protected static float[] WAdditionalMovementSpeed { get; } = {0, 1.4f, 1.45f, 1.5f, 1.55f, 1.6f};
 
@@ -102,14 +102,13 @@ namespace Marksman_Master.Plugins.Draven
                 AllowedCollisionCount = int.MaxValue
             };
 
-            ColorPicker = new Utils.ColorPicker[2];
-            ColorPicker[0] = new Utils.ColorPicker("DravenE", new ColorBGRA(114, 171, 160, 255));
-            ColorPicker[1] = new Utils.ColorPicker("DravenCatchRange", new ColorBGRA(231, 237, 160, 255));
+            ColorPicker = new ColorPicker[2];
+            ColorPicker[0] = new ColorPicker("DravenE", new ColorBGRA(114, 171, 160, 255));
+            ColorPicker[1] = new ColorPicker("DravenCatchRange", new ColorBGRA(231, 237, 160, 255));
 
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 
             Game.OnTick += Game_OnTick;
-            Game.OnPostTick += Game_OnPostTick;
             GameObject.OnCreate += GameObject_OnCreate;
             GameObject.OnDelete += GameObject_OnDelete;
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
@@ -187,14 +186,10 @@ namespace Marksman_Master.Plugins.Draven
                 W.Cast();
             }
         }
-
-        private static void Game_OnPostTick(EventArgs args)
-        {
-        }
-
+        
         private static void Game_OnTick(EventArgs args)
         {
-            if(!AxeObjects.Any() || !Settings.Axe.CatchAxes || !_catching)
+            if(!AxeObjects.Any() || !Settings.Axe.CatchAxes || !_catching || GetAxesCount() == 0)
             { 
                 Orbwalker.OverrideOrbwalkPosition += () => Game.CursorPos;
             }

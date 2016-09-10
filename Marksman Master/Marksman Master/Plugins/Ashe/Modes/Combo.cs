@@ -26,10 +26,13 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
+using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Spells;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Ashe.Modes
@@ -53,15 +56,24 @@ namespace Marksman_Master.Plugins.Ashe.Modes
 
             if (W.IsReady() && Settings.Combo.UseW && Player.Instance.Mana - 50 > 100)
             {
-                var target = TargetSelector.GetTarget(W.Range, DamageType.Physical);
+                var possibleTargets =
+                    EntityManager.Heroes.Enemies.Where(
+                        x => x.IsValidTarget(W.Range) && !x.HasSpellShield() && GetWPrediction(x) != null && GetWPrediction(x).HitChance >= HitChance.Medium)
+                        .ToList();
 
-                if (target != null)
+                if (possibleTargets.Any())
                 {
-                    var wPrediction = GetWPrediction(target);
+                    var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-                    if (wPrediction != null && wPrediction.HitChance >= HitChance.High)
+                    if (target != null)
                     {
-                        W.Cast(wPrediction.CastPosition);
+                        var wPrediction = GetWPrediction(target);
+
+                        if (wPrediction != null && wPrediction.HitChance >= HitChance.Medium)
+                        {
+                            W.Cast(wPrediction.CastPosition);
+                        }
+
                     }
                 }
             }
@@ -72,7 +84,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                 {
                     var data = source.GetVisibilityTrackerData();
 
-                    if (data.LastHealthPercent < 25 && data.LastPosition.Distance(Player.Instance) < 1000)
+                    if (data.LastHealthPercent < 25 && data.LastPosition.Distance(Player.Instance) < 3000)
                     {
                         E.Cast(data.LastPath);
                     }
@@ -97,9 +109,20 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                         damage = Player.Instance.GetSpellDamage(target, SpellSlot.R) +
                                  Player.Instance.GetAutoAttackDamage(target)*4;
 
-                    var rPrediction = R.GetPrediction(target);
+                   var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                    {
+                        CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
+                        Delay = 250,
+                        From = Player.Instance.Position,
+                        Radius = 120,
+                        Range = Settings.Combo.RMaximumRange,
+                        RangeCheckFrom = Player.Instance.Position,
+                        Speed = R.Speed,
+                        Target = target,
+                        Type = SkillShotType.Linear
+                    });
 
-                    if (damage > target.TotalHealthWithShields() && (rPrediction.HitChance >= HitChance.High))
+                    if (damage > target.TotalHealthWithShields() && (rPrediction.HitChancePercent >= 65))
                     {
                         R.Cast(rPrediction.CastPosition);
                     }

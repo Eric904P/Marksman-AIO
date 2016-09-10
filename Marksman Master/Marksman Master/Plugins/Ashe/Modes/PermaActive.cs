@@ -27,10 +27,12 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Spells;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Ashe.Modes
@@ -55,10 +57,21 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                     if (target.Distance(Player.Instance) > Player.Instance.GetAutoAttackRange() + 200 &&
                         target.TotalHealthWithShields(true) < damage)
                     {
-                        var rPrediction = R.GetPrediction(target);
-
-                        if (rPrediction.HitChance >= HitChance.High || rPrediction.HitChance >= HitChance.Collision)
+                        var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                         {
+                            CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
+                            Delay = 250,
+                            From = Player.Instance.Position,
+                            Radius = 120,
+                            Range = Settings.Combo.RMaximumRange,
+                            RangeCheckFrom = Player.Instance.Position,
+                            Speed = R.Speed,
+                            Target = target,
+                            Type = SkillShotType.Linear
+                        });
+
+                        if (rPrediction.HitChance >= HitChance.High)
+                        {/*
                             if (rPrediction.HitChance == HitChance.Collision)
                             {
                                 var polygon = new Geometry.Polygon.Rectangle(Player.Instance.Position,
@@ -71,11 +84,24 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                                 }
                             }
                             else
-                            {
-                                Console.WriteLine("[DEBUG] Casting R on : {0} to killsteal ! v 1", target.Hero);
-                                R.Cast(rPrediction.CastPosition);
-                            }
+                            {*/
+                            Console.WriteLine("[DEBUG] Casting R on : {0} to killsteal ! v 1", target.Hero);
+                            R.Cast(rPrediction.CastPosition);
                         }
+                    }
+                }
+            }
+
+            if (W.IsReady() && Settings.Combo.UseW)
+            {
+                foreach (var source in EntityManager.Heroes.Enemies.Where(x=>x.IsValidTarget(W.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() && x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.W)))
+                {
+                    var wPrediction = GetWPrediction(source);
+
+                    if (wPrediction != null && wPrediction.HitChance >= HitChance.Medium)
+                    {
+                        W.Cast(wPrediction.CastPosition);
+                        break;
                     }
                 }
             }

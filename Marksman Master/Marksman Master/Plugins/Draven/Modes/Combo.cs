@@ -106,7 +106,7 @@ namespace Marksman_Master.Plugins.Draven.Modes
 
             foreach (var rPrediction in EntityManager.Heroes.Enemies.Where(unit => unit.IsValidTarget(1500)).Select(enemy => Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
-                CollisionTypes = {CollisionType.AiHeroClient},
+                CollisionTypes = {CollisionType.ObjAiMinion},
                 Delay = 250,
                 From = Player.Instance.Position,
                 Range = 1500,

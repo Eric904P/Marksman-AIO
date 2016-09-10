@@ -27,6 +27,7 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -34,6 +35,7 @@ using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
+using EloBuddy.SDK.Spells;
 using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using SharpDX;
@@ -55,7 +57,7 @@ namespace Marksman_Master.Plugins.Ashe
         private static Menu MiscMenu { get; set; }
         private static Menu DrawingsMenu { get; set; }
 
-        private static readonly Utils.ColorPicker[] ColorPicker;
+        private static readonly ColorPicker[] ColorPicker;
         private static bool _changingRangeScan;
         public static bool IsPreAttack { get; private set; }
         
@@ -77,10 +79,10 @@ namespace Marksman_Master.Plugins.Ashe
                 AllowedCollisionCount = 0
             };
 
-            ColorPicker = new Utils.ColorPicker[2];
+            ColorPicker = new ColorPicker[2];
 
-            ColorPicker[0] = new Utils.ColorPicker("AsheW", new ColorBGRA(10, 106, 138, 255));
-            ColorPicker[1] = new Utils.ColorPicker("AsheR", new ColorBGRA(177, 67, 191, 255));
+            ColorPicker[0] = new ColorPicker("AsheW", new ColorBGRA(10, 106, 138, 255));
+            ColorPicker[1] = new ColorPicker("AsheR", new ColorBGRA(177, 67, 191, 255));
 
             ChampionTracker.Initialize(ChampionTrackerFlags.VisibilityTracker);
 
@@ -107,25 +109,24 @@ namespace Marksman_Master.Plugins.Ashe
                 !(Player.Instance.Mana > 200) || !sender.IsValidTarget(Settings.Misc.MaxInterrupterRange))
                 return;
 
-            var rPrediction = R.GetPrediction(sender);
+            var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+            {
+                CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
+                Delay = 250,
+                From = Player.Instance.Position,
+                Radius = 120,
+                Range = Settings.Combo.RMaximumRange,
+                RangeCheckFrom = Player.Instance.Position,
+                Speed = R.Speed,
+                Target = sender,
+                Type = SkillShotType.Linear
+            });
 
-            if (rPrediction.HitChance < HitChance.High && rPrediction.HitChance != HitChance.Collision)
+            if (rPrediction.HitChance < HitChance.High)
                 return;
 
-            if (rPrediction.HitChance == HitChance.Collision)
-            {
-                var polygon = new Geometry.Polygon.Rectangle(Player.Instance.Position,
-                    rPrediction.CastPosition, 120);
-
-                if (!EntityManager.Heroes.Enemies.Any(x => polygon.IsInside(x)))
-                {
-                    R.Cast(rPrediction.CastPosition);
-                }
-            }
-            else
-            {
-                R.Cast(rPrediction.CastPosition);
-            }
+            R.Cast(rPrediction.CastPosition);
+            
         }
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
@@ -174,7 +175,7 @@ namespace Marksman_Master.Plugins.Ashe
             ComboMenu.AddLabel("Enchanted Crystal Arrow (R) settings :");
             ComboMenu.Add("Plugins.Ashe.ComboMenu.UseR", new CheckBox("Use R"));
             ComboMenu.Add("Plugins.Ashe.ComboMenu.RMinimumRange", new Slider("R minimum range to cast", 350, 100, 700));
-            ComboMenu.Add("Plugins.Ashe.ComboMenu.RMaximumRange", new Slider("R maximum range to cast", 1500, 700, 3000));
+            ComboMenu.Add("Plugins.Ashe.ComboMenu.RMaximumRange", new Slider("R maximum range to cast", 2500, 700, 3000));
             ComboMenu.AddSeparator(5);
 
             HarassMenu = MenuManager.Menu.AddSubMenu("Harass");
