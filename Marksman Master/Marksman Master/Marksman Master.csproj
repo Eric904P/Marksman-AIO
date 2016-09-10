@@ -82,6 +82,9 @@
     <Compile Include="Activator\Items\Botrk.cs" />
     <Compile Include="Activator\Items\HealthPotion.cs" />
     <Compile Include="Activator\Items\Quicksilver.cs" />
+    <Compile Include="Extensions\ExtensionBase.cs" />
+    <Compile Include="Extensions\SkinHack\SkinHack.cs" />
+    <Compile Include="Interfaces\IExtension.cs" />
     <Compile Include="PermaShow\Interfaces\IDrawable.cs" />
     <Compile Include="PermaShow\Interfaces\IModule.cs" />
     <Compile Include="PermaShow\Interfaces\IPermaShowItem.cs" />

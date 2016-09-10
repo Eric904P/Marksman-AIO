@@ -128,12 +128,6 @@ namespace Marksman_Master.Activator
             Obj_AI_Base.OnBuffGain += Obj_AI_Base_OnBuffGain;
             Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;
             AttackableUnit.OnDamage += Obj_AI_Base_OnDamage;
-
-            Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
-        }
-
-        private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
-        {
         }
 
         private static void LoadSummoners()
@@ -174,6 +168,9 @@ namespace Marksman_Master.Activator
 
         private static void HandleSummoners()
         {
+            if (Summoners == null)
+                return;
+
             if (Summoners.Any(x => x.Value?.Item1 == Summoner.Heal) && MenuManager.MenuValues["Activator.SummonersMenu.UseHeal"] && IncomingDamage.GetIncomingDamage(Player.Instance) > Player.Instance.TotalHealthWithShields() - 100)
             {
                 var heal = Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Heal).Key);
@@ -196,13 +193,22 @@ namespace Marksman_Master.Activator
                 }
             }
 
-            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Ignite) && MenuManager.MenuValues["Activator.SummonersMenu.UseIgnite"] && EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(620)))
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Ignite) &&
+                MenuManager.MenuValues["Activator.SummonersMenu.UseIgnite"] &&
+                EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(620)))
             {
-                var ignite = Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Ignite).Key);
+                var ignite =
+                    Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Ignite).Key);
 
                 if (ignite.IsReady)
                 {
-                    foreach (var target in EntityManager.Heroes.Enemies.Where(x=>x.IsValidTarget(620) && Player.Instance.GetSummonerSpellDamage(x, DamageLibrary.SummonerSpells.Ignite) > x.TotalHealthWithShields() && !x.HasUndyingBuffA()))
+                    foreach (
+                        var target in
+                            EntityManager.Heroes.Enemies.Where(
+                                x =>
+                                    x.IsValidTarget(620) &&
+                                    Player.Instance.GetSummonerSpellDamage(x, DamageLibrary.SummonerSpells.Ignite) >
+                                    x.TotalHealthWithShields() && !x.HasUndyingBuffA()))
                     {
                         Player.Instance.Spellbook.CastSpell(ignite.Slot, target);
                         break;
@@ -210,7 +216,7 @@ namespace Marksman_Master.Activator
                 }
             }
 
-            if (Summoners.Any(x => x.Value.Item1.HasFlag(Summoner.Smite)) && MenuManager.MenuValues["Activator.SummonersMenu.UseSmite"])
+            if (Summoners.Any(x => x.Value != null && x.Value.Item1.HasFlag(Summoner.Smite)) && MenuManager.MenuValues["Activator.SummonersMenu.UseSmite"])
             {
                 var smite = Player.Instance.Spellbook.GetSpell(Summoners.First(x=>x.Value.Item1.HasFlag(Summoner.Smite)).Key);
 
@@ -541,31 +547,38 @@ namespace Marksman_Master.Activator
 
             SummonersMenu = ActivatorMenu.AddSubMenu("Summoners");
 
+            if (Summoners == null)
+                return;
+            
             if (Summoners.Any(x => x.Value?.Item1 == Summoner.Heal))
             {
                 SummonersMenu.AddLabel("Heal : ");
                 SummonersMenu.Add("Activator.SummonersMenu.UseHeal", new CheckBox("Use Heal"));
                 SummonersMenu.AddSeparator(10);
             }
+
             if (Summoners.Any(x => x.Value?.Item1 == Summoner.Barrier))
             {
                 SummonersMenu.AddLabel("Barrier : ");
                 SummonersMenu.Add("Activator.SummonersMenu.UseBarrier", new CheckBox("Use Barrier"));
                 SummonersMenu.AddSeparator(10);
             }
+
             if (Summoners.Any(x => x.Value?.Item1 == Summoner.Ignite))
             {
                 SummonersMenu.AddLabel("Ignite : ");
                 SummonersMenu.Add("Activator.SummonersMenu.UseIgnite", new CheckBox("Use Ignite"));
                 SummonersMenu.AddSeparator(10);
             }
+
             if (Summoners.Any(x => x.Value?.Item1 == Summoner.Exhaust))
             {
                 SummonersMenu.AddLabel("Exhaust : ");
                 SummonersMenu.Add("Activator.SummonersMenu.UseExhaust", new CheckBox("Use Exhaust"));
                 SummonersMenu.AddSeparator(10);
             }
-            if (Summoners.Any(x => x.Value.Item1.HasFlag(Summoner.Smite)))
+
+            if (Summoners.Any(x => x.Value != null && x.Value.Item1 != Summoner.Unknown && x.Value.Item1.HasFlag(Summoner.Smite)))
             {
                 SummonersMenu.AddLabel("Smite : ");
                 SummonersMenu.Add("Activator.SummonersMenu.UseSmite", new CheckBox("Use Smite"));
@@ -579,7 +592,7 @@ namespace Marksman_Master.Activator
 
                 MenuManager.PermaShow.AddItem("Activator.SmiteEnabled", new MenuItem("Use Smite", "Activator.SummonersMenu.UseSmite"));
             }
-            
+
             CleanseMenu = ActivatorMenu.AddSubMenu("Cleanse");
             CleanseMenu.AddLabel("Cleanse items : ");
             CleanseMenu.Add("Activator.CleanseMenu.Scimitar", new CheckBox("Use Scimitar"));

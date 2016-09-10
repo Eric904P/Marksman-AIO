@@ -26,12 +26,18 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
+using Marksman_Master.Extensions;
+using Marksman_Master.Interfaces;
 using Marksman_Master.Utils;
 using SharpDX;
 
@@ -40,6 +46,7 @@ namespace Marksman_Master
     internal static class MenuManager
     {
         internal static Menu Menu { get; set; }
+        internal static Menu ExtensionsMenu { get; set; }
         internal static PermaShow.PermaShow PermaShow { get; set; } = new PermaShow.PermaShow("PermaShow", new Vector2(200, 200));
         internal static Menu GapcloserMenu { get; set; }
         internal static Menu InterrupterMenu { get; set; }
@@ -49,8 +56,58 @@ namespace Marksman_Master
 
         internal static MenuValues MenuValues { get; set; } = new MenuValues();
 
+        private static readonly List<ExtensionBase> Extensions = new List<ExtensionBase>(); 
+
         internal static void CreateMenu()
-        {
+        {/*
+            ExtensionsMenu = MainMenu.AddMenu("Marksman AIO : Extensions", "MarksmanAIO.Extensions");
+
+            foreach (var source in Assembly.GetAssembly(typeof(ExtensionBase)).GetTypes().Where(x=>x.IsSubclassOf(typeof(ExtensionBase)) && x.IsSealed))
+            {
+                var menuItem = ExtensionsMenu.Add("MenuManager.ExtensionsMenu." + source.Name, new CheckBox("Load " + source.Name, false));
+
+                if (menuItem.CurrentValue)
+                {
+                    if (Extensions.All(x => x.Name != source.Name))
+                    {
+                        var instance = System.Activator.CreateInstance(source);
+
+                        Extensions.Add(instance as ExtensionBase);
+
+                        source.GetMethod("Load").Invoke(instance, null);
+                    }
+                }
+
+                menuItem.OnValueChange +=
+                    (sender, args) =>
+                    {
+                        if (args.NewValue)
+                        {
+                            if (Extensions.Any(x => x.Name == source.Name))
+                                return;
+
+                            var instance = System.Activator.CreateInstance(source);
+
+                            if (instance == null)
+                                return;
+                            
+                            Extensions.Add(instance as ExtensionBase);
+
+                            source.GetMethod("Load").Invoke(instance, null);
+                        }
+                        else if (Extensions.Any(x => x.Name == source.Name))
+                        {
+                            var extension = Extensions.FirstOrDefault(x => x.Name == source.Name);
+
+                            if (extension == null)
+                                return;
+
+                            extension.Dispose();
+                            Extensions.RemoveAll(x=>x.Name == source.Name);
+                        }
+                    };
+            }*/
+
             Menu = MainMenu.AddMenu("Marksman AIO", "MarksmanAIO");
             Menu.AddGroupLabel("Welcome back, Buddy !");
             Menu.AddSeparator(5);
