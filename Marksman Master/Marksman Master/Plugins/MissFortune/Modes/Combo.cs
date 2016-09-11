@@ -55,7 +55,8 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
             if (Q.IsReady() && Settings.Combo.UseQ && !IsPreAttack &&
                 Player.Instance.Mana - QMana[Q.Level] > (R.IsReady() ?  RMana + WMana : WMana))
             {
-                var qTarget = Q.GetTarget();
+                var qTarget = TargetSelector.GetTarget(Q.Range + (Settings.Misc.BounceQFromMinions ? 420 : 0),
+                    DamageType.Physical);
 
                 if (qTarget != null)
                 {

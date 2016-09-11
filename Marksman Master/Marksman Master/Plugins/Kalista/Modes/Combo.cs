@@ -30,11 +30,11 @@ using System;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using EloBuddy.SDK.Events;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Kalista.Modes
 {
-
     internal class Combo : Kalista
     {
         public static void Execute()
@@ -64,7 +64,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 {
                     var count =
                         EntityManager.MinionsAndMonsters.CombinedAttackable.Count(
-                            unit => unit.IsValid && unit.IsValidTarget(E.Range) && unit.IsTargetKillableByRend());
+                            unit => unit.IsValid && unit.IsValidTarget(E.Range) && unit.IsTargetKillableByRend() && Prediction.Health.GetPrediction(unit, 300) > 10);
 
                     if (count >= Settings.Combo.UseEToSlowMinMinions)
                     {
@@ -95,6 +95,20 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                     Console.WriteLine("[DEBUG] Casting E before death.");
                 }
             }
+
+            if (!Q.IsReady() || !Settings.Combo.UseQ || ((Player.Instance.Mana - (50 + 5 * (Q.Level - 1))) < 45))
+                return;
+
+            var possibleTargets =
+                EntityManager.Heroes.Enemies.Where(
+                    x => x.IsValidTarget(Q.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA());
+
+            var hero = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+            if (hero == null)
+                return;
+
+            Q.CastMinimumHitchance(hero, 65);
         }
     }
 }

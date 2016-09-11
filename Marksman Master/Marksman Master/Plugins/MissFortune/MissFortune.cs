@@ -37,6 +37,7 @@ using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
 using SharpDX;
 using EloBuddy.SDK.Utils;
+using Marksman_Master.PermaShow.Values;
 using Marksman_Master.Utils;
 using Color = System.Drawing.Color;
 
@@ -54,6 +55,8 @@ namespace Marksman_Master.Plugins.MissFortune
         protected static Menu LaneClearMenu { get; set; }
         protected static Menu DrawingsMenu { get; set; }
         protected static Menu MiscMenu { get; set; }
+
+        private static BoolItem AutoHarassItem { get; set; }
 
         private static ColorPicker[] ColorPicker { get; }
 
@@ -444,7 +447,21 @@ namespace Marksman_Master.Plugins.MissFortune
 
             MiscMenu.AddLabel("Double Up (Q) settings :");
             MiscMenu.Add("Plugins.MissFortune.MiscMenu.BounceQFromMinions", new CheckBox("Cast Q on killable minions if can hit enemy"));
-            
+            MiscMenu.Add("Plugins.MissFortune.MiscMenu.AutoHarassQ", new CheckBox("Auto harass with Q")).OnValueChange
+                +=
+                (sender, args) =>
+                {
+                    AutoHarassItem.Value = args.NewValue;
+                };
+            MiscMenu.Add("Plugins.MissFortune.MiscMenu.AutoHarassQMinMana", new Slider("Min mana percentage ({0}%) for auto harass", 50, 1));
+
+            if (EntityManager.Heroes.Enemies.Any())
+            {
+                MiscMenu.AddLabel("Enable auto harras for : ");
+
+                EntityManager.Heroes.Enemies.ForEach(x => MiscMenu.Add("Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + x.ChampionName, new CheckBox(x.ChampionName == "MonkeyKing" ? "Wukong" : x.ChampionName)));
+            }
+
             MiscMenu.AddLabel("Make It Rain (E) settings :");
             MiscMenu.Add("Plugins.MissFortune.MiscMenu.EVsGapclosers", new CheckBox("Cast E against gapclosers"));
 
@@ -508,6 +525,9 @@ namespace Marksman_Master.Plugins.MissFortune
                 ColorPicker[3].Initialize(Color.Aquamarine);
                 a.CurrentValue = false;
             };
+
+            AutoHarassItem = MenuManager.PermaShow.AddItem("MissFortune.AutoHarass",
+                new BoolItem("Auto harass with Q", Settings.Misc.AutoHarassQ));
         }
 
         protected override void PermaActive()
@@ -973,6 +993,54 @@ namespace Marksman_Master.Plugins.MissFortune
                                 .CurrentValue
                                 = value;
                     }
+                }
+
+                public static bool AutoHarassQ
+                {
+                    get
+                    {
+                        return MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassQ"] != null &&
+                               MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassQ"].Cast<CheckBox>()
+                                   .CurrentValue;
+                    }
+                    set
+                    {
+                        if (MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassQ"] != null)
+                            MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassQ"].Cast<CheckBox>()
+                                .CurrentValue
+                                = value;
+                    }
+                }
+
+                public static int AutoHarassQMinMana
+                {
+                    get
+                    {
+                        if (MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassQMinMana"] != null)
+                            return MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassQMinMana"].Cast<Slider>().CurrentValue;
+
+                        Logger.Error("Couldn't get Plugins.MissFortune.MiscMenu.AutoHarassQMinMana menu item value.");
+                        return 0;
+                    }
+                    set
+                    {
+                        if (MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassQMinMana"] != null)
+                            MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassQMinMana"].Cast<Slider>().CurrentValue = value;
+                    }
+                }
+
+                public static bool IsAutoHarassEnabledFor(AIHeroClient unit)
+                {
+                    return MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + unit.ChampionName] != null &&
+                               MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + unit.ChampionName].Cast<CheckBox>()
+                                   .CurrentValue;
+                }
+
+                public static bool IsAutoHarassEnabledFor(string championName)
+                {
+                    return MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + championName] != null &&
+                               MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + championName].Cast<CheckBox>()
+                                   .CurrentValue;
                 }
 
                 public static bool EVsGapclosers

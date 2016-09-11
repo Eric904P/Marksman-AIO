@@ -26,6 +26,8 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
@@ -42,7 +44,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
         {
             if (Settings.Combo.UseR && R.IsReady() && !IsPreAttack)
             {
-                var possibleTargets = EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA() && x.TotalHealthWithShields() < GetComboDamage(x) && x.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(x, true) * 2 && R.GetPrediction(x).HitChancePercent >= 70).ToList();
+                var possibleTargets = EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA() && x.TotalHealthWithShields() < GetComboDamage(x) && x.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(x, true) * 2 && R.GetPrediction(x).HitChancePercent >= 60).ToList();
 
                 var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
@@ -61,7 +63,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                         Type = SkillShotType.Linear
                     });
 
-                    if (rPrediciton.HitChancePercent >= 70)
+                    if (rPrediciton.HitChancePercent >= 60)
                     {
                         R.Cast(rPrediciton.CastPosition);
                     }
@@ -86,7 +88,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                             Type = SkillShotType.Linear
                         });
 
-                        if (rPrediciton.HitChancePercent >= 70)
+                        if (rPrediciton.HitChancePercent >= 60)
                         {
                             R.Cast(rPrediciton.CastPosition);
                         }
@@ -98,13 +100,13 @@ namespace Marksman_Master.Plugins.Varus.Modes
             {
                 var possibleTargets =
                     EntityManager.Heroes.Enemies.Where(
-                        x => x.IsValidTarget(Q.MaximumRange) && !x.HasSpellShield() && !x.HasUndyingBuffA() && Q.GetPrediction(x).HitChance != HitChance.Impossible).ToList();
+                        x => x.IsValidTarget(Q.MaximumRange) && !x.HasSpellShield() && !x.HasUndyingBuffA() && Q.GetPrediction(x).HitChancePercent > 50).ToList();
 
                 var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
                 if (target != null)
                 {
-                    if (!Q.IsCharging &&
+                    if (!Q.IsCharging && !IsPreAttack &&
                         (possibleTargets.Any(
                             x =>
                                 x.IsValidTarget(Settings.Combo.QMinDistanceToTarget) &&
@@ -125,19 +127,15 @@ namespace Marksman_Master.Plugins.Varus.Modes
                         if (damage >= target.TotalHealthWithShields())
                         {
                             Q.CastMinimumHitchance(target, HitChance.Medium);
+                        } else if (Player.Instance.CountEnemiesInRange(600) >= 3 || Player.Instance.CountEnemiesInRange(350) >= 2)
+                        {
+                            var t = Q.GetTarget();
+                            if (t != null)
+                                Q.Cast(t);
                         }
                         else if (Q.IsFullyCharged)
                         {
-                            var qPrediction = Q.GetPrediction(target);
-                            if (qPrediction.HitChance == HitChance.Impossible &&
-                                Player.Instance.CountEnemiesInRange(400) > 1)
-                            {
-                                Q.Cast(
-                                    EntityManager.Heroes.Enemies.OrderBy(x => x.Distance(Player.Instance))
-                                        .FirstOrDefault());
-                                return;
-                            }
-                            Q.CastMinimumHitchance(target, 70);
+                            Q.CastMinimumHitchance(target, 60);
                         }
                     }
                 }
@@ -158,7 +156,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
 
                 if (target != null)
                 {
-                    E.CastMinimumHitchance(target, 70);
+                    E.CastMinimumHitchance(target, 60);
                 }
             }
         }

@@ -47,20 +47,22 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                 {
                     var incomingDamage = IncomingDamage.GetIncomingDamage(target);
 
-                    var damage = incomingDamage + Player.Instance.GetSpellDamage(target, SpellSlot.R) - 25;
+                    var damage = incomingDamage + Player.Instance.GetSpellDamage(target, SpellSlot.R)-10;
 
                     if (target.Hero == Champion.Blitzcrank && !target.HasBuff("BlitzcrankManaBarrierCD") && !target.HasBuff("ManaBarrier"))
                     {
                         damage -= target.Mana / 2;
                     }
 
-                    if (target.Distance(Player.Instance) > Player.Instance.GetAutoAttackRange() + 200 &&
-                        target.TotalHealthWithShields(true) < damage)
+                    if(target.TotalHealthWithShields(true) < Player.Instance.GetAutoAttackDamage(target, true)*2 && Player.Instance.IsInAutoAttackRange(target))
+                        continue;
+
+                    if (target.TotalHealthWithShields(true) < damage)
                     {
                         var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                         {
                             CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
-                            Delay = 250,
+                            Delay = 500,
                             From = Player.Instance.Position,
                             Radius = 120,
                             Range = Settings.Combo.RMaximumRange,
@@ -87,6 +89,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                             {*/
                             Console.WriteLine("[DEBUG] Casting R on : {0} to killsteal ! v 1", target.Hero);
                             R.Cast(rPrediction.CastPosition);
+                            break;
                         }
                     }
                 }

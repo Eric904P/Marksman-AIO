@@ -41,7 +41,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
     {
         public static void Execute()
         {
-            if (Q.IsReady() && IsPreAttack && Settings.Combo.UseQ)
+            if (Q.IsReady() && IsAfterAttack && Settings.Combo.UseQ)
             {
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange(), DamageType.Physical);
 
@@ -58,10 +58,21 @@ namespace Marksman_Master.Plugins.Ashe.Modes
             {
                 var possibleTargets =
                     EntityManager.Heroes.Enemies.Where(
-                        x => x.IsValidTarget(W.Range) && !x.HasSpellShield() && GetWPrediction(x) != null && GetWPrediction(x).HitChance >= HitChance.Medium)
+                        x =>
+                        {
+                            if (!x.IsValidTarget(W.Range))
+                                return false;
+
+                            var wPred = GetWPrediction(x);
+
+                            if (wPred == null)
+                                return false;
+
+                            return !x.HasSpellShield() && wPred.HitChance >= HitChance.Medium;
+                        })
                         .ToList();
 
-                if (possibleTargets.Any())
+                if (possibleTargets.Any() && !IsPreAttack)
                 {
                     var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
@@ -73,14 +84,13 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                         {
                             W.Cast(wPrediction.CastPosition);
                         }
-
                     }
                 }
             }
 
             if (E.IsReady() && Settings.Combo.UseE)
             {
-                foreach (var source in EntityManager.Heroes.Enemies.Where(x=> !x.IsDead && x.IsUserInvisibleFor(500)))
+                foreach (var source in EntityManager.Heroes.Enemies.Where(x=> !x.IsDead && !x.IsZombie && x.IsValid && x.IsUserInvisibleFor(500)))
                 {
                     var data = source.GetVisibilityTrackerData();
 
@@ -95,24 +105,28 @@ namespace Marksman_Master.Plugins.Ashe.Modes
             {
                 var target = TargetSelector.GetTarget(Settings.Combo.RMaximumRange, DamageType.Physical);
 
-                if (target != null && !target.IsUnderTurret() && !target.HasSpellShield() && !target.HasUndyingBuffA() && target.Distance(Player.Instance) > Settings.Combo.RMinimumRange && target.Health - IncomingDamage.GetIncomingDamage(target) > 100)
+                if (target != null && !target.IsUnderTurret() && !target.HasSpellShield() && !target.HasUndyingBuffA() && target.Distance(Player.Instance) > Settings.Combo.RMinimumRange)
                 {
+                    if (target.TotalHealthWithShields(true) < Player.Instance.GetAutoAttackDamage(target, true) * 2 && Player.Instance.IsInAutoAttackRange(target))
+                        return;
+
                     var damage = 0f;
+                    var wPred = GetWPrediction(target);
 
                     if (Player.Instance.Mana > 200 && target.IsValidTarget(W.Range))
                     {
                         damage = Player.Instance.GetSpellDamage(target, SpellSlot.R) +
-                                 Player.Instance.GetSpellDamage(target, SpellSlot.W) +
-                                 Player.Instance.GetAutoAttackDamage(target)*4;
+                                 (wPred != null && wPred.HitChance >= HitChance.Medium ? Player.Instance.GetSpellDamage(target, SpellSlot.W) : 0) +
+                                 Player.Instance.GetAutoAttackDamage(target)*2.5f;
                     }
                     else if (Player.Instance.Mana > 150 && target.IsValidTarget(W.Range))
                         damage = Player.Instance.GetSpellDamage(target, SpellSlot.R) +
-                                 Player.Instance.GetAutoAttackDamage(target)*4;
+                                 Player.Instance.GetAutoAttackDamage(target)*2.5f;
 
                    var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {
                         CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
-                        Delay = 250,
+                        Delay = 500,
                         From = Player.Instance.Position,
                         Radius = 120,
                         Range = Settings.Combo.RMaximumRange,

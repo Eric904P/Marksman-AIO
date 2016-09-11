@@ -68,6 +68,20 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
                 }
             }
 
+            if (Q.IsReady() && Settings.Misc.AutoHarassQ &&
+                Player.Instance.ManaPercent >= Settings.Misc.AutoHarassQMinMana)
+            {
+                foreach (var enemy in EntityManager.Heroes.Enemies.Where(x=> x.IsValidTarget(Q.Range + (Settings.Misc.BounceQFromMinions ?  420 : 0)) && Settings.Misc.IsAutoHarassEnabledFor(x)))
+                {
+                    if (Settings.Misc.BounceQFromMinions)
+                    {
+                        var minion = GetQMinion(enemy);
+                        Q.Cast(minion ?? enemy);
+                    }
+                    else Q.Cast(enemy);
+                }
+            }
+
             if (!R.IsReady() || !Settings.Combo.UseR)
                 return;
 

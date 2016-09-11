@@ -50,7 +50,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
 
             if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ && (jungleMinions.Count >= Settings.LaneClear.MinMinionsHitQ || allowedMonsters.Any(x=> jungleMinions.Any(k=>x.Contains(k.BaseSkinName)))))
             {
-                if (!Q.IsCharging && !IsPreAttack)
+                if (!Q.IsCharging && !IsPreAttack && EntityManager.MinionsAndMonsters.GetLineFarmLocation(jungleMinions, Q.Width, 1550).HitNumber >= Settings.LaneClear.MinMinionsHitQ)
                 {
                     Q.StartCharging();
                 }

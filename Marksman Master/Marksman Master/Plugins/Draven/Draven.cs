@@ -192,6 +192,7 @@ namespace Marksman_Master.Plugins.Draven
             if(!AxeObjects.Any() || !Settings.Axe.CatchAxes || !_catching || GetAxesCount() == 0)
             { 
                 Orbwalker.OverrideOrbwalkPosition += () => Game.CursorPos;
+                _catching = false;
             }
 
             foreach (var axeObjectData in AxeObjects.Where(x => Game.CursorPos.Distance(x.EndPosition) < Settings.Axe.AxeCatchRange && CanPlayerCatchAxe(x)).OrderBy(x => x.EndPosition.Distance(Player.Instance)))
@@ -300,6 +301,8 @@ namespace Marksman_Master.Plugins.Draven
                         return;
                 }
             }
+
+            AxeObjects.RemoveAll(x => x.EndTick - Game.Time * 1000 <= 0);
         }
 
         private static bool CanPlayerCatchAxe(AxeObjectData axe)

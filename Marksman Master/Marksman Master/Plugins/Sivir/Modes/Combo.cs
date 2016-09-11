@@ -71,7 +71,7 @@ namespace Marksman_Master.Plugins.Sivir.Modes
                 {
                     Console.WriteLine("[DEBUG] Casting W on {0} variant 1", target.Hero);
                     W.Cast();
-                } else if (target != null && target.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange() - 100)
+                } else if (target != null && target.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange() - 50)
                 {
                     Console.WriteLine("[DEBUG] Casting W on {0} variant 2", target.Hero);
                     W.Cast();

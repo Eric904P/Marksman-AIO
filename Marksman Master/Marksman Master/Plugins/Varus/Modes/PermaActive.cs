@@ -55,26 +55,20 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 }
             }
 
-            if (Settings.Harass.AutoHarassWithQ && Q.IsReady() &&
+            if (Settings.Harass.AutoHarassWithQ && !Player.Instance.IsRecalling() && !Player.Instance.Position.IsVectorUnderEnemyTower() && Q.IsReady() &&
                 Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)
             {
-                if (
-                    EntityManager.Heroes.Enemies.Any(x =>
-                                                     x.IsValidTarget(Q.MaximumRange) && Settings.Harass.IsAutoHarassEnabledFor(x)))
+                if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(Q.MaximumRange-100) && Settings.Harass.IsAutoHarassEnabledFor(x) && Q.GetPrediction(x).HitChancePercent > 50))
                 {
-                    if (!Q.IsCharging && !EntityManager.Heroes.Enemies.Any(x =>
+                    if (!Q.IsCharging && !IsPreAttack && !EntityManager.Heroes.Enemies.Any(x =>
                                                                           x.IsValidTarget(Settings.Combo.QMinDistanceToTarget)))
                     {
                         Q.StartCharging();
                     } else if (Q.IsCharging && Q.IsFullyCharged)
                     {
-                        foreach (var target in EntityManager.Heroes.Enemies.Where(x =>
-                                                                                  x.IsValidTarget(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) && Q.GetPrediction(x).HitChancePercent > 65))
+                        foreach (var target in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) && Q.GetPrediction(x).HitChancePercent > 60).TakeWhile(target => Q.IsReady()))
                         {
-                            if (!Q.IsReady())
-                                break;
-
-                            Q.CastMinimumHitchance(target, 65);
+                            Q.CastMinimumHitchance(target, 60);
                         }
                     }
                 }

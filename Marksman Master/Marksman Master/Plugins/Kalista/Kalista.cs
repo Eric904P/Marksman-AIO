@@ -249,7 +249,7 @@ namespace Marksman_Master.Plugins.Kalista
 
             var aiMinion = target as Obj_AI_Minion;
 
-            if (aiMinion == null)
+            if (aiMinion == null || Prediction.Health.GetPrediction(aiMinion, 300) < 10)
                 return;
 
             if (aiMinion.IsTargetKillableByRend())
@@ -263,7 +263,7 @@ namespace Marksman_Master.Plugins.Kalista
             if (!Settings.Drawings.DrawDamageIndicator || Player.Instance.IsDead)
                 return 0f;
 
-            if (!(target is AIHeroClient))
+            if (target.GetType() != typeof(AIHeroClient))
                 return target.GetRendDamageOnTarget();
 
             if(Settings.Drawings.DamageIndicatorMode == 0)

@@ -60,7 +60,8 @@ namespace Marksman_Master.Plugins.Ashe
         private static readonly ColorPicker[] ColorPicker;
         private static bool _changingRangeScan;
         public static bool IsPreAttack { get; private set; }
-        
+        public static bool IsAfterAttack { get; private set; }
+
         static Ashe()
         {
             Q = new Spell.Active(SpellSlot.Q);
@@ -87,7 +88,8 @@ namespace Marksman_Master.Plugins.Ashe
             ChampionTracker.Initialize(ChampionTrackerFlags.VisibilityTracker);
 
             Orbwalker.OnPreAttack += (a,b) => IsPreAttack = true;
-            Orbwalker.OnPostAttack += (a, b) => IsPreAttack = false;
+            Orbwalker.OnPostAttack += (a, b) => { IsPreAttack = false; IsAfterAttack = true; };
+            Game.OnPostTick += args => IsAfterAttack = false;
         }
         
         protected override void OnDraw()
