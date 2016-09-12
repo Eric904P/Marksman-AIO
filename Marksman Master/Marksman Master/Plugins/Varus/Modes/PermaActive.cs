@@ -42,16 +42,34 @@ namespace Marksman_Master.Plugins.Varus.Modes
         {
             if (Settings.Misc.EnableKillsteal)
             {
-                if(Q.IsCharging && EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(Q.Range) && x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x)))
+                if(EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(Q.Range) && x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x)))
                 {
-                    Q.CastMinimumHitchance(
-                        EntityManager.Heroes.Enemies.First(
-                            x => !x.IsDead &&
+                    foreach (var targ in EntityManager.Heroes.Enemies.Where(x=> !x.IsDead &&
                                 x.IsValidTarget(Q.Range) &&
-                                x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x)), HitChance.Medium);
+                                (x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x))))
+                    {
+                        if (!Q.IsCharging)
+                        {
+                            if (!IsPreAttack &&
+                                Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) <= 1)
+                            {
+                                Q.StartCharging();
+                                break;
+                            }
+                        }
+                        if (Q.IsCharging)
+                        {
+                            Q.CastMinimumHitchance(targ, HitChance.Medium);
+                        }
+                    }
+
+                    
                 } else if (E.IsReady() && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(E.Range) && x.TotalHealthWithShields() <= Player.Instance.GetSpellDamage(x, SpellSlot.E) + Damage.GetWDamage(x)))
                 {
-                    E.CastMinimumHitchance(EntityManager.Heroes.Enemies.First(x => !x.IsDead && x.IsValidTarget(E.Range) && x.TotalHealthWithShields() <= Player.Instance.GetSpellDamage(x, SpellSlot.E) + Damage.GetWDamage(x)), HitChance.Medium);
+                    foreach (var targ in EntityManager.Heroes.Enemies.Where(x => !x.IsDead && x.IsValidTarget(E.Range) && (x.TotalHealthWithShields() <= Player.Instance.GetSpellDamage(x, SpellSlot.E) + Damage.GetWDamage(x))))
+                    {
+                        E.CastMinimumHitchance(targ, HitChance.Medium);
+                    }
                 }
             }
 
