@@ -68,6 +68,8 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         private static readonly Dictionary<int, Dictionary<float, float>> Damages =
             new Dictionary<int, Dictionary<float, float>>();
+        
+        protected static bool IsPreAttack { get; private set; }
 
         static Caitlyn()
         {
@@ -94,6 +96,13 @@ namespace Marksman_Master.Plugins.Caitlyn
                 {
                     DamageIndicator.Color = b.Color;
                 };
+
+            Orbwalker.OnPostAttack += (sender, args) =>
+            {
+                IsPreAttack = false;
+            };
+
+            Orbwalker.OnPreAttack += (target, args) => IsPreAttack = true;
 
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 
@@ -168,19 +177,11 @@ namespace Marksman_Master.Plugins.Caitlyn
 
             if (Player.Instance.IsInAutoAttackRange(unit))
                 damage += Player.Instance.GetAutoAttackDamage(unit);
-            
-            if (!Damages.ContainsKey(unit.NetworkId))
-            {
-                Damages.Add(unit.NetworkId, new Dictionary<float, float> { { Game.Time * 1000, damage } });
-            }
-            else
-            {
-                Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
-            }
 
+            Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
+            
             return damage;
         }
-
 
         protected override void OnDraw()
         {

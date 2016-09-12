@@ -29,7 +29,6 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Caitlyn.Modes
@@ -38,17 +37,17 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
     {
         public static void Execute()
         {
-            if (Settings.Misc.EnableKillsteal && Q.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower())
+            if (Settings.Misc.EnableKillsteal && !IsPreAttack && Q.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower())
             {
                 foreach (
                     var target in
                         EntityManager.Heroes.Enemies.Where(
                             x =>
                                 x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
-                                x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q) &&
-                                x.Distance(Player.Instance) > 500))
+                                (x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q)) &&
+                                !(x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(x, true) && (x.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange()))))
                 {
-                    Q.CastMinimumHitchance(target, HitChance.Medium);
+                    Q.CastMinimumHitchance(target, 60);
                     break;
                 }
             }

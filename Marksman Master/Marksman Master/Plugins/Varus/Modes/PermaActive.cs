@@ -55,21 +55,30 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 }
             }
 
-            if (Settings.Harass.AutoHarassWithQ && !Player.Instance.IsRecalling() && !Player.Instance.Position.IsVectorUnderEnemyTower() && Q.IsReady() &&
+            if (Settings.Harass.AutoHarassWithQ && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && !Player.Instance.IsRecalling() &&
+                !Player.Instance.Position.IsVectorUnderEnemyTower() && Q.IsReady() &&
                 Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)
             {
-                if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(Q.MaximumRange-100) && Settings.Harass.IsAutoHarassEnabledFor(x) && Q.GetPrediction(x).HitChancePercent > 50))
+                if (!Q.IsCharging &&
+                    EntityManager.Heroes.Enemies.Any(
+                        x => Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0 &&
+                            x.IsValidTarget(Q.MaximumRange - 100) && Settings.Harass.IsAutoHarassEnabledFor(x) &&
+                            Q.GetPrediction(x).HitChancePercent > 50) && !IsPreAttack &&
+                    !EntityManager.Heroes.Enemies.Any(x =>
+                        x.IsValidTarget(Settings.Combo.QMinDistanceToTarget)))
                 {
-                    if (!Q.IsCharging && !IsPreAttack && !EntityManager.Heroes.Enemies.Any(x =>
-                                                                          x.IsValidTarget(Settings.Combo.QMinDistanceToTarget)))
+                    Q.StartCharging();
+                }
+                else if (Q.IsCharging)
+                {
+                    foreach (
+                        var target in
+                            EntityManager.Heroes.Enemies.Where(
+                                x =>
+                                    x.IsValidTarget(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) &&
+                                    Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) != 0 || Q.IsFullyCharged && Q.GetPrediction(x).HitChancePercent >= 60).TakeWhile(target => Q.IsReady()))
                     {
-                        Q.StartCharging();
-                    } else if (Q.IsCharging && Q.IsFullyCharged)
-                    {
-                        foreach (var target in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) && Q.GetPrediction(x).HitChancePercent > 60).TakeWhile(target => Q.IsReady()))
-                        {
-                            Q.CastMinimumHitchance(target, 60);
-                        }
+                        Q.CastMinimumHitchance(target, 60);
                     }
                 }
             }
@@ -85,7 +94,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
             var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
                 CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
-                Delay = 250,
+                Delay = 550,
                 From = Player.Instance.Position,
                 Radius = 115,
                 Range = R.Range,
@@ -95,7 +104,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 Type = SkillShotType.Linear
             });
 
-            if (rPrediciton.HitChance >= HitChance.Medium)
+            if (rPrediciton.HitChancePercent >= 60)
             {
                 R.Cast(rPrediciton.CastPosition);
             }

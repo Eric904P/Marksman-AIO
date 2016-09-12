@@ -181,7 +181,7 @@ namespace Marksman_Master.Utils
                     return;
 
                 const int height = 10;
-                const int width = 109;
+                const int width = 106;
 
                 int xOffset;
                 int yOffset;
@@ -197,7 +197,7 @@ namespace Marksman_Master.Utils
                         yOffset = -5;
                         break;
                     default:
-                        xOffset = 1;
+                        xOffset = 2;
                         yOffset = 9;
                         break;
 

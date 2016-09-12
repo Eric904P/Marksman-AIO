@@ -58,6 +58,7 @@ namespace Marksman_Master.Plugins.Varus
         private static ColorPicker[] ColorPicker { get; }
 
         private static bool _changingRangeScan;
+        private static bool _changingRangeQ;
 
         private static readonly Dictionary<int, Dictionary<float, float>> Damages =
             new Dictionary<int, Dictionary<float, float>>();
@@ -139,7 +140,11 @@ namespace Marksman_Master.Plugins.Varus
             if (_changingRangeScan)
                 Circle.Draw(Color.White,
                     LaneClearMenu["Plugins.Varus.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue, Player.Instance);
-            
+
+            if (_changingRangeQ)
+                Circle.Draw(Color.DeepPink,
+                    ComboMenu["Plugins.Varus.ComboMenu.QMinDistanceToTarget"].Cast<Slider>().CurrentValue, Player.Instance);
+
             if (Settings.Drawings.DrawQ && (!Settings.Drawings.DrawSpellRangesWhenReady || Q.IsReady()))
                 Circle.Draw(ColorPicker[0].Color, Q.Range, Player.Instance);
             if (Settings.Drawings.DrawE && (!Settings.Drawings.DrawSpellRangesWhenReady || E.IsReady()))
@@ -163,8 +168,20 @@ namespace Marksman_Master.Plugins.Varus
 
             ComboMenu.AddLabel("Piercing Arrow (Q) settings :");
             ComboMenu.Add("Plugins.Varus.ComboMenu.UseQ", new CheckBox("Use Q"));
-            ComboMenu.Add("Plugins.Varus.ComboMenu.QMinDistanceToTarget", new Slider("Minimum distance to target to use Q", 500, 0, 1250));
-            ComboMenu.AddSeparator(5);
+            var qrange = ComboMenu.Add("Plugins.Varus.ComboMenu.QMinDistanceToTarget", new Slider("Minimum distance to target to use Q", 500, 0, 1250));
+
+            qrange.OnValueChange += (a, b) =>
+            {
+                _changingRangeQ = true;
+                Core.DelayAction(() =>
+                {
+                    if (!qrange.IsLeftMouseDown && !qrange.IsMouseInside)
+                    {
+                        _changingRangeQ = false;
+                    }
+                }, 2000);
+            };
+            ComboMenu.AddSeparator(5); 
 
             ComboMenu.AddLabel("Hail of Arrows (E) settings :");
             ComboMenu.Add("Plugins.Varus.ComboMenu.UseE", new CheckBox("Use E"));

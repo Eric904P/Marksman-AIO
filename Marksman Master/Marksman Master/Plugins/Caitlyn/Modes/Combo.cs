@@ -38,9 +38,9 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
     {
         public static void Execute()
         {
-            if (Settings.Combo.UseQ && Q.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower() && !HasAutoAttackRangeBuffOnChamp)
+            if (Settings.Combo.UseQ && !IsPreAttack && Q.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower() && !HasAutoAttackRangeBuffOnChamp)
             {
-                if (Player.Instance.CountEnemiesInRange(650) == 0)
+                if (Player.Instance.CountEnemiesInRange(750) == 0)
                 {
                     var possibleTargets =
                         EntityManager.Heroes.Enemies.Where(
@@ -78,11 +78,11 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
 
                 var wTarget = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-                if (wTarget != null)
+                if (wTarget != null && !IsPreAttack)
                 {
                     var wPrediction = W.GetPrediction(wTarget);
 
-                    if (wPrediction.HitChance >= HitChance.High && wPrediction.CastPosition.Distance(wTarget) > 150)
+                    if (wPrediction.HitChancePercent >= 85 && wPrediction.CastPosition.Distance(wTarget) > 100)
                     {
                         W.Cast(wPrediction.CastPosition);
                     }
@@ -93,7 +93,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
             {
                 var possibleTargets =
                        EntityManager.Heroes.Enemies.Where(
-                           x => x.IsValidTarget(E.Range) && x.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(x, true) * 2 && !x.HasUndyingBuffA() && !x.HasSpellShield());
+                           x => x.IsValidTarget(E.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
 
                 var eTarget = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
@@ -101,7 +101,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 {
                     var ePrediciton = E.GetPrediction(eTarget);
 
-                    if (ePrediciton.HitChance >= HitChance.High && GetDashEndPosition(ePrediciton.CastPosition).CountEnemiesInRange(500) <= 1)
+                    if (ePrediciton.HitChancePercent >= 65)// && GetDashEndPosition(ePrediciton.CastPosition).CountEnemiesInRange(500) <= 1)
                     {
                         var damage = Player.Instance.GetSpellDamage(eTarget, SpellSlot.E);
 
@@ -116,7 +116,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                         if (Q.IsReady() && endPos.IsInRange(unitPosafterAfter, 1200))
                             damage += Player.Instance.GetSpellDamage(eTarget, SpellSlot.Q);
 
-                        if (damage > eTarget.TotalHealthWithShields() || (endPos.Distance(eTarget) < Player.Instance.GetAutoAttackRange()/1.35f) || (eTarget.IsMelee && eTarget.IsValidTarget(400)))
+                        if (damage > eTarget.TotalHealthWithShields() || (endPos.Distance(eTarget) < Player.Instance.GetAutoAttackRange()-100) || (eTarget.IsMelee && eTarget.IsValidTarget(400)))
                         {
                             E.Cast(ePrediciton.CastPosition);
                             return;
@@ -125,7 +125,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 }
             }
 
-            if (Settings.Combo.UseR && R.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower())
+            if (Settings.Combo.UseR && !IsPreAttack && R.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower())
             {
                 var possibleTargets =
                        EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range) && x.Distance(Player.Instance) > (IsUnitNetted(x) ? 1300 : Player.Instance.GetAutoAttackRange()) && !EntityManager.Heroes.Enemies.Where(b => b.NetworkId != x.NetworkId).Any(c => c.IsValidTarget() && new Geometry.Polygon.Rectangle(Player.Instance.Position, x.Position, 60).IsInside(c.ServerPosition)) && (x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.R)) && !x.HasUndyingBuffA() && !x.HasSpellShield());
@@ -143,7 +143,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                                 x.IsValidTarget() &&
                                 Prediction.Position.PredictUnitPosition(x, 1300).Distance(Player.Instance) < Player.Instance.GetAutoAttackRange());
 
-                    if (enemies == 0)
+                    if (enemies == 0 && !IsPreAttack)
                     {
                         R.Cast(rTarget);
                     }

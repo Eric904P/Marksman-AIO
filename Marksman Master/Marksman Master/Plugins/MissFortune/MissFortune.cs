@@ -364,7 +364,7 @@ namespace Marksman_Master.Plugins.MissFortune
         {
             if (Settings.Misc.EVsGapclosers && E.IsReady() && args.End.Distance(Player.Instance) < 350 && (Player.Instance.Mana - EMana > QMana[Q.Level] + WMana + RMana))
             {
-                E.Cast(args.End);
+                E.CastMinimumHitchance(sender, 65);
             }
         }
 
