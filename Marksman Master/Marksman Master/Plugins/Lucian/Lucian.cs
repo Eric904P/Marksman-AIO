@@ -69,7 +69,7 @@ namespace Marksman_Master.Plugins.Lucian
         {
             Q = new Spell.Targeted(SpellSlot.Q, 750);
             W = new Spell.Skillshot(SpellSlot.W, 1000, SkillShotType.Circular, 250, 1500, 80);
-            E = new Spell.Skillshot(SpellSlot.E, 440, SkillShotType.Linear);
+            E = new Spell.Skillshot(SpellSlot.E, 475, SkillShotType.Linear);
             R = new Spell.Skillshot(SpellSlot.R, 1150, SkillShotType.Linear, 250, 2000, 110);
 
             ColorPicker = new ColorPicker[3];
@@ -87,8 +87,40 @@ namespace Marksman_Master.Plugins.Lucian
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
 
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
+            GameObject.OnCreate += GameObject_OnCreate;
         }
 
+        private static void GameObject_OnCreate(GameObject sender, EventArgs args)
+        {
+            if (sender.GetType() == typeof (MissileClient))
+            {
+                var missile = sender as MissileClient;
+
+                if (missile != null)
+                {
+                    if (missile.SData.Name == "Lucian_Base_Q_laser.troy" ||
+                        missile.SData.Name == "Lucian_Base_P_buf.troy")
+                    {
+                        Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+
+                        Orbwalker.ResetAutoAttack();
+                    }
+                }
+            }
+
+            if (sender.GetType() != typeof (Obj_GeneralParticleEmitter))
+                return;
+
+            var particle = sender as Obj_GeneralParticleEmitter;
+
+            if (particle == null || particle.Name != "Lucian_Base_P_buf.troy")
+                return;
+            
+            Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+
+            Orbwalker.ResetAutoAttack();
+        }
+        
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
             if (Player.Instance.Spellbook.IsCastingSpell)
@@ -116,21 +148,163 @@ namespace Marksman_Master.Plugins.Lucian
             if (!Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
-            if (Q.IsReady() && !IsCastingR && Settings.Combo.UseQ && !HasPassiveBuff && !Player.Instance.HasSheenBuff())
+            if (E.IsReady() && Settings.Combo.UseE && !IsCastingR && Settings.Misc.EUsageMode == 1 && !HasPassiveBuff &&
+                !Player.Instance.HasSheenBuff())
             {
-                var aiHeroClient = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
+                var heroClient = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 420, DamageType.Physical);
+                var position = Vector3.Zero;
+
+                if (heroClient == null)
+                    return;
+
+                var damage = Player.Instance.GetAutoAttackDamage(heroClient, true) * 2;
+
+                if (Q.IsReady())
+                    damage += Player.Instance.GetSpellDamage(heroClient, SpellSlot.Q);
+                if (W.IsReady())
+                    damage += Player.Instance.GetSpellDamage(heroClient, SpellSlot.W);
+
+                if (!((damage < heroClient.TotalHealthWithShields()) || (Q.IsReady() && W.IsReady())))
+                    return;
+
+                if (Settings.Misc.EMode == 0)
+                {
+                    if (Player.Instance.HealthPercent > heroClient.HealthPercent + 5 && heroClient.CountEnemiesInRange(600) < 2)
+                    {
+                        if (!Player.Instance.Position.Extend(Game.CursorPos, 420)
+                            .To3D()
+                            .IsVectorUnderEnemyTower() &&
+                            (!heroClient.IsMelee ||
+                             Player.Instance.Position.Extend(Game.CursorPos, 420)
+                                 .IsInRange(heroClient, heroClient.GetAutoAttackRange() * 1.5f)))
+                        {
+                            Console.WriteLine("[DEBUG] 1v1 Game.CursorPos");
+                            position = Game.CursorPos.Distance(Player.Instance) > 450
+                                ? Player.Instance.Position.Extend(Game.CursorPos, 450).To3D()
+                                : Game.CursorPos;
+                        }
+                    }
+                    else
+                    {
+                        var closest =
+                            EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
+                                .OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
+
+                        var list =
+                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
+                                1300,
+                                heroClient.IsMelee ? heroClient.GetAutoAttackRange() * 2 : heroClient.GetAutoAttackRange())
+                                .Where(
+                                    x =>
+                                        !x.Key.To3D().IsVectorUnderEnemyTower() &&
+                                        x.Key.IsInRange(Prediction.Position.PredictUnitPosition(closest, 850),
+                                            Player.Instance.GetAutoAttackRange() - 50))
+                                .Select(source => source.Key)
+                                .ToList();
+
+                        if (list.Any())
+                        {
+                            var paths =
+                                EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
+                                    .Select(x => x.Path)
+                                    .Count(result => result != null && result.Last().Distance(Player.Instance) < 300);
+
+                            var asc = Misc.SortVectorsByDistance(list, heroClient.Position.To2D())[0].To3D();
+                            if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0 &&
+                                !EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 1000).Any(
+                                    x => Prediction.Position.PredictUnitPosition(x, 800)
+                                        .IsInRange(asc,
+                                            x.IsMelee ? x.GetAutoAttackRange() * 2 : x.GetAutoAttackRange())))
+                            {
+                                position = asc;
+
+                                Console.WriteLine("[DEBUG] Paths low sorting Ascending");
+                            }
+                            else if (Player.Instance.CountEnemiesInRange(1000) <= 2 && (paths == 0 || paths == 1) &&
+                                     ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2) ||
+                                      (Orbwalker.LastTarget is AIHeroClient &&
+                                       Orbwalker.LastTarget.Health <
+                                       Player.Instance.GetAutoAttackDamage(closest, true) * 2)))
+                            {
+                                position = asc;
+                            }
+                            else
+                            {
+                                position =
+                                    Misc.SortVectorsByDistanceDescending(list, heroClient.Position.To2D())[0].To3D();
+                                Console.WriteLine("[DEBUG] Paths high sorting Descending");
+                            }
+                        }
+                        else Console.WriteLine("[DEBUG] 1v1 not found positions...");
+                    }
+
+                    if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
+                    {
+                        E.Cast(position.Distance(Player.Instance) > E.Range
+                            ? Player.Instance.Position.Extend(position, E.Range).To3D()
+                            : position);
+                        return;
+                    }
+                }
+                else if (Settings.Misc.EMode == 1)
+                {
+                    var enemies = Player.Instance.CountEnemiesInRange(1300);
+
+                    var pos = Game.CursorPos.Distance(Player.Instance) > 450 ? Player.Instance.Position.Extend(Game.CursorPos, 450).To3D() : Game.CursorPos;
+
+                    if (!pos.IsVectorUnderEnemyTower())
+                    {
+                        if (enemies == 1)
+                        {
+                            if (heroClient.IsMelee &&
+                                !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850),
+                                    heroClient.GetAutoAttackRange() + 150))
+                            {
+                                E.Cast(pos);
+                                return;
+                            }
+                            if (!heroClient.IsMelee)
+                            {
+                                E.Cast(pos);
+                                return;
+                            }
+                        }
+                        else if (enemies == 2 && Player.Instance.CountAlliesInRange(850) >= 1)
+                        {
+                            E.Cast(pos);
+                            return;
+                        }
+                        else if (enemies >= 2)
+                        {
+                            if (
+                                !EntityManager.Heroes.Enemies.Any(
+                                    x =>
+                                        pos.IsInRange(Prediction.Position.PredictUnitPosition(x, 400),
+                                            x.IsMelee ? x.GetAutoAttackRange() + 150 : x.GetAutoAttackRange())))
+                            {
+                                E.Cast(pos);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (Q.IsReady() && Settings.Combo.UseQ && !IsCastingR && !HasPassiveBuff && !Player.Instance.HasSheenBuff())
+            {
+                var t = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
                 var target2 = TargetSelector.GetTarget(900, DamageType.Physical);
 
-                if (aiHeroClient != null && aiHeroClient.IsValidTarget(Q.Range) &&
-                    ((Player.Instance.Mana - 50 + 5*(Q.Level - 1) > 40 - 10*(E.Level - 1) + 100) ||
-                     Player.Instance.GetSpellDamage(aiHeroClient, SpellSlot.Q) > aiHeroClient.TotalHealthWithShields()))
+                if (t != null && t.IsValidTarget(Q.Range) &&
+                    ((Player.Instance.Mana - 50 + 5 * (Q.Level - 1) > 40 - 10 * (E.Level - 1) + (R.IsReady() ? 100 : 0)) ||
+                     (Player.Instance.GetSpellDamage(t, SpellSlot.Q) > t.TotalHealthWithShields())))
                 {
-                    Q.Cast(aiHeroClient);
+                    Q.Cast(t);
                     return;
                 }
                 if (Settings.Combo.ExtendQOnMinions && target2 != null &&
-                    ((Player.Instance.Mana - 50 + 5*(Q.Level - 1) > 40 - 10*(E.Level - 1) + 100) ||
-                     Player.Instance.GetSpellDamage(target2, SpellSlot.Q) > target2.TotalHealthWithShields()))
+                    ((Player.Instance.Mana - 50 + 5 * (Q.Level - 1) > 40 - 10 * (E.Level - 1) + (R.IsReady() ? 100 : 0)) ||
+                     (Player.Instance.GetSpellDamage(target2, SpellSlot.Q) > target2.TotalHealthWithShields())))
                 {
                     foreach (
                         var entity in
@@ -152,157 +326,27 @@ namespace Marksman_Master.Plugins.Lucian
                 }
             }
 
-            if (W.IsReady() && !IsCastingR && Settings.Combo.UseW && !HasPassiveBuff && !Player.Instance.HasSheenBuff())
+            if (W.IsReady() && Settings.Combo.UseW && !IsCastingR && !HasPassiveBuff && !Player.Instance.HasSheenBuff())
             {
-                var aiHeroClient = TargetSelector.GetTarget(W.Range, DamageType.Physical);
+                var t = TargetSelector.GetTarget(W.Range, DamageType.Physical);
 
-                if (aiHeroClient != null &&
-                    ((Player.Instance.Mana - 50 > 100) ||
-                     Player.Instance.GetSpellDamage(aiHeroClient, SpellSlot.W) > aiHeroClient.TotalHealthWithShields()))
+                if (t != null && ((Player.Instance.Mana - 50 > (R.IsReady() ? 100 : 0)) ||
+                                       Player.Instance.GetSpellDamage(t, SpellSlot.W) >
+                                       t.TotalHealthWithShields()))
                 {
-                    if (Settings.Combo.IgnoreCollisionW)
+                    if (Settings.Combo.IgnoreCollisionW && Player.Instance.IsInAutoAttackRange(t) && Orbwalker.LastTarget != null && Orbwalker.LastTarget.NetworkId == t.NetworkId)
                     {
-                        W.Cast(aiHeroClient);
+                        W.Cast(t);
                         return;
                     }
-                    var wPrediction = W.GetPrediction(aiHeroClient);
+
+                    var wPrediction = W.GetPrediction(t);
+
                     if (wPrediction.HitChance == HitChance.Medium)
                     {
                         W.Cast(wPrediction.CastPosition);
-                        return;
                     }
                 }
-            }
-
-            if (!E.IsReady() || IsCastingR || !Settings.Combo.UseE || HasPassiveBuff || Player.Instance.HasSheenBuff())
-                return;
-
-            var heroClient = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 420, DamageType.Physical);
-            var position = Vector3.Zero;
-
-            if (Settings.Misc.EMode == 0)
-            {
-                if (heroClient != null && Player.Instance.HealthPercent > 50 && heroClient.HealthPercent < 30 && heroClient.CountEnemiesInRange(600) < 2)
-                {
-                    if (!Player.Instance.Position.Extend(Game.CursorPos, 420)
-                        .To3D()
-                        .IsVectorUnderEnemyTower() &&
-                        (!heroClient.IsMelee ||
-                         Player.Instance.Position.Extend(Game.CursorPos, 420)
-                             .IsInRange(heroClient, heroClient.GetAutoAttackRange() * 1.5f)))
-                    {
-                        Console.WriteLine("[DEBUG] 1v1 Game.CursorPos");
-                        position = Game.CursorPos.Distance(Player.Instance) > E.Range
-                            ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
-                            : Game.CursorPos;
-                    }
-                }
-                else if (heroClient != null)
-                {
-                    var closest =
-                        EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
-                            .OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
-
-                    var list =
-                        SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
-                            1300,
-                            heroClient.IsMelee ? heroClient.GetAutoAttackRange() * 2 : heroClient.GetAutoAttackRange())
-                            .Where(
-                                x =>
-                                    !x.Key.To3D().IsVectorUnderEnemyTower() &&
-                                    x.Key.IsInRange(Prediction.Position.PredictUnitPosition(closest, 850),
-                                        Player.Instance.GetAutoAttackRange() - 50))
-                            .Select(source => source.Key)
-                            .ToList();
-
-                    if (list.Any())
-                    {
-                        var paths =
-                            EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
-                                .Select(x => x.Path)
-                                .Count(result => result != null && result.Last().Distance(Player.Instance) < 300);
-
-                        var asc = Misc.SortVectorsByDistance(list, heroClient.Position.To2D())[0].To3D();
-                        if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0 &&
-                            !EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 1000).Any(
-                                x => Prediction.Position.PredictUnitPosition(x, 800)
-                                    .IsInRange(asc,
-                                        x.IsMelee ? x.GetAutoAttackRange() * 2 : x.GetAutoAttackRange())))
-                        {
-                            position = asc;
-
-                            Console.WriteLine("[DEBUG] Paths low sorting Ascending");
-                        }
-                        else if (Player.Instance.CountEnemiesInRange(1000) <= 2 && (paths == 0 || paths == 1) &&
-                                 ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2) ||
-                                  (Orbwalker.LastTarget is AIHeroClient &&
-                                   Orbwalker.LastTarget.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2)))
-                        {
-                            position = asc;
-                        }
-                        else
-                        {
-                            position =
-                                Misc.SortVectorsByDistanceDescending(list, heroClient.Position.To2D())[0].To3D();
-                            Console.WriteLine("[DEBUG] Paths high sorting Descending");
-                        }
-                    }
-                    else Console.WriteLine("[DEBUG] 1v1 not found positions...");
-                }
-
-                if (position == Vector3.Zero || !EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
-                    return;
-
-                E.Cast(position.Distance(Player.Instance) > E.Range ? Player.Instance.Position.Extend(position, E.Range).To3D() : position);
-            }
-            else if (Settings.Misc.EMode == 1)
-            {
-                var enemies = Player.Instance.CountEnemiesInRange(1300);
-                var pos = Game.CursorPos.Distance(Player.Instance) > E.Range
-                            ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
-                            : Game.CursorPos;
-
-                if (pos.IsVectorUnderEnemyTower())
-                    return;
-
-                if (heroClient == null)
-                    return;
-
-                if (enemies == 1 && heroClient.HealthPercent + 15 < Player.Instance.HealthPercent)
-                {
-                    if (heroClient.IsMelee && !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850), heroClient.GetAutoAttackRange() + 150))
-                    {
-                        E.Cast(pos);
-                        return;
-                    }
-                    if (!heroClient.IsMelee)
-                    {
-                        E.Cast(pos);
-                        return;
-                    }
-                }
-                if (enemies == 1 && !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850), heroClient.GetAutoAttackRange()))
-                {
-                    E.Cast(pos);
-                    return;
-                }
-                if (enemies == 2 && Player.Instance.CountAlliesInRange(850) >= 1)
-                {
-                    E.Cast(pos);
-                    return;
-                }
-                if (enemies < 2)
-                    return;
-
-                if (EntityManager.Heroes.Enemies.Any(
-                    x =>
-                        pos.IsInRange(Prediction.Position.PredictUnitPosition(x, 850),
-                            x.IsMelee ? x.GetAutoAttackRange() + 150 : x.GetAutoAttackRange())))
-                {
-                    return;
-                }
-
-                E.Cast(pos);
             }
         }
 

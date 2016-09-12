@@ -230,7 +230,11 @@
 
             if (!MenuManager.ExtensionsMenu.SubMenus.Any(x => x.UniqueMenuId.Contains("Extension.SkinHack")))
             {
-                MainMenu.OnClose += MainMenu_OnClose;
+                if (!MainMenu.IsOpen)
+                {
+                    SkinHackMenu = MenuManager.ExtensionsMenu.AddSubMenu("Skin Hack", "Extension.SkinHack");
+                    BuildMenu();
+                } else MainMenu.OnClose += MainMenu_OnClose;
             }
             else
             {
@@ -267,8 +271,6 @@
             BuildMenu();
 
             MainMenu.OnClose -= MainMenu_OnClose;
-
-            Player.Instance.SetSkin(Player.Instance.BaseSkinName, SkinId.CurrentValue);
         }
 
         private void BuildMenu()
@@ -286,6 +288,8 @@
             SkinHackMenu.AddGroupLabel("Skin hack settings : ");
 
             SkinId = SkinHackMenu.Add("SkinId."+Player.Instance.ChampionName, new ComboBox("Skin : ", skins));
+
+            Player.Instance.SetSkin(Player.Instance.BaseSkinName, SkinId.CurrentValue);
 
             SkinId.OnValueChange += SkinId_OnValueChange;
         }

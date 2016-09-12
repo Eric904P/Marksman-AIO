@@ -49,9 +49,9 @@ namespace Marksman_Master.Plugins.Varus.Modes
             if (!laneMinions.Any())
                 return;
 
-            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ && laneMinions.Count >= Settings.LaneClear.MinMinionsHitQ)
+            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear)
             {
-                if (!Q.IsCharging && !Player.Instance.IsUnderTurret() && !IsPreAttack && EntityManager.MinionsAndMonsters.GetLineFarmLocation(laneMinions, Q.Width, 1550).HitNumber >= Settings.LaneClear.MinMinionsHitQ && CanILaneClear())
+                if (!Q.IsCharging && !Player.Instance.IsUnderTurret() && (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ) && (laneMinions.Count >= Settings.LaneClear.MinMinionsHitQ) && !IsPreAttack && EntityManager.MinionsAndMonsters.GetLineFarmLocation(laneMinions, Q.Width, 1550).HitNumber >= Settings.LaneClear.MinMinionsHitQ && CanILaneClear())
                 {
                     Q.StartCharging();
                 } else if (Q.IsCharging && Q.IsFullyCharged)
