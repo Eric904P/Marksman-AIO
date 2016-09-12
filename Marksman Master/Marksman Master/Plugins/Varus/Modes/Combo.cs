@@ -61,9 +61,9 @@ namespace Marksman_Master.Plugins.Varus.Modes
                         Delay = 550,
                         From = Player.Instance.Position,
                         Radius = 115,
-                        Range = R.Range,
+                        Range = 1150,
                         RangeCheckFrom = Player.Instance.Position,
-                        Speed = R.Speed,
+                        Speed = 1800,
                         Target = target,
                         Type = SkillShotType.Linear
                     });
@@ -86,9 +86,9 @@ namespace Marksman_Master.Plugins.Varus.Modes
                             Delay = 550,
                             From = Player.Instance.Position,
                             Radius = 115,
-                            Range = R.Range,
+                            Range = 1150,
                             RangeCheckFrom = Player.Instance.Position,
-                            Speed = R.Speed,
+                            Speed = 1800,
                             Target = t,
                             Type = SkillShotType.Linear
                         });
@@ -127,7 +127,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 var possibleTargets =
                     EntityManager.Heroes.Enemies.Where(
                         x =>
-                            x.IsValidTarget(Q.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA()).ToList();
+                            x.IsValidTarget(Q.IsCharging ? Q.Range : Q.MaximumRange) && !x.HasSpellShield() && !x.HasUndyingBuffA()).ToList();
 
                 var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
