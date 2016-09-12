@@ -27,12 +27,10 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
-using EloBuddy.SDK.Spells;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Varus.Modes
@@ -55,7 +53,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
 
                 if (target != null)
                 {
-                    var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                    /*var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {
                         CollisionTypes = new HashSet<CollisionType> {CollisionType.ObjAiMinion},
                         Delay = 550,
@@ -66,11 +64,13 @@ namespace Marksman_Master.Plugins.Varus.Modes
                         Speed = 1800,
                         Target = target,
                         Type = SkillShotType.Linear
-                    });
+                    }); */
 
-                    if (rPrediciton.HitChancePercent >= 60)
+                    var rPrediction = R.GetPrediction(target);
+
+                    if (rPrediction.HitChancePercent >= 60 && rPrediction.CollisionObjects.Where(x => x.NetworkId != target.NetworkId).All(x => x.GetType() != typeof(AIHeroClient)))
                     {
-                        R.Cast(rPrediciton.CastPosition);
+                        R.Cast(rPrediction.CastPosition);
                     }
                 }
                 else
@@ -79,7 +79,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                         x => x.IsValidTarget(R.Range) && !x.HasSpellShield() && x.CountEnemiesInRange(850) >= 3);
 
                     if (t != null)
-                    {
+                    {/*
                         var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                         {
                             CollisionTypes = new HashSet<CollisionType> {CollisionType.ObjAiMinion},
@@ -91,11 +91,13 @@ namespace Marksman_Master.Plugins.Varus.Modes
                             Speed = 1800,
                             Target = t,
                             Type = SkillShotType.Linear
-                        });
+                        }); */
 
-                        if (rPrediciton.HitChancePercent >= 60)
+                        var rPrediction = R.GetPrediction(t);
+
+                        if (rPrediction.HitChancePercent >= 60 && rPrediction.CollisionObjects.Where(x => x.NetworkId != t.NetworkId).All(x => x.GetType() != typeof(AIHeroClient)))
                         {
-                            R.Cast(rPrediciton.CastPosition);
+                            R.Cast(rPrediction.CastPosition);
                         }
                     }
                 }

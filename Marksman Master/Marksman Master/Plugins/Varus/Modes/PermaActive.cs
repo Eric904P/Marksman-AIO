@@ -50,7 +50,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                     {
                         if (!Q.IsCharging)
                         {
-                            if (!IsPreAttack &&
+                            if (!IsPreAttack && 
                                 Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) <= 1)
                             {
                                 Q.StartCharging();
@@ -108,8 +108,8 @@ namespace Marksman_Master.Plugins.Varus.Modes
 
             if (t == null || !Settings.Combo.RKeybind)
                 return;
-
-            var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+            /*
+            var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
                 CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
                 Delay = 550,
@@ -120,11 +120,13 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 Speed = 1800,
                 Target = t,
                 Type = SkillShotType.Linear
-            });
+            });*/
 
-            if (rPrediciton.HitChancePercent >= 60)
+            var rPrediction = R.GetPrediction(t);
+
+            if (rPrediction.HitChancePercent >= 60 && rPrediction.CollisionObjects.Where(x => x.NetworkId != t.NetworkId).All(x => x.GetType() != typeof (AIHeroClient)))
             {
-                R.Cast(rPrediciton.CastPosition);
+                R.Cast(rPrediction.CastPosition);
             }
         }
     }
