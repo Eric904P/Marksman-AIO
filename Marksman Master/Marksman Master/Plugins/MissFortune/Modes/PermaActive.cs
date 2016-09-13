@@ -76,9 +76,12 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
                     if (Settings.Misc.BounceQFromMinions)
                     {
                         var minion = GetQMinion(enemy);
-                        Q.Cast(minion ?? enemy);
+                        if (minion != null)
+                        {
+                            Q.Cast(minion);
+                        } else if (enemy.IsValidTarget(Q.Range)) Q.Cast(enemy);
                     }
-                    else Q.Cast(enemy);
+                    else if (enemy.IsValidTarget(Q.Range)) Q.Cast(enemy);
                 }
             }
 

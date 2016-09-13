@@ -27,6 +27,7 @@
 // ---------------------------------------------------------------------
 #endregion
 using EloBuddy;
+using EloBuddy.SDK;
 
 namespace Marksman_Master.Plugins.MissFortune.Modes
 {
@@ -46,8 +47,11 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
             if (Settings.Misc.BounceQFromMinions)
             {
                 var minion = GetQMinion(qTarget);
-                Q.Cast(minion ?? qTarget);
-            } else Q.Cast(qTarget);
+                if (minion != null)
+                {
+                    Q.Cast(minion);
+                } else if (qTarget.IsValidTarget(Q.Range)) Q.Cast(qTarget);
+            } else if(qTarget.IsValidTarget(Q.Range)) Q.Cast(qTarget);
         }
     }
 }
