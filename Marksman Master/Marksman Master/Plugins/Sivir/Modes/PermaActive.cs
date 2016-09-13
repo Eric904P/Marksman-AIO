@@ -26,7 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -52,16 +52,14 @@ namespace Marksman_Master.Plugins.Sivir.Modes
 
                 }).OrderByDescending(TargetSelector.GetPriority).ThenBy(x=> Q.GetPrediction(x).HitChancePercent))
                 {
-                    Console.WriteLine("[DEBUG] Casting Q on immobile target {0}", immobileEnemy.Hero);
                     Q.Cast(Q.GetPrediction(immobileEnemy).CastPosition);
                 }
             }
 
             if (!IsPostAttack && Q.IsReady() && Settings.Combo.UseQ)
             {
-                foreach (var immobileEnemy in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(Q.Range) && (x.Health - IncomingDamage.GetIncomingDamage(x)) < Player.Instance.GetSpellDamage(x, SpellSlot.Q)).OrderByDescending(TargetSelector.GetPriority).ThenBy(x => Q.GetPrediction(x).HitChancePercent))
+                foreach (var immobileEnemy in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(Q.Range) && (x.Health - IncomingDamage.GetIncomingDamage(x) < Player.Instance.GetSpellDamage(x, SpellSlot.Q))).OrderByDescending(TargetSelector.GetPriority).ThenBy(x => Q.GetPrediction(x).HitChancePercent))
                 {
-                    Console.WriteLine("[DEBUG] Casting Q on {0} to killsteal", immobileEnemy.Hero);
                     Q.Cast(Q.GetPrediction(immobileEnemy).CastPosition);
                 }
             }

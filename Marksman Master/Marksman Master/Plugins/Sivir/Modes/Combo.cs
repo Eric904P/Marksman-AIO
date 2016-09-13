@@ -26,7 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
@@ -48,12 +48,10 @@ namespace Marksman_Master.Plugins.Sivir.Modes
 
                     if(qPrediction.HitChance >= HitChance.Medium && target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(target, true) * 2 + Player.Instance.GetSpellDamage(target, SpellSlot.Q))
                     {
-                        Console.WriteLine("[DEBUG] Casting Q on {0} variant 1", target.Hero);
                         Q.Cast(qPrediction.CastPosition);
                     }
-                    else if (qPrediction.HitChance >= HitChance.High && Player.Instance.Mana - 60 > 100)
+                    else if (qPrediction.HitChancePercent >= 65 && (Player.Instance.Mana - 60 > (R.IsReady() ? 100 : 0)))
                     {
-                        Console.WriteLine("[DEBUG] Casting Q on {0} variant 2", target.Hero);
                         Q.Cast(qPrediction.CastPosition);
                     }
                 }
@@ -61,7 +59,6 @@ namespace Marksman_Master.Plugins.Sivir.Modes
 
             if (!W.IsReady() || !Settings.Combo.UseW || !IsPostAttack)
                 return;
-
             {
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange(), DamageType.Physical);
 
@@ -69,11 +66,9 @@ namespace Marksman_Master.Plugins.Sivir.Modes
                     target.Health - IncomingDamage.GetIncomingDamage(target) <
                     Player.Instance.GetAutoAttackDamage(target, true))
                 {
-                    Console.WriteLine("[DEBUG] Casting W on {0} variant 1", target.Hero);
                     W.Cast();
                 } else if (target != null && target.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange() - 50)
                 {
-                    Console.WriteLine("[DEBUG] Casting W on {0} variant 2", target.Hero);
                     W.Cast();
                 }
             }

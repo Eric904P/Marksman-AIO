@@ -74,12 +74,27 @@ namespace Marksman_Master.Plugins.Sivir
 
             ColorPicker[0] = new ColorPicker("SivirQ", new ColorBGRA(243, 109, 160, 255));
 
+            ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
+
             BlockableSpells.Initialize();
             BlockableSpells.OnBlockableSpell += BlockableSpells_OnBlockableSpell;
             Game.OnPostTick += args => IsPostAttack = false;
             Orbwalker.OnPostAttack += (s, a) => IsPostAttack = true;
+
+            ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
         }
-        
+
+        private static void ChampionTracker_OnLongSpellCast(object sender, OnLongSpellCastEventArgs e)
+        {
+            if (e.IsTeleport)
+                return;
+
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Q.IsReady() && Settings.Combo.UseQ && (Player.Instance.Mana - 60 > (R.IsReady() ? 100 : 0)))
+            {
+                Q.CastMinimumHitchance(e.Sender, 65);
+            }
+        }
+
         private static void BlockableSpells_OnBlockableSpell(AIHeroClient sender,
             BlockableSpells.OnBlockableSpellEventArgs args)
         {
@@ -87,9 +102,6 @@ namespace Marksman_Master.Plugins.Sivir
                 return;
 
             E.Cast();
-
-            Console.WriteLine("[DEBUG] Sender: {0} | Slot : {1} | IsAutoAttack : {2}", sender.Hero, args.SpellSlot,
-                args.IsAutoAttack);
         }
 
         protected override void OnDraw()
