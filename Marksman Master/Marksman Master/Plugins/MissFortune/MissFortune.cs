@@ -144,7 +144,7 @@ namespace Marksman_Master.Plugins.MissFortune
             if (!sender.IsMe || !Settings.Combo.RBlockMovement)
                 return;
 
-            if (RCasted && Game.Time * 1000 - RCastTime < 1000)
+            if (RCasted && Game.Time * 1000 - RCastTime < 1500)
             {
                 args.Process = false;
             }
@@ -555,7 +555,7 @@ namespace Marksman_Master.Plugins.MissFortune
                 Orbwalker.DisableAttacking = true;
                 Orbwalker.DisableMovement = true;
             }
-            else if(!Player.Instance.Spellbook.IsChanneling && (Game.Time * 1000 - RCastTime > 1000))
+            else if(!Player.Instance.Spellbook.IsChanneling && (Game.Time * 1000 - RCastTime > 1500))
             {
                 Orbwalker.DisableAttacking = false;
                 Orbwalker.DisableMovement = false;
