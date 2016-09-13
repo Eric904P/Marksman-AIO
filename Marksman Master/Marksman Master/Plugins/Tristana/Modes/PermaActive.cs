@@ -26,7 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -56,7 +56,6 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                         target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(target, true)*2 && target.TotalHealthWithShields() < damage)
                     {
                         R.Cast(target);
-                        Console.WriteLine("[DEBUG] Casting R on : {0} to killsteal ! v 1", target.Hero);
                     }
                 }
             }

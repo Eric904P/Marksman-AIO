@@ -57,19 +57,9 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
 
             if (Settings.Combo.UseW && W.IsReady())
             {
-                var immobileEnemies =
-                   EntityManager.Heroes.Enemies.Where(
-                       x => x.IsValidTarget(W.Range) && !x.HasSpellShield() && x.GetMovementBlockedDebuffDuration() > 1.5f).ToList();
-
-                foreach (var immobileEnemy in immobileEnemies)
-                {
-                    W.Cast(immobileEnemy.ServerPosition);
-                    break;
-                }
-
                 var possibleTargets =
                        EntityManager.Heroes.Enemies.Where(
-                           x => x.IsValidTarget(500) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+                           x => x.IsValidTarget(700) && !x.HasUndyingBuffA() && !x.HasSpellShield() && !x.Position.IsVectorUnderEnemyTower());
 
                 if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget() && x.Distance(Player.Instance.ServerPosition) < 300 && x.IsMelee && x.Path.Last().Distance(Player.Instance) < 400))
                 {
@@ -82,7 +72,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 {
                     var wPrediction = W.GetPrediction(wTarget);
 
-                    if (wPrediction.HitChancePercent >= 85 && wPrediction.CastPosition.Distance(wTarget) > 100)
+                    if (wPrediction.HitChancePercent >= Settings.Combo.WHitChancePercent && wPrediction.CastPosition.Distance(wTarget) > 100)
                     {
                         W.Cast(wPrediction.CastPosition);
                     }
@@ -101,7 +91,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 {
                     var ePrediciton = E.GetPrediction(eTarget);
 
-                    if (ePrediciton.HitChancePercent >= 65)// && GetDashEndPosition(ePrediciton.CastPosition).CountEnemiesInRange(500) <= 1)
+                    if (ePrediciton.HitChancePercent >= Settings.Combo.EHitChancePercent && GetDashEndPosition(ePrediciton.CastPosition).CountEnemiesInRange(500) <= 1)
                     {
                         var damage = Player.Instance.GetSpellDamage(eTarget, SpellSlot.E);
 
@@ -128,7 +118,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
             if (Settings.Combo.UseR && !IsPreAttack && R.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower())
             {
                 var possibleTargets =
-                       EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range) && x.Distance(Player.Instance) > (IsUnitNetted(x) ? 1300 : Player.Instance.GetAutoAttackRange()) && !EntityManager.Heroes.Enemies.Where(b => b.NetworkId != x.NetworkId).Any(c => c.IsValidTarget() && new Geometry.Polygon.Rectangle(Player.Instance.Position, x.Position, 60).IsInside(c.ServerPosition)) && (x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.R)) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+                       EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range) && x.Distance(Player.Instance) > (IsUnitNetted(x) ? 1300 : Player.Instance.GetAutoAttackRange()) && !EntityManager.Heroes.Enemies.Where(b => b.NetworkId != x.NetworkId).Any(c => c.IsValidTarget() && new Geometry.Polygon.Rectangle(Player.Instance.Position, x.Position, 200).IsInside(c.ServerPosition)) && (x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.R)) && !x.HasUndyingBuffA() && !x.HasSpellShield());
 
                 var rTarget = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
@@ -141,7 +131,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                         EntityManager.Heroes.Enemies.Count(
                             x =>
                                 x.IsValidTarget() &&
-                                Prediction.Position.PredictUnitPosition(x, 1300).Distance(Player.Instance) < Player.Instance.GetAutoAttackRange());
+                                (Prediction.Position.PredictUnitPosition(x, 1300).Distance(Player.Instance) < Player.Instance.GetAutoAttackRange()*1.5f));
 
                     if (enemies == 0 && !IsPreAttack)
                     {

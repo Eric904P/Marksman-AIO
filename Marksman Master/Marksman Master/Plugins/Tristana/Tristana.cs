@@ -248,8 +248,6 @@ namespace Marksman_Master.Plugins.Tristana
             if (args.Delay == 0)
                 R.Cast(sender);
             else Core.DelayAction(() => R.Cast(sender), args.Delay);
-
-            Console.WriteLine("[DEBUG] OnInterruptible {0}", sender.Hero);
         }
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
@@ -273,8 +271,6 @@ namespace Marksman_Master.Plugins.Tristana
             if (args.Delay == 0)
                 R.Cast(sender);
             else Core.DelayAction(() => R.Cast(sender), args.Delay);
-
-            Console.WriteLine("[DEBUG] OnGapCloser {0}",sender.Hero);
         }
 
         private static KeyBind Keybind { get; set; }

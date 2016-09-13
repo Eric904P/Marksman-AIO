@@ -44,7 +44,6 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                 if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange() - 50)))
                 {
                     Q.Cast();
-                    Console.WriteLine("[DEBUG] Casting Q combo mode...");
                 }
             }
 
@@ -90,7 +89,6 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                             WStartPos = Player.Instance.Position;
 
                             W.Cast(wPrediction.CastPosition);
-                            Console.WriteLine("[DEBUG] Casting W since {0} is killable", target.Hero);
                         }
                     }
                 }
@@ -102,7 +100,6 @@ namespace Marksman_Master.Plugins.Tristana.Modes
 
                 if (target != null && Settings.Combo.IsEnabledFor(target))
                 {
-                    Console.WriteLine("[DEBUG] Casting E on : "+target.Hero);
                     E.Cast(target);
                 }
             }
@@ -120,7 +117,6 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                             x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(x, true)*2 &&
                             x.NetworkId != enemy.NetworkId))
                     {
-                        Console.WriteLine("[DEBUG] Changing orbwalker's forced target : {0}", enemy.Hero);
                         Orbwalker.ForcedTarget = enemy;
                     }
                     else
@@ -134,7 +130,6 @@ namespace Marksman_Master.Plugins.Tristana.Modes
             {
                 foreach (var enemy in EntityManager.Heroes.Enemies.Where(x => x.IsMelee && x.IsValidTarget(300) && x.HealthPercent > 50).OrderByDescending(TargetSelector.GetPriority).ThenBy(x=>x.Distance(Player.Instance)))
                 {
-                    Console.WriteLine("[DEBUG] Casting R vs Melee");
                     R.Cast(enemy);
                 }
             }

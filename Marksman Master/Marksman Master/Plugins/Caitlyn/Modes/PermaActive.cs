@@ -55,6 +55,18 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
             if (!Settings.Combo.UseWOnImmobile || !W.IsReady())
                 return;
 
+            var immobileEnemies =
+                EntityManager.Heroes.Enemies.Where(
+                    x =>
+                        x.IsValidTarget(W.Range) && !x.HasSpellShield() &&
+                        x.GetMovementBlockedDebuffDuration() > 1.5f).ToList();
+
+            foreach (var immobileEnemy in immobileEnemies)
+            {
+                W.Cast(immobileEnemy.ServerPosition);
+                break;
+            }
+
             foreach (
                 var enemy in
                     EntityManager.Heroes.Enemies.Where(

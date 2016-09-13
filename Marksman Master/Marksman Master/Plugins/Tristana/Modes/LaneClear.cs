@@ -64,7 +64,6 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                             x.Health < Player.Instance.GetAutoAttackDamage(x, true) &&
                             x.NetworkId != enemy.NetworkId))
                     {
-                        Console.WriteLine("[DEBUG] Changing orbwalker's forced target : {0}", "Minion ...");
                         Orbwalker.ForcedTarget = enemy;
                     }
                     else

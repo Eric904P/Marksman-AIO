@@ -91,6 +91,8 @@ namespace Marksman_Master.Plugins.Caitlyn
             DamageIndicator.Initalize(ColorPicker[3].Color, (int)R.Range);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
+            ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
+
             ColorPicker[3].OnColorChange +=
                 (a, b) =>
                 {
@@ -239,10 +241,12 @@ namespace Marksman_Master.Plugins.Caitlyn
             ComboMenu.AddLabel("Yordle Snap Trap (W) settings :");
             ComboMenu.Add("Plugins.Caitlyn.ComboMenu.UseW", new CheckBox("Use W"));
             ComboMenu.Add("Plugins.Caitlyn.ComboMenu.UseWOnImmobile", new CheckBox("Use W on immobile"));
+            ComboMenu.Add("Plugins.Caitlyn.ComboMenu.WHitChancePercent", new Slider("W hitchance percent : {0}", 85));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("90 Caliber Net (E) settings :");
             ComboMenu.Add("Plugins.Caitlyn.ComboMenu.UseE", new CheckBox("Use E"));
+            ComboMenu.Add("Plugins.Caitlyn.ComboMenu.EHitChancePercent", new Slider("E hitchance percent : {0}", 65));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Ace in the Hole (R) settings :");
@@ -457,6 +461,23 @@ namespace Marksman_Master.Plugins.Caitlyn
                     }
                 }
 
+                public static int WHitChancePercent
+                {
+                    get
+                    {
+                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.WHitChancePercent"] != null)
+                            return ComboMenu["Plugins.Caitlyn.ComboMenu.WHitChancePercent"].Cast<Slider>().CurrentValue;
+
+                        Logger.Error("Couldn't get Plugins.Caitlyn.ComboMenu.WHitChancePercent menu item value.");
+                        return 0;
+                    }
+                    set
+                    {
+                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.WHitChancePercent"] != null)
+                            ComboMenu["Plugins.Caitlyn.ComboMenu.WHitChancePercent"].Cast<Slider>().CurrentValue = value;
+                    }
+                }
+
                 public static bool UseE
                 {
                     get
@@ -471,6 +492,23 @@ namespace Marksman_Master.Plugins.Caitlyn
                             ComboMenu["Plugins.Caitlyn.ComboMenu.UseE"].Cast<CheckBox>()
                                 .CurrentValue
                                 = value;
+                    }
+                }
+
+                public static int EHitChancePercent
+                {
+                    get
+                    {
+                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.EHitChancePercent"] != null)
+                            return ComboMenu["Plugins.Caitlyn.ComboMenu.EHitChancePercent"].Cast<Slider>().CurrentValue;
+
+                        Logger.Error("Couldn't get Plugins.Caitlyn.ComboMenu.EHitChancePercent menu item value.");
+                        return 0;
+                    }
+                    set
+                    {
+                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.EHitChancePercent"] != null)
+                            ComboMenu["Plugins.Caitlyn.ComboMenu.EHitChancePercent"].Cast<Slider>().CurrentValue = value;
                     }
                 }
 
