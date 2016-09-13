@@ -123,10 +123,27 @@ namespace Marksman_Master.Plugins.MissFortune
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
             Player.OnIssueOrder += Player_OnIssueOrder;
+
+            Obj_AI_Base.OnPlayAnimation += Obj_AI_Base_OnPlayAnimation;
+        }
+
+        private static void Obj_AI_Base_OnPlayAnimation(Obj_AI_Base sender, GameObjectPlayAnimationEventArgs args)
+        {
+            if (!sender.IsMe || !Settings.Combo.RBlockMovement)
+                return;
+
+            if (args.Animation == "Spell4")
+            {
+                Orbwalker.DisableAttacking = true;
+                Orbwalker.DisableMovement = true;
+            }
         }
 
         private static void Player_OnIssueOrder(Obj_AI_Base sender, PlayerIssueOrderEventArgs args)
         {
+            if (!sender.IsMe || !Settings.Combo.RBlockMovement)
+                return;
+
             if (RCasted && Game.Time * 1000 - RCastTime < 1000)
             {
                 args.Process = false;
@@ -135,26 +152,34 @@ namespace Marksman_Master.Plugins.MissFortune
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
+            if (!Settings.Combo.RBlockMovement)
+                return;
+
             if (args.Slot == SpellSlot.R)
             {
                 Orbwalker.DisableAttacking = true;
                 Orbwalker.DisableMovement = true;
             }
 
-            if (RCasted || Game.Time * 1000 - RCastTime < 1000)
+            if (Settings.Combo.RBlockMovement && RCasted && Player.Instance.Spellbook.IsChanneling)
+            {
                 args.Process = false;
+            }
         }
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (!sender.IsMe || args.Slot != SpellSlot.R)
+            if (!Settings.Combo.RBlockMovement)
                 return;
 
-            Orbwalker.DisableAttacking = true;
-            Orbwalker.DisableMovement = true;
+            if (sender.IsMe && (args.Slot == SpellSlot.R || args.SData.Name == "MissFortuneBulletTime"))
+            {
+                Orbwalker.DisableAttacking = true;
+                Orbwalker.DisableMovement = true;
 
-            RCasted = true;
-            RCastTime = Game.Time*1000;
+                RCasted = true;
+                RCastTime = Game.Time * 1000;
+            }
         }
 
         protected static IEnumerable<T> GetObjectsWithinQBounceRange<T>(Vector3 position) where T : Obj_AI_Base
@@ -525,28 +550,18 @@ namespace Marksman_Master.Plugins.MissFortune
 
         protected override void PermaActive()
         {
-            if (Settings.Combo.RBlockMovement && RCasted && Player.Instance.Spellbook.IsCastingSpell)
+            if (Settings.Combo.RBlockMovement && RCasted && (Player.Instance.Spellbook.IsChanneling || Player.Instance.Spellbook.IsCastingSpell))
             {
                 Orbwalker.DisableAttacking = true;
                 Orbwalker.DisableMovement = true;
             }
-            else if(Game.Time * 1000 - RCastTime > 500)
+            else if(!Player.Instance.Spellbook.IsChanneling && (Game.Time * 1000 - RCastTime > 1000))
             {
                 Orbwalker.DisableAttacking = false;
                 Orbwalker.DisableMovement = false;
+
                 RCasted = false;
             }
-            /*
-            Console.WriteLine("Base properties : \n");
-            foreach (var property in R.GetType().GetProperties())
-            {
-                Console.WriteLine("Name : {0} | Value : {1}", property.Name, property.GetValue(R));
-            }
-            Console.WriteLine("\nHandle properties : \n");
-            foreach (var property in R.Handle.GetType().GetProperties())
-            {
-                Console.WriteLine("Name : {0} | Value : {1}", property.Name, property.GetValue(R.Handle));
-            }*/
 
             Modes.PermaActive.Execute();
         }
