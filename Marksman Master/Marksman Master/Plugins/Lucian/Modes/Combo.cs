@@ -61,7 +61,7 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                 
                 if (Settings.Misc.EMode == 0)
                 {
-                    if (Player.Instance.HealthPercent > heroClient.HealthPercent+5 && heroClient.CountEnemiesInRange(600) < 2)
+                    if (Player.Instance.HealthPercent > heroClient.HealthPercent+5 && heroClient.CountEnemiesInRange(600) <= 2)
                     {
                         if (!Player.Instance.Position.Extend(Game.CursorPos, 420)
                             .To3D()

@@ -255,14 +255,7 @@ namespace Marksman_Master.Plugins.MissFortune
             if (Player.Instance.IsInAutoAttackRange(unit))
                 damage += Player.Instance.GetAutoAttackDamage(unit);
 
-            if (!Damages.ContainsKey(unit.NetworkId))
-            {
-                Damages.Add(unit.NetworkId, new Dictionary<float, float> { { Game.Time * 1000, damage } });
-            }
-            else
-            {
-                Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
-            }
+            Damages[unit.NetworkId] = new Dictionary<float, float> {{Game.Time*1000, damage}};
 
             return damage;
         }

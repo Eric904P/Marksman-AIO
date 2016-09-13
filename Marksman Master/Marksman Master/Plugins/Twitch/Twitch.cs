@@ -77,7 +77,7 @@ namespace Marksman_Master.Plugins.Twitch
                 AllowedCollisionCount = int.MaxValue
             };
             E = new Spell.Active(SpellSlot.E, 1200);
-            R = new Spell.Active(SpellSlot.R, 850);
+            R = new Spell.Active(SpellSlot.R, 950);
 
             ColorPicker = new ColorPicker[4];
             
@@ -136,20 +136,22 @@ namespace Marksman_Master.Plugins.Twitch
         {
             if (R.IsReady() && Settings.Combo.UseR && target is AIHeroClient)
             {
-                if (Player.Instance.CountEnemiesInRange(900) < Settings.Combo.RIfEnemiesHit)
+                if (Player.Instance.CountEnemiesInRange(1000) < Settings.Combo.RIfEnemiesHit)
                     return;
 
                 var polygon = new Geometry.Polygon.Rectangle(Player.Instance.Position, Player.Instance.Position.Extend(args.Target, 850).To3D(), 65);
 
-                var intersection = polygon.Points[0].Intersection(polygon.Points[2],
-                    polygon.Points[1], polygon.Points[3]);
+                var count =
+                    EntityManager.Heroes.Enemies.Count(
+                        x =>
+                            !x.IsDead && x.IsValidTarget(950) &&
+                            new Geometry.Polygon.Circle(x.Position, x.BoundingRadius).Points.Any(
+                                k => polygon.IsInside(k)));
 
-                var count = EntityManager.Heroes.Enemies.Count(x => !x.IsDead && x.IsValidTarget(850) && polygon.IsInside(x));
-                var countv2 = EntityManager.Heroes.Enemies.Count(x => !x.IsDead && x.IsValidTarget(850) && new Geometry.Polygon.Circle(x.Position, x.BoundingRadius).IsInside(intersection.Point));
-
-                if (count >= Settings.Combo.RIfEnemiesHit || countv2 > Settings.Combo.RIfEnemiesHit)
+                if (count >= Settings.Combo.RIfEnemiesHit)
                 {
-                    Misc.PrintInfoMessage("Casting R because it can hit <font color=\"#ff1493\">" + count + "</font>. enemies" + countv2);
+                    Misc.PrintInfoMessage("Casting R because it can hit <font color=\"#ff1493\">" + count + "</font>. enemies");
+                    R.Cast();
                 }
             }
         }
@@ -239,7 +241,7 @@ namespace Marksman_Master.Plugins.Twitch
             ComboMenu.Add("Plugins.Twitch.ComboMenu.UseE", new CheckBox("Use E"));
             var mode = ComboMenu.Add("Plugins.Twitch.ComboMenu.UseEIfDmg", new ComboBox("E usage mode", 0, "Percentage", "At stacks", "Only to killsteal"));
             ComboMenu.AddSeparator(10);
-            ComboMenu.AddLabel("Percentage : Uses E only if it will deal desired percentage of enemy total hp.\nAt stacks : Uses E only if desired amount of stack are reached on enemy.\nOnly to killsteal : " +
+            ComboMenu.AddLabel("Percentage : Uses E only if it will deal desired percentage of enemy current health.\nAt stacks : Uses E only if desired amount of stack are reached on enemy.\nOnly to killsteal : " +
                                "Uses E only to execute enemies.");
             ComboMenu.AddSeparator(10);
 
@@ -287,7 +289,7 @@ namespace Marksman_Master.Plugins.Twitch
 
             ComboMenu.AddLabel("Rat-Ta-Tat-Tat (R) settings :");
             ComboMenu.Add("Plugins.Twitch.ComboMenu.UseR", new CheckBox("Use R"));
-            ComboMenu.Add("Plugins.Twitch.ComboMenu.RIfEnemiesHit", new Slider("Use R if gonna hit {0} enemies", 3, 0, 5));
+            ComboMenu.Add("Plugins.Twitch.ComboMenu.RIfEnemiesHit", new Slider("Use R if gonna hit {0} enemies", 3, 1, 5));
             ComboMenu.AddSeparator(5);
             ComboMenu.Add("Plugins.Twitch.ComboMenu.RifTargetOutOfRange", new CheckBox("Use R if target is out of range", false));
             ComboMenu.AddLabel("Uses R if target is killabe, but he is not inside basic attack range, and R won't be up in next 2 secs.");

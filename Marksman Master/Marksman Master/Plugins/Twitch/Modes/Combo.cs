@@ -76,7 +76,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
 
                     if (enemyUnit != null && Damage.CanCastEOnUnit(enemyUnit))
                     {
-                        var percentDamage = Damage.GetEDamage(enemyUnit) / enemyUnit.MaxHealth * 100;
+                        var percentDamage = Damage.GetEDamage(enemyUnit) / enemyUnit.TotalHealthWithShields() * 100;
                         if (percentDamage >= Settings.Combo.EAt)
                         {
                             E.Cast();

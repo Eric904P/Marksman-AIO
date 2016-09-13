@@ -27,12 +27,10 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
-using EloBuddy.SDK.Spells;
 using Marksman_Master.Utils;
 using SharpDX;
 
@@ -123,15 +121,29 @@ namespace Marksman_Master.Plugins.Graves.Modes
                 }
             }
 
-            if (E.IsReady() && Settings.Combo.UseE && Settings.Misc.EUsageMode == 0 && GetAmmoCount < 2)
+            if (E.IsReady() && Settings.Combo.UseE && !Settings.Combo.UseEOnlyToDardoch && Settings.Misc.EUsageMode == 0 && GetAmmoCount < 2)
             {
-                var heroClient = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 425,
-                    DamageType.Physical);
+                var heroClient = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 425, DamageType.Physical);
                 var position = Vector3.Zero;
+
+                if (heroClient == null)
+                    return;
+
+                var damage = Player.Instance.GetAutoAttackDamage(heroClient, true) * 2;
+
+                if (Q.IsReady())
+                    damage += Player.Instance.GetSpellDamage(heroClient, SpellSlot.Q);
+                if (W.IsReady())
+                    damage += Player.Instance.GetSpellDamage(heroClient, SpellSlot.W);
+                if (R.IsReady())
+                    damage += Player.Instance.GetSpellDamage(heroClient, SpellSlot.R);
+
+                if (!((damage < heroClient.TotalHealthWithShields()) || (Q.IsReady() && W.IsReady())))
+                    return;
 
                 if (Settings.Misc.EMode == 0)
                 {
-                    if (heroClient != null && Player.Instance.HealthPercent > 50 && heroClient.HealthPercent < 30 && heroClient.CountEnemiesInRange(600) < 2)
+                    if (Player.Instance.HealthPercent > heroClient.HealthPercent + 5 && heroClient.CountEnemiesInRange(600) <= 2)
                     {
                         if (!Player.Instance.Position.Extend(Game.CursorPos, 420)
                             .To3D()
@@ -146,7 +158,7 @@ namespace Marksman_Master.Plugins.Graves.Modes
                                 : Game.CursorPos;
                         }
                     }
-                    else if (heroClient != null)
+                    else
                     {
                         var closest =
                             EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
@@ -215,47 +227,32 @@ namespace Marksman_Master.Plugins.Graves.Modes
 
                     if (!pos.IsVectorUnderEnemyTower())
                     {
-                        if (heroClient != null)
+                        if (heroClient.IsMelee &&
+                            !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850),
+                                heroClient.GetAutoAttackRange() + 150))
                         {
-                            if (enemies == 1 && heroClient.HealthPercent + 15 < Player.Instance.HealthPercent)
-                            {
-                                if (heroClient.IsMelee &&
-                                    !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850),
-                                        heroClient.GetAutoAttackRange() + 150))
-                                {
-                                    E.Cast(pos);
-                                    return;
-                                }
-                                else if (!heroClient.IsMelee)
-                                {
-                                    E.Cast(pos);
-                                    return;
-                                }
-                            }
-                            else if (enemies == 1 &&
-                                     !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850),
-                                         heroClient.GetAutoAttackRange()))
-                            {
-                                E.Cast(pos);
-                                return;
-                            }
-                            else if (enemies == 2 && Player.Instance.CountAlliesInRange(850) >= 1)
-                            {
-                                E.Cast(pos);
-                                return;
-                            }
-                            else if (enemies >= 2)
-                            {
-                                if (
-                                    !EntityManager.Heroes.Enemies.Any(
-                                        x =>
-                                            pos.IsInRange(Prediction.Position.PredictUnitPosition(x, 850),
-                                                x.IsMelee ? x.GetAutoAttackRange() + 150 : x.GetAutoAttackRange())))
-                                {
-                                    E.Cast(pos);
-                                    return;
-                                }
-                            }
+                            E.Cast(pos);
+                            return;
+                        }
+                        if (!heroClient.IsMelee)
+                        {
+                            E.Cast(pos);
+                            return;
+                        }
+                    }
+                    else if (enemies == 2 && Player.Instance.CountAlliesInRange(850) >= 1)
+                    {
+                        E.Cast(pos);
+                        return;
+                    }
+                    else if (enemies >= 2)
+                    {
+                        if (
+                            !EntityManager.Heroes.Enemies.Any(
+                                x =>
+                                    pos.IsInRange(Prediction.Position.PredictUnitPosition(x, 400),
+                                        x.IsMelee ? x.GetAutoAttackRange() + 150 : x.GetAutoAttackRange())))
+                        {
                             E.Cast(pos);
                             return;
                         }

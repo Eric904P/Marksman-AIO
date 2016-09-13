@@ -28,15 +28,18 @@
 #endregion
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using EloBuddy.SDK.Constants;
 using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Utils;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
+using EloBuddy.SDK.Spells;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Graves
@@ -62,13 +65,7 @@ namespace Marksman_Master.Plugins.Graves
         protected static int EMana { get; } = 40;
         protected static int RMana { get; } = 100;
 
-        protected static bool DardochTrick { get; set; }
-        protected static AIHeroClient DardochTrickTarget { get; set; }
-
         private static bool _changingRangeScan;
-        private static bool _rcasted;
-        private static bool _ecasted;
-        private static float _tick;
 
         protected static bool IsReloading
             => !Player.Instance.Buffs.Any(b => b.IsActive && b.Name.ToLowerInvariant() == "gravesbasicattackammo1");
@@ -80,6 +77,9 @@ namespace Marksman_Master.Plugins.Graves
                     ? 2
                     : 1;
 
+        private static readonly Dictionary<int, Dictionary<float, float>> Damages =
+            new Dictionary<int, Dictionary<float, float>>();
+
         static Graves()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 950, SkillShotType.Linear, 500, 2500, 50)
@@ -90,7 +90,7 @@ namespace Marksman_Master.Plugins.Graves
             E = new Spell.Skillshot(SpellSlot.E, 440, SkillShotType.Linear);
             R = new Spell.Skillshot(SpellSlot.R, 1000, SkillShotType.Linear, 250, 2000, 110)
             {
-                AllowedCollisionCount = 0
+                AllowedCollisionCount = -1
             };
             RCone = new Spell.Skillshot(SpellSlot.R, 800, SkillShotType.Cone, 250, 2000, 110)
             {
@@ -113,40 +113,62 @@ namespace Marksman_Master.Plugins.Graves
                 };
 
             Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;
-            Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
             ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
-            Spellbook.OnCastSpell += Spellbook_OnCastSpell;
+
+            Obj_AI_Base.OnSpellCast += Obj_AI_Base_OnSpellCast;
+
+            Obj_AI_Base.OnPlayAnimation += Obj_AI_Base_OnPlayAnimation;
         }
 
-        private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
+        private static void Obj_AI_Base_OnPlayAnimation(Obj_AI_Base sender, GameObjectPlayAnimationEventArgs args)
         {
-            if (!DardochTrick)
+            if (!sender.IsMe)
                 return;
 
-            if (args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W)
-                args.Process = false;
-
-            if (args.Slot == SpellSlot.R)
+            if (args.Animation == "Spell4")
             {
-                _rcasted = true;
-                _ecasted = false;
-
-                _tick = Game.Time * 1000;
+                E.Cast(Game.CursorPos.Distance(Player.Instance) > E.Range
+                           ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
+                           : Game.CursorPos);
             }
-            if (args.Slot == SpellSlot.E)
-            {
-                _ecasted = true;
+        }
 
-                DardochTrick = false;
-                DardochTrickTarget = null;
-                _rcasted = false;
+        private static void Obj_AI_Base_OnSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if (!sender.IsMe)
+                return;
+
+            var rTarget = TargetSelector.GetTarget(R.Range, DamageType.Physical);
+
+            if (rTarget != null && args.IsAutoAttack() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+            {
+                if (E.IsReady() && R.IsReady() && (Player.Instance.Mana - EMana - RMana > 0) &&
+                    rTarget.CountEnemiesInRange(600) <= 2 &&
+                    !rTarget.HasUndyingBuffA() && !rTarget.Position.IsVectorUnderEnemyTower())
+                {
+                    var damage = Damage.GetQDamage(rTarget, true) + Damage.GetWDamage(rTarget) + Damage.GetRDamage(rTarget, true) + Player.Instance.GetAutoAttackDamage(rTarget, true) * 2;
+
+                    if (damage >= rTarget.TotalHealthWithShields())
+                    {
+                        R.AllowedCollisionCount = int.MaxValue;
+
+                        var rPred = R.GetPrediction(rTarget);
+
+                        if (rPred.HitChancePercent >= 65)
+                        {
+                            R.Cast(rPred.CastPosition);
+
+                            R.AllowedCollisionCount = -1;
+                        }
+                    }
+                }
             }
         }
 
         private static void ChampionTracker_OnLongSpellCast(object sender, OnLongSpellCastEventArgs e)
         {
-            if (!W.IsReady() || !(Player.Instance.Mana - WMana[W.Level] > EMana + RMana) || !Settings.Combo.UseW)
+            if (!W.IsReady() || !(Player.Instance.Mana - WMana[W.Level] > EMana + RMana) || !Settings.Combo.UseW || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
             if (e.IsTeleport)
@@ -193,7 +215,11 @@ namespace Marksman_Master.Plugins.Graves
 
             if (unit.GetType() != typeof (AIHeroClient))
                 return 0;
-            
+
+            if (Damages.ContainsKey(unit.NetworkId) &&
+                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
+                return Damages[unit.NetworkId].Values.FirstOrDefault();
+
             var damage = 0f;
 
             if (unit.IsValidTarget(Q.Range))
@@ -208,203 +234,149 @@ namespace Marksman_Master.Plugins.Graves
             if (Player.Instance.IsInAutoAttackRange(unit))
                 damage += Player.Instance.GetAutoAttackDamage(unit);
 
-            return damage;
-        }
+            Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
 
-        private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
-        {
-            if (DardochTrick)
-                args.Process = false;
+            return damage;
         }
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
-            if (!Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
-                return;
-
-            var hero = R.GetTarget();
-
-            if (hero != null && E.IsReady() && R.IsReady() && (Player.Instance.Mana - EMana - RMana > 0) && hero.CountEnemiesInRange(600) < 3 &&
-                !hero.HasUndyingBuffA() &&
-                (Player.Instance.HealthPercent > 40) && !hero.Position.IsVectorUnderEnemyTower())
-            {
-                var damage = Damage.GetQDamage(hero, true) +
-                             Damage.GetWDamage(hero) +
-                             Damage.GetRDamage(hero, true) +
-                             Player.Instance.GetAutoAttackDamage(hero) * 2;
-
-                if (hero.TotalHealthWithShields() > damage && hero.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(hero))
-                {
-                    return;
-                }
-
-                DardochTrickTarget = hero;
-
-                Core.DelayAction(() =>
-                {
-                    if (DardochTrickTarget == null)
-                        return;
-
-                    if (DardochTrickTarget.IsDead)
-                        return;
-
-                    var t = EntityManager.Heroes.Enemies.FirstOrDefault(x => x.NetworkId == DardochTrickTarget.NetworkId);
-
-                    if (t == null)
-                        return;
-
-                    var rPred = R.GetPrediction(t);
-
-                    if (rPred.HitChancePercent < 55)
-                        return;
-
-                    DardochTrick = true;
-
-                    R.Cast(rPred.CastPosition);
-                }, 250 + Game.Ping / 2);
-            }
-
             if (target.GetType() != typeof(AIHeroClient) || target.IsMe || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))//no idea why it invokes twice
                 return;
 
-            if (!E.IsReady() || !Settings.Combo.UseE || Settings.Misc.EUsageMode != 1 || DardochTrick || GetAmmoCount > 1)
+            if (!E.IsReady() || !Settings.Combo.UseE || Settings.Misc.EUsageMode != 1 || Settings.Combo.UseEOnlyToDardoch || GetAmmoCount > 1)
                 return;
             
             var heroClient = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 425, DamageType.Physical);
             var position = Vector3.Zero;
 
-            switch (Settings.Misc.EMode)
+            if (heroClient == null)
+                return;
+
+            var dmg = Player.Instance.GetAutoAttackDamage(heroClient, true) * 2;
+
+            if (Q.IsReady())
+                dmg += Player.Instance.GetSpellDamage(heroClient, SpellSlot.Q);
+            if (W.IsReady())
+                dmg += Player.Instance.GetSpellDamage(heroClient, SpellSlot.W);
+            if (R.IsReady())
+                dmg += Player.Instance.GetSpellDamage(heroClient, SpellSlot.R);
+
+            if (!((dmg < heroClient.TotalHealthWithShields()) || (Q.IsReady() && W.IsReady())))
+                return;
+
+            if (Settings.Misc.EMode == 0)
             {
-                case 0:
-                    if (heroClient != null && Player.Instance.HealthPercent > 50 && heroClient.HealthPercent < 30 && heroClient.CountEnemiesInRange(600) < 2)
+                if (Player.Instance.HealthPercent > heroClient.HealthPercent + 5 && heroClient.CountEnemiesInRange(600) <= 2)
+                {
+                    if (!Player.Instance.Position.Extend(Game.CursorPos, 420)
+                        .To3D()
+                        .IsVectorUnderEnemyTower() &&
+                        (!heroClient.IsMelee ||
+                         Player.Instance.Position.Extend(Game.CursorPos, 420)
+                             .IsInRange(heroClient, heroClient.GetAutoAttackRange() * 1.5f)))
                     {
-                        if (!Player.Instance.Position.Extend(Game.CursorPos, 420)
-                            .To3D()
-                            .IsVectorUnderEnemyTower() &&
-                            (!heroClient.IsMelee ||
-                             Player.Instance.Position.Extend(Game.CursorPos, 420)
-                                 .IsInRange(heroClient, heroClient.GetAutoAttackRange()*1.5f)))
-                        {
-                            Console.WriteLine("[DEBUG] 1v1 Game.CursorPos");
-                            position = Game.CursorPos.Distance(Player.Instance) > E.Range
-                                ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
-                                : Game.CursorPos;
-                        }
+                        Console.WriteLine("[DEBUG] 1v1 Game.CursorPos");
+                        position = Game.CursorPos.Distance(Player.Instance) > E.Range
+                            ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
+                            : Game.CursorPos;
                     }
-                    else if (heroClient != null)
-                    {
-                        var closest =
-                            EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
-                                .OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
+                }
+                else
+                {
+                    var closest =
+                        EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
+                            .OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
 
-                        var list =
-                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
-                                1300,
-                                heroClient.IsMelee ? heroClient.GetAutoAttackRange()*2 : heroClient.GetAutoAttackRange())
-                                .Where(
-                                    x =>
-                                        !x.Key.To3D().IsVectorUnderEnemyTower() &&
-                                        x.Key.IsInRange(Prediction.Position.PredictUnitPosition(closest, 850),
-                                            Player.Instance.GetAutoAttackRange() - 50))
-                                .Select(source => source.Key)
-                                .ToList();
-
-                        if (list.Any())
-                        {
-                            var paths =
-                                EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
-                                    .Select(x => x.Path)
-                                    .Count(result => result != null && result.Last().Distance(Player.Instance) < 300);
-
-                            var asc = Misc.SortVectorsByDistance(list, heroClient.Position.To2D())[0].To3D();
-                            if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0 &&
-                                !EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 1000).Any(
-                                    x => Prediction.Position.PredictUnitPosition(x, 800)
-                                        .IsInRange(asc,
-                                            x.IsMelee ? x.GetAutoAttackRange()*2 : x.GetAutoAttackRange())))
-                            {
-                                position = asc;
-
-                                Console.WriteLine("[DEBUG] Paths low sorting Ascending");
-                            }
-                            else if (Player.Instance.CountEnemiesInRange(1000) <= 2 && (paths == 0 || paths == 1) &&
-                                     ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true)*2) ||
-                                      (Orbwalker.LastTarget is AIHeroClient &&
-                                       Orbwalker.LastTarget.Health <
-                                       Player.Instance.GetAutoAttackDamage(closest, true)*2)))
-                            {
-                                position = asc;
-                            }
-                            else
-                            {
-                                position =
-                                    Misc.SortVectorsByDistanceDescending(list, heroClient.Position.To2D())[0].To3D();
-                                Console.WriteLine("[DEBUG] Paths high sorting Descending");
-                            }
-                        }
-                        else Console.WriteLine("[DEBUG] 1v1 not found positions...");
-                    }
-
-                    if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
-                    {
-                        E.Cast(position.Distance(Player.Instance) > E.Range ? Player.Instance.Position.Extend(position, E.Range).To3D() : position);
-                    }
-                    break;
-                case 1:
-                    var enemies = Player.Instance.CountEnemiesInRange(1300);
-                    var pos = Game.CursorPos.Distance(Player.Instance) > E.Range
-                        ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
-                        : Game.CursorPos;
-
-                    if (pos.IsVectorUnderEnemyTower())
-                        return;
-
-                    if (heroClient == null)
-                        return;
-
-                    if (enemies == 1 && heroClient.HealthPercent + 15 < Player.Instance.HealthPercent)
-                    {
-                        if (heroClient.IsMelee &&
-                            !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850),
-                                heroClient.GetAutoAttackRange() + 150))
-                        {
-                            E.Cast(pos);
-                            return;
-                        }
-                        if (!heroClient.IsMelee)
-                        {
-                            E.Cast(pos);
-                            return;
-                        }
-                    }
-                    else if (enemies == 1 &&
-                             !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850),
-                                 heroClient.GetAutoAttackRange()))
-                    {
-                        E.Cast(pos);
-                        return;
-                    }
-                    else if (enemies == 2 && Player.Instance.CountAlliesInRange(850) >= 1)
-                    {
-                        E.Cast(pos);
-                        return;
-                    }
-                    else if (enemies >= 2)
-                    {
-                        if (
-                            !EntityManager.Heroes.Enemies.Any(
+                    var list =
+                        SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
+                            1300,
+                            heroClient.IsMelee ? heroClient.GetAutoAttackRange() * 2 : heroClient.GetAutoAttackRange())
+                            .Where(
                                 x =>
-                                    pos.IsInRange(Prediction.Position.PredictUnitPosition(x, 850),
-                                        x.IsMelee ? x.GetAutoAttackRange() + 150 : x.GetAutoAttackRange())))
+                                    !x.Key.To3D().IsVectorUnderEnemyTower() &&
+                                    x.Key.IsInRange(Prediction.Position.PredictUnitPosition(closest, 850),
+                                        Player.Instance.GetAutoAttackRange() - 50))
+                            .Select(source => source.Key)
+                            .ToList();
+
+                    if (list.Any())
+                    {
+                        var paths =
+                            EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
+                                .Select(x => x.Path)
+                                .Count(result => result != null && result.Last().Distance(Player.Instance) < 300);
+
+                        var asc = Misc.SortVectorsByDistance(list, heroClient.Position.To2D())[0].To3D();
+                        if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0 &&
+                            !EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 1000).Any(
+                                x => Prediction.Position.PredictUnitPosition(x, 800)
+                                    .IsInRange(asc,
+                                        x.IsMelee ? x.GetAutoAttackRange() * 2 : x.GetAutoAttackRange())))
                         {
-                            E.Cast(pos);
-                            return;
+                            position = asc;
+
+                            Console.WriteLine("[DEBUG] Paths low sorting Ascending");
+                        }
+                        else if (Player.Instance.CountEnemiesInRange(1000) <= 2 && (paths == 0 || paths == 1) &&
+                                 ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2) ||
+                                  (Orbwalker.LastTarget is AIHeroClient &&
+                                   Orbwalker.LastTarget.Health <
+                                   Player.Instance.GetAutoAttackDamage(closest, true) * 2)))
+                        {
+                            position = asc;
+                        }
+                        else
+                        {
+                            position =
+                                Misc.SortVectorsByDistanceDescending(list, heroClient.Position.To2D())[0].To3D();
+                            Console.WriteLine("[DEBUG] Paths high sorting Descending");
                         }
                     }
+                    else Console.WriteLine("[DEBUG] 1v1 not found positions...");
+                }
+
+                if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
+                {
+                    E.Cast(position.Distance(Player.Instance) > E.Range ? Player.Instance.Position.Extend(position, E.Range).To3D() : position);
+                }
+            }
+            else if (Settings.Misc.EMode == 1)
+            {
+                var enemies = Player.Instance.CountEnemiesInRange(1300);
+                var pos = Game.CursorPos.Distance(Player.Instance) > E.Range
+                    ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
+                    : Game.CursorPos;
+
+                if (!pos.IsVectorUnderEnemyTower())
+                {
+                    if (heroClient.IsMelee &&
+                        !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850),
+                            heroClient.GetAutoAttackRange() + 150))
+                    {
+                        E.Cast(pos);
+                        return;
+                    }
+                    if (!heroClient.IsMelee)
+                    {
+                        E.Cast(pos);
+                    }
+                }
+                else if (enemies == 2 && Player.Instance.CountAlliesInRange(850) >= 1)
+                {
                     E.Cast(pos);
-                    break;
-                default:
-                    return;
+                }
+                else if (enemies >= 2)
+                {
+                    if (
+                        !EntityManager.Heroes.Enemies.Any(
+                            x =>
+                                pos.IsInRange(Prediction.Position.PredictUnitPosition(x, 400),
+                                    x.IsMelee ? x.GetAutoAttackRange() + 150 : x.GetAutoAttackRange())))
+                    {
+                        E.Cast(pos);
+                    }
+                }
             }
         }
 
@@ -443,6 +415,7 @@ namespace Marksman_Master.Plugins.Graves
 
             ComboMenu.AddLabel("Quickdraw (E) settings :");
             ComboMenu.Add("Plugins.Graves.ComboMenu.UseE", new CheckBox("Use E"));
+            ComboMenu.Add("Plugins.Graves.ComboMenu.UseEOnlyToDardoch", new CheckBox("Use E only if can perform Dardoch trick", false));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Collateral Damage (R) settings :");
@@ -545,90 +518,36 @@ namespace Marksman_Master.Plugins.Graves
 
         protected override void PermaActive()
         {
-            if (DardochTrick)
-                return;
-
             Modes.PermaActive.Execute();
         }
 
         protected override void ComboMode()
         {
-            if (DardochTrick && !_ecasted)
-            {
-                if (Game.Time*1000 - _tick < 130)
-                    return;
-
-                if (DardochTrickTarget == null)
-                {
-                    Reset();
-                    return;
-                }
-
-                if (DardochTrickTarget.IsDead)
-                {
-                    Reset();
-                    return;
-                }
-
-                var k = EntityManager.Heroes.Enemies.FirstOrDefault(x => x.NetworkId == DardochTrickTarget.NetworkId);
-
-                if (!E.IsReady() || !_rcasted || k == null)
-                {
-                    Reset();
-                    return;
-                }
-
-                E.Cast(Player.Instance.Distance(k) > 420 ? Player.Instance.Position.Extend(k, 420).To3D() : k.ServerPosition);
-            }
             Modes.Combo.Execute();
         }
-
-        private static void Reset()
-        {
-            DardochTrick = false;
-            DardochTrickTarget = null;
-            _rcasted = false;
-            _ecasted = true;
-            _tick = 0;
-        }
-
+        
         protected override void HarassMode()
         {
-            if (DardochTrick)
-                return;
-
             Modes.Harass.Execute();
         }
 
         protected override void LaneClear()
         {
-            if (DardochTrick)
-                return;
-
             Modes.LaneClear.Execute();
         }
 
         protected override void JungleClear()
         {
-            if (DardochTrick)
-                return;
-
             Modes.JungleClear.Execute();
         }
 
         protected override void LastHit()
         {
-            if (DardochTrick)
-                return;
-
             Modes.LastHit.Execute();
         }
 
         protected override void Flee()
         {
-            if (DardochTrick)
-                return;
-
             Modes.Flee.Execute();
         }
 
@@ -687,6 +606,23 @@ namespace Marksman_Master.Plugins.Graves
                     }
                 }
 
+                public static bool UseEOnlyToDardoch
+                {
+                    get
+                    {
+                        return ComboMenu?["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"] != null &&
+                               ComboMenu["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"].Cast<CheckBox>()
+                                   .CurrentValue;
+                    }
+                    set
+                    {
+                        if (ComboMenu?["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"] != null)
+                            ComboMenu["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"].Cast<CheckBox>()
+                                .CurrentValue
+                                = value;
+                    }
+                }
+                
                 public static bool UseR
                 {
                     get

@@ -92,6 +92,9 @@ namespace Marksman_Master.Plugins.Lucian
 
         private static void GameObject_OnCreate(GameObject sender, EventArgs args)
         {
+            if (!HasAnyOrbwalkerFlags())
+                return;
+
             if (sender.GetType() == typeof (MissileClient))
             {
                 var missile = sender as MissileClient;
@@ -125,6 +128,11 @@ namespace Marksman_Master.Plugins.Lucian
         {
             if (Player.Instance.Spellbook.IsCastingSpell)
                 args.Process = false;// stupid q bug stops occuring
+        }
+
+        private static bool HasAnyOrbwalkerFlags()
+        {
+            return (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
         }
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
