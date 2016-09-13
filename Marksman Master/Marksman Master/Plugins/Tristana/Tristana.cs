@@ -134,6 +134,9 @@ namespace Marksman_Master.Plugins.Tristana
 
         private static void GameObject_OnCreate(GameObject sender, EventArgs args)
         {
+            if (!Checkw)
+                return;
+
             if (sender.GetType() == typeof(Obj_GeneralParticleEmitter))
             {
                 var particle = sender as Obj_GeneralParticleEmitter;

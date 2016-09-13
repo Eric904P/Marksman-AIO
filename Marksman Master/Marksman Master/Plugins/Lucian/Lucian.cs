@@ -88,6 +88,17 @@ namespace Marksman_Master.Plugins.Lucian
 
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             GameObject.OnCreate += GameObject_OnCreate;
+
+            Spellbook.OnCastSpell += Spellbook_OnCastSpell;
+        }
+
+        private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
+        {
+            if (!sender.Owner.IsMe || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+                return;
+
+            if ((args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W || args.Slot == SpellSlot.E) && (HasPassiveBuff || IsPreAttack))// && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) >= 1)
+                args.Process = false;
         }
 
         private static void GameObject_OnCreate(GameObject sender, EventArgs args)
