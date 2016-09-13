@@ -48,6 +48,23 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                 }
             }
 
+            if (WTarget != null && W.IsReady() && Settings.Combo.DoubleWKeybind)
+            {
+                var target = EntityManager.Heroes.Enemies.FirstOrDefault(x => x.NetworkId == WTarget.NetworkId);
+
+                if (target != null)
+                {
+                    var wPrediction = W.GetPrediction(target);
+
+                    if (wPrediction.HitChance >= HitChance.Medium)
+                    {
+                        WTarget = null;
+
+                        W.Cast(wPrediction.CastPosition);
+                    }
+                }
+            }
+
             if (W.IsReady() && IsCatingW)
             {
                 W.Cast(Player.Instance.Position.Extend(WStartPos, WStartPos.Distance(Player.Instance) > 850 ? 850 : WStartPos.Distance(Player.Instance)).To3D());
@@ -58,14 +75,13 @@ namespace Marksman_Master.Plugins.Tristana.Modes
             {
                 var target = TargetSelector.GetTarget(900, DamageType.Physical);
 
-                if (target != null && target.CountEnemiesInRange(500) == 0 && target.Distance(Player.Instance) > R.Range)
+                if (target != null && target.CountEnemiesInRange(500) == 1 && target.Distance(Player.Instance) > R.Range)
                 {
                     var damage = IncomingDamage.GetIncomingDamage(target) + Damage.GetRDamage(target) +
                                  Damage.GetEPhysicalDamage(target);
 
                     if (HasExplosiveChargeBuff(target) && target.Health < damage)
                     {
-
                         var wPrediction = W.GetPrediction(target);
                         if (wPrediction.HitChance >= HitChance.Medium)
                         {
@@ -73,7 +89,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                             Core.DelayAction(() => IsCatingW = false, 2000);
                             WStartPos = Player.Instance.Position;
 
-                            W.Cast(target.ServerPosition);
+                            W.Cast(wPrediction.CastPosition);
                             Console.WriteLine("[DEBUG] Casting W since {0} is killable", target.Hero);
                         }
                     }

@@ -62,6 +62,17 @@ namespace Marksman_Master.Plugins.Tristana
         protected static bool IsCatingW {get; set; }
         protected static Vector3 WStartPos { get; set; }
 
+        protected static bool HasExplosiveChargeBuff(Obj_AI_Base unit) =>  unit.Buffs.Any(x => x.Name.ToLowerInvariant() == "tristanaechargesound");
+
+        protected static int CountEStacks(Obj_AI_Base unit) => unit.Buffs.Any(x => x.Name.ToLowerInvariant() == "tristanaecharge") ? unit.Buffs.First(x => x.Name.ToLowerInvariant() == "tristanaecharge").Count : 0;
+        
+        protected static BuffInstance GetExplosiveChargeBuff(Obj_AI_Base unit) => unit.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "tristanaecharge");
+        
+        protected static AIHeroClient WTarget { get; set; }
+
+        private static AIHeroClient Wtarg { get; set; }
+        private static bool Checkw { get; set; }
+
         static Tristana()
         {
             Q = new Spell.Active(SpellSlot.Q);
@@ -77,14 +88,86 @@ namespace Marksman_Master.Plugins.Tristana
 
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
 
-            Orbwalker.OnPostAttack += (sender, args) => IsPreAttack = false;
+            Orbwalker.OnPostAttack += (sender, args) =>
+            {
+                IsPreAttack = false;
+                
+                if (W.IsReady() && Settings.Combo.UseW && Settings.Combo.DoubleWKeybind)
+                {
+                    var possibleTargets =
+                        EntityManager.Heroes.Enemies.Where(
+                            x => x.IsValidTarget(W.Range) && HasExplosiveChargeBuff(x) && CountEStacks(x) == 2);
+
+                    var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                    if (target != null && !target.Position.IsVectorUnderEnemyTower())
+                    {
+                        var buff = target.Buffs.Find(x => x.Name.ToLowerInvariant() == "tristanaechargesound").EndTime;
+
+                        if (buff - Game.Time > Player.Instance.Distance(target)/1300 + 0.5)
+                        {
+                            var wPrediction = W.GetPrediction(target);
+
+                            if (wPrediction.HitChance >= HitChance.Medium)
+                            {
+                                Wtarg = target;
+                                Checkw = true;
+
+                                W.Cast(wPrediction.CastPosition);
+
+                                Core.DelayAction(() => WTarget = null, 3000);
+                            }
+                        }
+                    }
+                }
+            };
             
             DamageIndicator.Initalize(ColorPicker[1].Color, 1300);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ColorPicker[1].OnColorChange += (a, b) => { DamageIndicator.Color = b.Color; };
+
+            GameObject.OnCreate += GameObject_OnCreate;
+
+            Messages.OnMessage += Messages_OnMessage;
+        }
+
+        private static void GameObject_OnCreate(GameObject sender, EventArgs args)
+        {
+            if (sender.GetType() == typeof(Obj_GeneralParticleEmitter))
+            {
+                var particle = sender as Obj_GeneralParticleEmitter;
+
+                if (particle != null)
+                {
+                    if (particle.Name == "Tristana_Base_W_launch.troy")
+                    {
+                        WTarget = Wtarg;
+                        Wtarg = null;
+                        Checkw = false;
+                    }
+                }
+            }
         }
         
+        private static void Messages_OnMessage(Messages.WindowMessage args)
+        {
+            if (args.Message == WindowMessages.KeyDown)
+            {
+                if (args.Handle.WParam == Keybind.Keys.Item1 || args.Handle.WParam == Keybind.Keys.Item2)
+                {
+                    Orbwalker.ActiveModesFlags |= Orbwalker.ActiveModes.Combo;
+                }
+            }
+            if (args.Message == WindowMessages.KeyUp)
+            {
+                if (args.Handle.WParam == Keybind.Keys.Item1 || args.Handle.WParam == Keybind.Keys.Item2)
+                {
+                    Orbwalker.ActiveModesFlags = Orbwalker.ActiveModes.None;
+                }
+            }
+        }
+
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
             IsPreAttack = true;
@@ -181,7 +264,7 @@ namespace Marksman_Master.Plugins.Tristana
                 }
             }
 
-            if (!Settings.Combo.UseRVsInterruptible || !R.IsReady() || !sender.IsValidTarget(R.Range) || args.End.Distance(Player.Instance) > 350)
+            if (!Settings.Combo.UseRVsGapclosers || !R.IsReady() || !sender.IsValidTarget(R.Range) || args.End.Distance(Player.Instance) > 350)
                 return;
 
             if (args.Delay == 0)
@@ -191,10 +274,7 @@ namespace Marksman_Master.Plugins.Tristana
             Console.WriteLine("[DEBUG] OnGapCloser {0}",sender.Hero);
         }
 
-        public static bool HasExplosiveChargeBuff(Obj_AI_Base unit)
-        {
-            return unit.Buffs.Any(x=>x.Name.ToLowerInvariant() == "tristanaechargesound");
-        }
+        private static KeyBind Keybind { get; set; }
 
         protected override void CreateMenu()
         {
@@ -210,6 +290,8 @@ namespace Marksman_Master.Plugins.Tristana
             ComboMenu.AddLabel("Only if W - E - R combo will kill an enemy");
             ComboMenu.AddSeparator(2);
             ComboMenu.Add("Plugins.Tristana.ComboMenu.UseWVsGapclosers", new CheckBox("Use W against gapclosers"));
+            Keybind = ComboMenu.Add("Plugins.Tristana.ComboMenu.DoubleWKeybind",
+                new KeyBind("Perform double W combo", false, KeyBind.BindTypes.HoldActive, 'A'));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Explosive Charge (E) settings :");
@@ -307,7 +389,7 @@ namespace Marksman_Master.Plugins.Tristana
         {
             E.Range = (uint)(630 + 7 * Player.Instance.Level);
             R.Range = (uint)(630 + 7 * Player.Instance.Level);
-
+            
             Modes.PermaActive.Execute();
         }
 
@@ -391,6 +473,23 @@ namespace Marksman_Master.Plugins.Tristana
                     {
                         if (ComboMenu?["Plugins.Tristana.ComboMenu.UseWVsGapclosers"] != null)
                             ComboMenu["Plugins.Tristana.ComboMenu.UseWVsGapclosers"].Cast<CheckBox>()
+                                .CurrentValue
+                                = value;
+                    }
+                }
+
+                public static bool DoubleWKeybind
+                {
+                    get
+                    {
+                        return ComboMenu?["Plugins.Tristana.ComboMenu.DoubleWKeybind"] != null &&
+                               ComboMenu["Plugins.Tristana.ComboMenu.DoubleWKeybind"].Cast<KeyBind>()
+                                   .CurrentValue;
+                    }
+                    set
+                    {
+                        if (ComboMenu?["Plugins.Tristana.ComboMenu.DoubleWKeybind"] != null)
+                            ComboMenu["Plugins.Tristana.ComboMenu.DoubleWKeybind"].Cast<KeyBind>()
                                 .CurrentValue
                                 = value;
                     }
