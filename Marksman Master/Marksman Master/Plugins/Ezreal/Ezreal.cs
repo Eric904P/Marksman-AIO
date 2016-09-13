@@ -93,6 +93,8 @@ namespace Marksman_Master.Plugins.Ezreal
             DamageIndicator.Initalize(ColorPicker[3].Color);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
+            ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
+
             ColorPicker[3].OnColorChange +=
                 (a, b) =>
                 {
