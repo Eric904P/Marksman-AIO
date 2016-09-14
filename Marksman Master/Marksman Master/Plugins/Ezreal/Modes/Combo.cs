@@ -188,10 +188,12 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                         {
                             var collision = new Geometry.Polygon.Rectangle(Player.Instance.Position.To2D(), Player.Instance.Position.Extend(rPrediction.CastPosition, 6000), 160);
 
-                            var objects = EntityManager.Heroes.Enemies.Where(x=>x.NetworkId != target.NetworkId).Where(x => x.IsValidTarget() && collision.IsInside(Prediction.Position.PredictUnitPosition(x, (int)(x.Distance(Player.Instance) / 2000) + 1000)));
+                            var count = EntityManager.Heroes.Enemies.Where(x => x.NetworkId != target.NetworkId).Count(x => x.IsValidTarget() && collision.IsInside(Prediction.Position.PredictUnitPosition(x, (int)(x.Distance(Player.Instance) / 2000) + 1000))) + 1;
 
-                            if (objects.Count() >= Settings.Combo.RMinEnemiesHit)
+                            if (count >= Settings.Combo.RMinEnemiesHit)
                             {
+                                Misc.PrintInfoMessage("Casting R because it can hit <font color=\"#ff1493\">" + count + "</font>. enemies");
+
                                 R.Cast(rPrediction.CastPosition);
                             }
                         }

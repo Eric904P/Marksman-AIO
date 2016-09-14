@@ -110,6 +110,7 @@ namespace Marksman_Master.Utils
     public enum ChampionTrackerFlags
     {
         VisibilityTracker = 1 << 0,
-        LongCastTimeTracker = 1 << 1
+        LongCastTimeTracker = 1 << 1,
+        PostBasicAttackTracker = 1 << 2
     }
 }

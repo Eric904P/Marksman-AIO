@@ -195,6 +195,8 @@ namespace Marksman_Master.Plugins.Ezreal
                 Circle.Draw(ColorPicker[1].Color, W.Range, Player.Instance);
             if (Settings.Drawings.DrawE && (!Settings.Drawings.DrawSpellRangesWhenReady || E.IsReady()))
                 Circle.Draw(ColorPicker[2].Color, E.Range, Player.Instance);
+
+            Chat.Print(IncomingDamage.GetIncomingDamage(Player.Instance));
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)

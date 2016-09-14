@@ -35,6 +35,7 @@ using EloBuddy.SDK.Events;
 using Marksman_Master.Interfaces;
 using Marksman_Master.Utils;
 using SharpDX;
+using Color = System.Drawing.Color;
 
 namespace Marksman_Master
 {
@@ -50,6 +51,10 @@ namespace Marksman_Master
 
             if (PluginInstance == null)
             {
+                Drawing.OnDraw +=
+                    args =>
+                        Drawing.DrawText(200, 200, Color.AliceBlue, IncomingDamage.GetIncomingDamage(Player.Instance)+"");
+
                 Misc.PrintInfoMessage("<b><font color=\"#5ED43D\">" + Player.Instance.ChampionName + "</font></b> is not yet supported.");
                 return false;
             }
