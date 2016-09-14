@@ -862,9 +862,9 @@ namespace Marksman_Master.Plugins.Sivir
                         {
                             OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), true, blockableSpellData.AdditionalDelay)); // better db check
                         }
-                        else if (enemy.Hero == Champion.Amumu && args.Slot == blockableSpellData.SpellSlot)
+                        else if (enemy.Hero == Champion.Azir && args.Slot == blockableSpellData.SpellSlot)
                         {
-                            if (enemy.Distance(Player.Instance) < 1100)
+                            if (enemy.Distance(Player.Instance) < 300)
                             {
                                 OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
                             }
