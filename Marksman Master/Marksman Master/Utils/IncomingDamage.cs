@@ -53,9 +53,12 @@ namespace Marksman_Master.Utils
 
         private static void ChampionTracker_OnPostBasicAttack(object sender, PostBasicAttackArgs e)
         {
+            if (Player.Instance.IsDead)
+                return;
+
             if (e.Sender == null || e.Target == null)
                 return;
-            
+
             var heroSender = e.Sender;
             var target = e.Target as AIHeroClient;
 
@@ -107,9 +110,9 @@ namespace Marksman_Master.Utils
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (Player.Instance.IsDead || sender.IsMe)
+            if (Player.Instance.IsDead)
                 return;
-
+            
             var heroSender = sender as AIHeroClient;
             var target = args.Target as AIHeroClient;
 
@@ -158,7 +161,7 @@ namespace Marksman_Master.Utils
             if (!Champions.Contains(hero.NetworkId))
             {
                 Champions.Add(hero.NetworkId);
-                Core.DelayAction(() => Champions.RemoveAll(x=> x == hero.NetworkId), 10000);
+                Core.DelayAction(() => Champions.RemoveAll(x=> x == hero.NetworkId), 15000);
             }
 
             return IncomingDamages.Where(x => x.Target.NetworkId.Equals(hero.NetworkId)).Sum(incomingDamageArgse => incomingDamageArgse.Damage);
@@ -166,7 +169,7 @@ namespace Marksman_Master.Utils
 
         private static void Game_OnTick(EventArgs args)
         {
-            IncomingDamages.RemoveAll(x => Game.Time*1000 > x.Tick + 1000);
+            IncomingDamages.RemoveAll(x => Game.Time*1000 - x.Tick > 1250);
         }
 
         private class IncomingDamageArgs

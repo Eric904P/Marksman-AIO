@@ -92,7 +92,7 @@ namespace Marksman_Master.Utils
                 Obj_AI_Base.OnSpellCast += Obj_AI_Base_OnSpellCast;
                 GameObject.OnCreate += GameObject_OnCreate;
                 GameObject.OnDelete += GameObject_OnDelete;
-                Game.OnUpdate += PostBasicAttackHandler;
+                Game.OnTick += PostBasicAttackHandler;
             }
 
             _initialized = true;
@@ -103,32 +103,19 @@ namespace Marksman_Master.Utils
             if (!sender.IsMelee)
                 return;
 
-            OnPostBasicAttack?.Invoke(sender,
-                new PostBasicAttackArgs(sender, args.Target, args.End, args.Start, sender.NetworkId, sender.Team,
-                    null, Game.Time*1000));
+            OnPostBasicAttack?.Invoke(sender, new PostBasicAttackArgs(sender, args.Target, args.End, args.Start, sender.NetworkId, sender.Team));
         }
+
+        private static readonly Dictionary<MissileClient, float> Missiles = new Dictionary<MissileClient, float>();
+
 
         private static void PostBasicAttackHandler(EventArgs args)
         {
-            if (BasicAttacks == null || !BasicAttacks.Any() || OnPostBasicAttack == null)
-                return;
-
-
-            BasicAttacks.ForEach(x=>
+            Missiles.Where(x=> Game.Time * 1000 - x.Value > 30).Select(x=>x.Key).ToList().ForEach(x =>
             {
-                if (x.Missile == null)
-                    return;
-
-                OnPostBasicAttack?.Invoke(x.Missile?.SpellCaster,
-                    new PostBasicAttackArgs(x.Missile?.SpellCaster, x.Missile?.Target,
-                        x.Missile.StartPosition, x.Missile.EndPosition,
-                        x.Missile.NetworkId, x.Missile.Team, x.Missile,
-                        x.StartTime));
-
-                BasicAttacks.Remove(x);
+                Invoke(x);
+                Missiles.Remove(x);
             });
-            
-            BasicAttacks.RemoveAll(x => Game.Time * 1000 - x.StartTime > 125);
         }
 
         private static void GameObject_OnDelete(GameObject sender, EventArgs args)
@@ -138,9 +125,9 @@ namespace Marksman_Master.Utils
 
             var missile = sender as MissileClient;
 
-            if (missile != null  && missile.IsAutoAttack())
+            if (missile != null && missile.IsAutoAttack())
             {
-                BasicAttacks.RemoveAll(x => x.Missile.NetworkId == missile.NetworkId);
+                Missiles.Remove(missile);
             }
         }
 
@@ -152,10 +139,18 @@ namespace Marksman_Master.Utils
             var missile = sender as MissileClient;
 
             if (missile != null && missile.IsAutoAttack() && missile.SpellCaster != null && missile.Target != null &&
-                missile.SpellCaster.Type != GameObjectType.obj_AI_Turret && missile.IsValidMissile())
+                missile.SpellCaster.Type != GameObjectType.obj_AI_Turret)
             {
-                BasicAttacks.Add(new BasicAttack(missile, Game.Time*1000));
+                Missiles[missile] = Game.Time * 1000;
             }
+        }
+
+        private static void Invoke(MissileClient client)
+        {
+            OnPostBasicAttack?.Invoke(client.SpellCaster,
+                new PostBasicAttackArgs(client.SpellCaster, client.Target,
+                    client.StartPosition, client.EndPosition,
+                    client.NetworkId, client.Team));
         }
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
@@ -187,7 +182,6 @@ namespace Marksman_Master.Utils
         public static event EventHandler<PostBasicAttackArgs> OnPostBasicAttack;
 
         private static readonly HashSet<VisibilityTracker> ChampionVisibility = new HashSet<VisibilityTracker>();
-        private static readonly List<BasicAttack> BasicAttacks = new List<BasicAttack>();
 
         private static void Game_OnTick(EventArgs args)
         {
@@ -326,10 +320,8 @@ namespace Marksman_Master.Utils
         public Vector3 EndPosition { get; private set; }
         public int NetworkId { get; private set; }
         public GameObjectTeam Team { get; private set; }
-        public float StartTime { get; private set; }
-        public MissileClient Missile { get; private set; }
 
-        public PostBasicAttackArgs(Obj_AI_Base sender, GameObject target, Vector3 startPosition, Vector3 endPosition, int networkId, GameObjectTeam team, MissileClient missile, float startTime)
+        public PostBasicAttackArgs(Obj_AI_Base sender, GameObject target, Vector3 startPosition, Vector3 endPosition, int networkId, GameObjectTeam team)
         {
             Sender = sender;
             Target = target;
@@ -337,8 +329,6 @@ namespace Marksman_Master.Utils
             EndPosition = endPosition;
             NetworkId = networkId;
             Team = team;
-            Missile = missile;
-            StartTime = startTime;
         }
     }
 }

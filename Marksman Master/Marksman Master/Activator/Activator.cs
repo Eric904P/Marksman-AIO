@@ -414,31 +414,39 @@ namespace Marksman_Master.Activator
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
-            if (target == null || target.IsMe || target.GetType() != typeof (AIHeroClient) || !MenuManager.MenuValues["Activator.Enable"])
+            if (target == null || target.IsMe || target.GetType() != typeof (AIHeroClient) ||
+                !MenuManager.MenuValues["Activator.Enable"])
                 return;
 
-            foreach (var enumValues in from enumValues in Enum.GetValues(typeof (ItemsEnum)).Cast<ItemsEnum>()
-                where
-                    Items[enumValues] != null && Items[enumValues].ItemUsageWhen == ItemUsageWhen.AfterAttack &&
-                    Items[enumValues].ItemType == ItemType.Offensive
-                where
-                    (int) Player.Instance.HealthPercent <=
-                    MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".MyMinHP", true] &&
-                    (int) target.HealthPercent <=
-                    MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".TargetsMinHP", true] &&
-                    Player.Instance.Position.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 250) >=
-                    MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".IfEnemiesNear", true]
-                where Items[enumValues].ToItem().IsReady() && Items[enumValues].Range > 0 &&
-                      Items[enumValues].ToItem().IsInRange(target as AIHeroClient)
-                select enumValues)
+            if ((MenuManager.MenuValues["Activator.ItemsMenu.OnlyInCombo"] &&
+                 Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) ||
+                !MenuManager.MenuValues["Activator.ItemsMenu.OnlyInCombo"])
             {
-                Items[enumValues].ToItem().Cast(target as AIHeroClient);
+                foreach (var enumValues in from enumValues in Enum.GetValues(typeof (ItemsEnum)).Cast<ItemsEnum>()
+                    where
+                        Items[enumValues] != null && Items[enumValues].ItemUsageWhen == ItemUsageWhen.AfterAttack &&
+                        Items[enumValues].ItemType == ItemType.Offensive
+                    where
+                        (int) Player.Instance.HealthPercent <=
+                        MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".MyMinHP", true] &&
+                        (int) target.HealthPercent <=
+                        MenuManager.MenuValues[
+                            "Activator.ItemsMenu." + Items[enumValues].ItemName + ".TargetsMinHP", true] &&
+                        Player.Instance.Position.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 250) >=
+                        MenuManager.MenuValues[
+                            "Activator.ItemsMenu." + Items[enumValues].ItemName + ".IfEnemiesNear", true]
+                    where Items[enumValues].ToItem().IsReady() && Items[enumValues].Range > 0 &&
+                          Items[enumValues].ToItem().IsInRange(target as AIHeroClient)
+                    select enumValues)
+                {
+                    Items[enumValues].ToItem().Cast(target as AIHeroClient);
+                }
             }
 
             if (Items[ItemsEnum.ElixirofIron] == null || Items[ItemsEnum.ElixirofSorcery] == null ||
                 Items[ItemsEnum.ElixirofWrath] == null)
                 return;
-            
+
             Items[ItemsEnum.ElixirofIron]?.UseItem();
             Items[ItemsEnum.ElixirofSorcery]?.UseItem();
             Items[ItemsEnum.ElixirofWrath]?.UseItem();
