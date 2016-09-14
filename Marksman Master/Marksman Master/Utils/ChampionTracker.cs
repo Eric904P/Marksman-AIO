@@ -92,7 +92,7 @@ namespace Marksman_Master.Utils
                 Obj_AI_Base.OnSpellCast += Obj_AI_Base_OnSpellCast;
                 GameObject.OnCreate += GameObject_OnCreate;
                 GameObject.OnDelete += GameObject_OnDelete;
-                Game.OnTick += PostBasicAttackHandler;
+                Game.OnUpdate += PostBasicAttackHandler;
             }
 
             _initialized = true;

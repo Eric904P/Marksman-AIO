@@ -92,13 +92,21 @@ namespace Marksman_Master.Plugins.Lucian
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
         }
 
+        private static float LastCastTime { get; set; }
+
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
             if (!sender.Owner.IsMe || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
-            if ((args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W || args.Slot == SpellSlot.E) && (HasPassiveBuff || IsPreAttack))// && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) >= 1)
-                args.Process = false;
+            if (args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W || args.Slot == SpellSlot.E)// && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + (R.IsReady() ? 425 : 0)) >= 1)
+
+            {
+                if (HasPassiveBuff || IsPreAttack || Game.Time*1000 - LastCastTime < 200)
+                    args.Process = false;
+
+                LastCastTime = Game.Time*1000;
+            }
         }
 
         private static void GameObject_OnCreate(GameObject sender, EventArgs args)

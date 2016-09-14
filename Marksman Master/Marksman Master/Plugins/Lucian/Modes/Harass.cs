@@ -36,40 +36,40 @@ namespace Marksman_Master.Plugins.Lucian.Modes
     {
         public static void Execute()
         {
-            if (!Q.IsReady() || !Settings.Harass.UseQ || !(Player.Instance.ManaPercent >= Settings.Harass.MinManaQ))
-                return;
-
-            foreach (
-                var enemy in
-                    EntityManager.Heroes.Enemies.Where(
-                        x => x.IsValidTarget(900) && Settings.Harass.IsAutoHarassEnabledFor(x))
-                        .OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+            if (Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)
             {
-                if (enemy.IsValidTarget(Q.Range))
-                {
-                    Q.Cast(enemy);
-                    return;
-                }
-
-                if (!enemy.IsValidTarget(900))
-                    continue;
-
                 foreach (
-                    var entity in
-                        from entity in
-                            EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
-                                x => x.IsValidTarget(Q.Range))
-                        let pos =
-                            Player.Instance.Position.Extend(entity, 900 - Player.Instance.Distance(entity))
-                        let targetpos = Prediction.Position.PredictUnitPosition(enemy, 250)
-                        let rect = new Geometry.Polygon.Rectangle(entity.Position.To2D(), pos, 10)
-                        where
-                            new Geometry.Polygon.Circle(targetpos, enemy.BoundingRadius).Points.Any(
-                                rect.IsInside)
-                        select entity)
+                    var enemy in
+                        EntityManager.Heroes.Enemies.Where(
+                            x => x.IsValidTarget(900) && Settings.Harass.IsAutoHarassEnabledFor(x))
+                            .OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
                 {
-                    Q.Cast(entity);
-                    return;
+                    if (enemy.IsValidTarget(Q.Range))
+                    {
+                        Q.Cast(enemy);
+                        return;
+                    }
+
+                    if (!enemy.IsValidTarget(900))
+                        continue;
+
+                    foreach (
+                        var entity in
+                            from entity in
+                                EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
+                                    x => x.IsValidTarget(Q.Range))
+                            let pos =
+                                Player.Instance.Position.Extend(entity, 900 - Player.Instance.Distance(entity))
+                            let targetpos = Prediction.Position.PredictUnitPosition(enemy, 250)
+                            let rect = new Geometry.Polygon.Rectangle(entity.Position.To2D(), pos, 10)
+                            where
+                                new Geometry.Polygon.Circle(targetpos, enemy.BoundingRadius).Points.Any(
+                                    rect.IsInside)
+                            select entity)
+                    {
+                        Q.Cast(entity);
+                        return;
+                    }
                 }
             }
         }

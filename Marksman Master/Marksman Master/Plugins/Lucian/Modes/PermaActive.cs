@@ -26,6 +26,8 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
+using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
@@ -36,7 +38,45 @@ namespace Marksman_Master.Plugins.Lucian.Modes
     {
         public static void Execute()
         {
-            if (!R.IsReady() || !Settings.Combo.UseR || Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name != "LucianR")
+            if (Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass))
+            {
+                foreach (
+                    var enemy in
+                        EntityManager.Heroes.Enemies.Where(
+                            x => x.IsValidTarget(900) && Settings.Harass.IsAutoHarassEnabledFor(x))
+                            .OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                {
+                    if (enemy.IsValidTarget(Q.Range))
+                    {
+                        Q.Cast(enemy);
+                        return;
+                    }
+
+                    if (!enemy.IsValidTarget(900))
+                        continue;
+
+                    foreach (
+                        var entity in
+                            from entity in
+                                EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
+                                    x => x.IsValidTarget(Q.Range))
+                            let pos =
+                                Player.Instance.Position.Extend(entity, 900 - Player.Instance.Distance(entity))
+                            let targetpos = Prediction.Position.PredictUnitPosition(enemy, 250)
+                            let rect = new Geometry.Polygon.Rectangle(entity.Position.To2D(), pos, 10)
+                            where
+                                new Geometry.Polygon.Circle(targetpos, enemy.BoundingRadius).Points.Any(
+                                    rect.IsInside)
+                            select entity)
+                    {
+                        Q.Cast(entity);
+                        return;
+                    }
+                }
+            }
+
+            if (!R.IsReady() || !Settings.Combo.UseR ||
+                Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name != "LucianR")
                 return;
 
             var target = TargetSelector.GetTarget(R.Range, DamageType.Physical);
@@ -49,6 +89,7 @@ namespace Marksman_Master.Plugins.Lucian.Modes
             {
                 R.Cast(rPrediciton.CastPosition);
             }
+
         }
     }
 }
