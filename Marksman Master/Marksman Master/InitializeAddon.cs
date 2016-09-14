@@ -35,7 +35,6 @@ using EloBuddy.SDK.Events;
 using Marksman_Master.Interfaces;
 using Marksman_Master.Utils;
 using SharpDX;
-using Color = System.Drawing.Color;
 
 namespace Marksman_Master
 {
@@ -51,10 +50,6 @@ namespace Marksman_Master
 
             if (PluginInstance == null)
             {
-                Drawing.OnDraw +=
-                    args =>
-                        Drawing.DrawText(200, 200, Color.AliceBlue, IncomingDamage.GetIncomingDamage(Player.Instance)+"");
-
                 Misc.PrintInfoMessage("<b><font color=\"#5ED43D\">" + Player.Instance.ChampionName + "</font></b> is not yet supported.");
                 return false;
             }
@@ -122,7 +117,7 @@ namespace Marksman_Master
 
             foreach (
                 var gapcloser in
-                    Gapcloser.GapCloserList.Where(x => x.ChampName == enemy.ChampionName && x.SpellSlot == args.Slot))
+                    Gapcloser.GapCloserList.Where(x => x.ChampName == enemy.ChampionName && string.Equals(x.SpellName, args.SData.Name, StringComparison.InvariantCultureIgnoreCase)))
             {
                 var hp =
                     menu["MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot + ".Hp", true];
