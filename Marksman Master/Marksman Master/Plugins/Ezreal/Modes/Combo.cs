@@ -26,10 +26,13 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
+using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Spells;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Ezreal.Modes
@@ -43,18 +46,31 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 var killable = EntityManager.Heroes.Enemies.Where(
                         x => x.IsValidTarget(Q.Range + E.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() && x.HealthPercent < 50).ToList();
 
-                if (killable.Any() && Player.Instance.HealthPercent > 25)
+                if (killable.Any() && Player.Instance.HealthPercent > 10)
                 {
                     foreach (var target in killable)
                     {
                         var endPos = Player.Instance.Position.Extend(target,
                             target.Distance(Player.Instance) > E.Range ? E.Range : target.Distance(Player.Instance));
 
-                        if (endPos.CountEnemiesInRange(600) >= 2 || endPos.To3D().IsVectorUnderEnemyTower())
+                        if (endPos.CountEnemiesInRange(600) >= (Player.Instance.HealthPercent > 65 ? 2 : 1) || endPos.To3D().IsVectorUnderEnemyTower())
                             continue;
 
-                        var damage = Player.Instance.GetSpellDamage(target, SpellSlot.Q) +
-                                     Player.Instance.GetSpellDamage(target, SpellSlot.E);
+                        var qPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                        {
+                            Range = Q.Range,
+                            Target = target,
+                            RangeCheckFrom = endPos.To3D(),
+                            Speed = Q.Speed,
+                            Delay = 250,
+                            From = endPos.To3D(),
+                            Radius = Q.Width,
+                            Type = SkillShotType.Linear,
+                            CollisionTypes = new HashSet<CollisionType> { CollisionType.AiHeroClient }
+                        });
+
+                        var damage = (Q.IsReady() && endPos.IsInRange(target, Q.Range) && qPrediction.HitChancePercent >= 65 ? Player.Instance.GetSpellDamage(target, SpellSlot.Q) : 0) +
+                                     (endPos.IsInRange(target, 750) ? Player.Instance.GetSpellDamage(target, SpellSlot.E) : 0);
 
                         if (endPos.IsInRange(target, Player.Instance.GetAutoAttackRange()))
                             damage += Player.Instance.GetAutoAttackDamage(target, true);
@@ -89,6 +105,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                                 E.Cast(pos.Distance(Player.Instance) > E.Range
                                     ? Player.Instance.Position.Extend(pos, E.Range - 15).To3D()
                                     : pos.To3D());
+                                return;
                             }
                         }
                     }
@@ -114,17 +131,28 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                             if (qPrediction.HitChancePercent > 60 && !IsPreAttack)
                             {
                                 Q.Cast(qPrediction.CastPosition);
+                                return;
                             }
                         }
                     }
                 }
                 else
                 {
-                    var target = Q.GetTarget();
+                    var possibleTargets =
+                        EntityManager.Heroes.Enemies.Where(
+                            x => x.IsValidTarget(Q.Range) && (!EntityManager.Heroes.Enemies.Any(k =>
+                                k.IsValidTarget(Q.Range - 80) &&
+                                !k.HasSpellShield() &&
+                                !k.HasUndyingBuffA() &&
+                                k.TotalHealthWithShields() < Player.Instance.GetSpellDamage(k, SpellSlot.Q)) && Q.GetPrediction(x).HitChancePercent > 65) &&
+                                 !x.HasSpellShield() && !x.HasUndyingBuffA());
 
-                    if (target != null && !target.HasUndyingBuffA() && !target.HasSpellShield() && !Player.Instance.HasSheenBuff() && !IsPreAttack)
+                    var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                    if (target != null && !Player.Instance.HasSheenBuff() && !IsPreAttack)
                     {
-                        Q.CastMinimumHitchance(target, 75);
+                        Q.CastMinimumHitchance(target, 65);
+                        return;
                     }
                 }
             }
@@ -136,6 +164,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 if (target != null && !target.HasUndyingBuffA() && !Player.Instance.HasSheenBuff())
                 {
                     W.CastMinimumHitchance(target, 75);
+                    return;
                 }
             }
 
@@ -147,30 +176,16 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 if (killable.Any() && Q.IsReady())
                     return;
 
-                if (Settings.Combo.RMinEnemiesHit > 0 && Player.Instance.CountEnemiesInRange(600) < 2)
-                {
-                    foreach (var source in EntityManager.Heroes.Enemies.Where(x=>x.IsValidTarget(3000)))
-                    {
-                        var rPred = R.GetPrediction(source);
-                        if (rPred.HitChancePercent > 60 &&
-                            rPred.GetCollisionObjects<AIHeroClient>().Length >= Settings.Combo.RMinEnemiesHit)
-                        {
-                            R.Cast(rPred.CastPosition);
-                            return;
-                        }
-                    }
-                }
-
-                if (Player.Instance.CountEnemiesInRange(600) < 2)
+                if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) < 2)
                 {
                     var rKillable = EntityManager.Heroes.Enemies.Where(
-                        x => x.IsValidTarget(3000) && !x.HasUndyingBuffA() && !x.HasSpellShield() && Player.Instance.GetSpellDamage(x, SpellSlot.R) > x.TotalHealthWithShields()).ToList();
+                        x => x.IsValidTarget(3000) && !x.HasUndyingBuffA() && !x.HasSpellShield() && Player.Instance.GetSpellDamage(x, SpellSlot.R) > x.TotalHealthWithShields(true)).ToList();
 
                     if (rKillable.Any())
                     {
                         foreach (var target in rKillable)
                         {
-                            R.CastMinimumHitchance(target, HitChance.Medium);
+                            R.CastMinimumHitchance(target, 70);
                         }
                     }
                 }

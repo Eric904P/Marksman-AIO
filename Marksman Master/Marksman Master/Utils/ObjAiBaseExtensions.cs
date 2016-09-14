@@ -74,7 +74,7 @@ namespace Marksman_Master.Utils
 
         public static bool HasSheenBuff(this AIHeroClient unit)
         {
-            return unit.Buffs.Any(b => b.IsActive && b.DisplayName.ToLowerInvariant() == "sheen");
+            return unit.Buffs.Any(b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "sheen" || b.DisplayName.ToLowerInvariant() == "itemfrozenfist"));
         }
 
         public static bool IsImmobile(this AIHeroClient target)

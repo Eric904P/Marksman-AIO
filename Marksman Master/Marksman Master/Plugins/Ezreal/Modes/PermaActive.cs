@@ -49,12 +49,14 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                         foreach (var enemy in enemies.Where(x=> x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
                         {
                             Q.CastMinimumHitchance(enemy, 65);
+                            return;
                         }
                     } else if (W.IsReady())
                     {
-                        foreach (var enemy in enemies.Where(x => x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.W)))
+                        foreach (var enemy in enemies.Where(x => x.TotalHealthWithShields(true) < Player.Instance.GetSpellDamage(x, SpellSlot.W)))
                         {
                             W.CastMinimumHitchance(enemy, 65);
+                            return;
                         }
                     }
                 }
@@ -90,6 +92,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                             if (qPrediction.HitChancePercent > 60)
                             {
                                 Q.Cast(qPrediction.CastPosition);
+                                return;
                             }
                         }
 
@@ -104,6 +107,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                             !x.HasSpellShield()).OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
                     {
                         Q.CastMinimumHitchance(target, 75);
+                        return;
                     }
                 }
             }
@@ -117,6 +121,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 return;
 
             var rPrediciton = R.GetPrediction(t);
+
             if (rPrediciton.HitChancePercent >= 65)
             {
                 R.Cast(rPrediciton.CastPosition);

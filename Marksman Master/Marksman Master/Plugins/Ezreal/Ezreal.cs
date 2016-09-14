@@ -36,6 +36,7 @@ using EloBuddy.SDK.Menu.Values;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
 using EloBuddy.SDK.Utils;
+using Marksman_Master.PermaShow.Values;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Ezreal
@@ -54,6 +55,8 @@ namespace Marksman_Master.Plugins.Ezreal
         protected static Menu MiscMenu { get; set; }
 
         private static ColorPicker[] ColorPicker { get; }
+        
+        private static BoolItem AutoHarassItem { get; set; }
 
         private static bool _changingRangeScan;
 
@@ -69,6 +72,10 @@ namespace Marksman_Master.Plugins.Ezreal
         protected static int GetPassiveBuffAmount
             => HasPassiveBuff ? Player.Instance.Buffs.Find(
                         b => b.IsActive && b.Name.ToLowerInvariant() == "ezrealrisingspellforce").Count : 0;
+
+
+        private static readonly Dictionary<int, Dictionary<float, float>> Damages =
+            new Dictionary<int, Dictionary<float, float>>();
 
         static Ezreal()
         {
@@ -145,44 +152,33 @@ namespace Marksman_Master.Plugins.Ezreal
                 return 0;
             }
 
-            if (unit.GetType() != typeof(AIHeroClient))
-                return 0;
-
-            var damage = 0f;
-
-            if (unit.IsValidTarget(Q.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
-
-            if (unit.IsValidTarget(W.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.W);
-
-            if (unit.IsValidTarget(R.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.R);
-
-            if (Player.Instance.IsInAutoAttackRange(unit))
-                damage += Player.Instance.GetAutoAttackDamage(unit);
-
-            return damage;
+            return unit.GetType() != typeof(AIHeroClient) ? 0 : GetComboDamage(unit);
         }
 
         protected static float GetComboDamage(Obj_AI_Base unit)
         {
+            if (Damages.ContainsKey(unit.NetworkId) &&
+                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200))) //
+                return Damages[unit.NetworkId].Values.FirstOrDefault();
+
             var damage = 0f;
 
-            if (unit.IsValidTarget(Q.Range))
+            if (Q.IsReady() && unit.IsValidTarget(Q.Range))
                 damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
 
-            if (unit.IsValidTarget(W.Range))
+            if (W.IsReady() && unit.IsValidTarget(W.Range))
                 damage += Player.Instance.GetSpellDamage(unit, SpellSlot.W);
 
-            if (unit.IsValidTarget(E.Range))
+            if (E.IsReady() && unit.IsValidTarget(E.Range))
                 damage += Player.Instance.GetSpellDamage(unit, SpellSlot.E);
 
-            if (unit.IsValidTarget(R.Range))
+            if (R.IsReady() && unit.IsValidTarget(R.Range))
                 damage += Player.Instance.GetSpellDamage(unit, SpellSlot.R);
 
             if (Player.Instance.IsInAutoAttackRange(unit))
                 damage += Player.Instance.GetAutoAttackDamage(unit);
+
+            Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
 
             return damage;
         }
@@ -237,7 +233,12 @@ namespace Marksman_Master.Plugins.Ezreal
 
             HarassMenu.AddLabel("Mystic Shot (Q) settings :");
             HarassMenu.Add("Plugins.Ezreal.HarassMenu.UseQ",
-                new KeyBind("Enable auto harass", false, KeyBind.BindTypes.PressToggle, 'A'));
+                new KeyBind("Enable auto harass", false, KeyBind.BindTypes.PressToggle, 'A')).OnValueChange
+                +=
+                (sender, args) =>
+                {
+                    AutoHarassItem.Value = args.NewValue;
+                };
             HarassMenu.Add("Plugins.Ezreal.HarassMenu.MinManaQ", new Slider("Min mana percentage ({0}%) to use Q", 30, 1));
             HarassMenu.AddSeparator(5);
 
@@ -365,9 +366,14 @@ namespace Marksman_Master.Plugins.Ezreal
                 ColorPicker[3].Initialize(System.Drawing.Color.Aquamarine);
                 a.CurrentValue = false;
             };
+
             TearStacker.Enabled = Settings.Misc.EnableTearStacker;
             TearStacker.OnlyInFountain = Settings.Misc.StackOnlyInFountain;
             TearStacker.MinimumManaPercent = Settings.Misc.MinimalManaPercentTearStacker;
+
+
+            AutoHarassItem = MenuManager.PermaShow.AddItem("Ezreal.AutoHarass",
+                new BoolItem("Auto harass with Q", Settings.Harass.UseQ));
         }
 
         protected override void PermaActive()
