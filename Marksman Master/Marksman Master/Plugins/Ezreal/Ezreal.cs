@@ -85,7 +85,7 @@ namespace Marksman_Master.Plugins.Ezreal
                 AllowedCollisionCount = int.MaxValue
             };
             E = new Spell.Skillshot(SpellSlot.E, 475, SkillShotType.Linear);
-            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 1000, 2000, 160)
+            R = new Spell.Skillshot(SpellSlot.R, 6000, SkillShotType.Linear, 1000, 2000, 160)
             {
                 AllowedCollisionCount = int.MaxValue
             };

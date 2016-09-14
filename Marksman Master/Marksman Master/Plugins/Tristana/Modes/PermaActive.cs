@@ -42,18 +42,15 @@ namespace Marksman_Master.Plugins.Tristana.Modes
             {
                 foreach (var target in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range)).OrderBy(TargetSelector.GetPriority))
                 {
-                    var incomingDamage = IncomingDamage.GetIncomingDamage(target);
-
-                    var damage = (incomingDamage + Damage.GetEPhysicalDamage(target) +
-                                 Damage.GetRDamage(target)) - 25;
+                    var damage = Damage.GetEPhysicalDamage(target) + Damage.GetRDamage(target) - 25;
 
                     if (target.Hero == Champion.Blitzcrank && !target.HasBuff("BlitzcrankManaBarrierCD") && !target.HasBuff("ManaBarrier"))
                     {
                         damage -= target.Mana / 2;
                     }
 
-                    if (target.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange() &&
-                        target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(target, true)*2 && target.TotalHealthWithShields() < damage)
+                    if ((target.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange()) &&
+                        (target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(target, true)*2) && (target.TotalHealthWithShields() < damage))
                     {
                         R.Cast(target);
                     }

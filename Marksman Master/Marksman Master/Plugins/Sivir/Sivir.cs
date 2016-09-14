@@ -567,6 +567,9 @@ namespace Marksman_Master.Plugins.Sivir
                 new BlockableSpellData(Champion.Alistar, "[Q] Headbutt", SpellSlot.W),
                 new BlockableSpellData(Champion.Amumu, "[R] Curse of the Sad Mummy", SpellSlot.R) {NeedsAdditionalLogics = true},
                 new BlockableSpellData(Champion.Anivia, "[E] Frostbite", SpellSlot.E),
+                new BlockableSpellData(Champion.Akali, "[Q] Mark of the Assassin", SpellSlot.Q),
+                new BlockableSpellData(Champion.Akali, "[E] Crescent Slash", SpellSlot.E) {NeedsAdditionalLogics = true},
+                new BlockableSpellData(Champion.Akali, "[R] Shadow Dance", SpellSlot.R),
                 new BlockableSpellData(Champion.Annie, "[Q] Disintegrate", SpellSlot.Q),
                 new BlockableSpellData(Champion.Azir, "[R] Emperor's Divide", SpellSlot.R) {NeedsAdditionalLogics = true},
                 new BlockableSpellData(Champion.Bard, "[R] Tempered Fate", SpellSlot.R) {NeedsAdditionalLogics = true},
@@ -846,7 +849,7 @@ namespace Marksman_Master.Plugins.Sivir
                 if (enemy == null)
                     return;
 
-                foreach (var blockableSpellData in BlockableSpellsHashSet.Where(x => x.ChampionName == enemy.Hero))
+                foreach (var blockableSpellData in BlockableSpellsHashSet.Where(data => data.ChampionName == enemy.Hero))
                 {
                     if (blockableSpellData.NeedsAdditionalLogics == false && args.Target != null && args.Target.IsMe && args.Slot == blockableSpellData.SpellSlot)
                     {
@@ -866,12 +869,18 @@ namespace Marksman_Master.Plugins.Sivir
                                 OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
                             }
                         }
-                        else if (enemy.Hero == Champion.Azir && args.Slot == blockableSpellData.SpellSlot)
+                        else if (enemy.Hero == Champion.Amumu && args.Slot == blockableSpellData.SpellSlot)
                         {
-                            if (args.End.Distance(Player.Instance) < 300)
+                            if (enemy.Distance(Player.Instance) < 1100)
                             {
                                 OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
                             }
+                        }
+                        else if (enemy.Hero == Champion.Akali && args.Slot == blockableSpellData.SpellSlot && enemy.Distance(Player.Instance) < 325)
+                        {
+                            OnBlockableSpell?.Invoke(enemy,
+                                new OnBlockableSpellEventArgs(enemy.Hero, args.Slot,
+                                    IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
                         }
                         else if (enemy.Hero == Champion.Bard && args.Slot == blockableSpellData.SpellSlot && new Geometry.Polygon.Circle(args.End, 325).IsInside(Player.Instance))
                         {

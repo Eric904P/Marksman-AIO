@@ -140,19 +140,21 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 {
                     var possibleTargets =
                         EntityManager.Heroes.Enemies.Where(
-                            x => x.IsValidTarget(Q.Range) && (!EntityManager.Heroes.Enemies.Any(k =>
+                            x => x.IsValidTarget(Q.Range) && !EntityManager.Heroes.Enemies.Any(k =>
                                 k.IsValidTarget(Q.Range - 80) &&
                                 !k.HasSpellShield() &&
-                                !k.HasUndyingBuffA() &&
-                                k.TotalHealthWithShields() < Player.Instance.GetSpellDamage(k, SpellSlot.Q)) && Q.GetPrediction(x).HitChancePercent > 65) &&
-                                 !x.HasSpellShield() && !x.HasUndyingBuffA());
+                                !k.HasUndyingBuffA() && (k.TotalHealthWithShields() < Player.Instance.GetSpellDamage(k, SpellSlot.Q))) && (Q.GetPrediction(x).HitChancePercent > 65) &&
+                                 !x.HasSpellShield() && !x.HasUndyingBuffA()).ToList();
 
-                    var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
-
-                    if (target != null && !Player.Instance.HasSheenBuff() && !IsPreAttack)
+                    if (possibleTargets.Any())
                     {
-                        Q.CastMinimumHitchance(target, 65);
-                        return;
+                        var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                        if (target != null && !Player.Instance.HasSheenBuff() && !IsPreAttack)
+                        {
+                            Q.CastMinimumHitchance(target, 65);
+                            return;
+                        }
                     }
                 }
             }
@@ -167,7 +169,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                     return;
                 }
             }
-
+            
             if (R.IsReady() && Settings.Combo.UseR && !Player.Instance.Position.IsVectorUnderEnemyTower())
             {
                 var killable = EntityManager.Heroes.Enemies.Where(
@@ -178,12 +180,29 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
 
                 if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) < 2)
                 {
+                    foreach (var target in EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 5000))
+                    {
+                        var rPrediction = R.GetPrediction(target);
+
+                        if (rPrediction.HitChancePercent >= 70)
+                        {
+                            var collision = new Geometry.Polygon.Rectangle(Player.Instance.Position.To2D(), Player.Instance.Position.Extend(rPrediction.CastPosition, 6000), 160);
+
+                            var objects = EntityManager.Heroes.Enemies.Where(x=>x.NetworkId != target.NetworkId).Where(x => x.IsValidTarget() && collision.IsInside(Prediction.Position.PredictUnitPosition(x, (int)(x.Distance(Player.Instance) / 2000) + 1000)));
+
+                            if (objects.Count() >= Settings.Combo.RMinEnemiesHit)
+                            {
+                                R.Cast(rPrediction.CastPosition);
+                            }
+                        }
+                    }
+
                     var rKillable = EntityManager.Heroes.Enemies.Where(
                         x => x.IsValidTarget(3000) && !x.HasUndyingBuffA() && !x.HasSpellShield() && Player.Instance.GetSpellDamage(x, SpellSlot.R) > x.TotalHealthWithShields(true)).ToList();
 
-                    if (rKillable.Any())
+                    if (rKillable.Any(x=> IncomingDamage.GetIncomingDamage(x) > 0))
                     {
-                        foreach (var target in rKillable)
+                        foreach (var target in rKillable.Where(x => IncomingDamage.GetIncomingDamage(x) > 0))
                         {
                             R.CastMinimumHitchance(target, 70);
                         }

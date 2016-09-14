@@ -98,7 +98,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
 
                     }
                 }
-                else
+                else if(!Player.Instance.IsRecalling() && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 {
                     foreach (var target in
                         EntityManager.Heroes.Enemies.Where(x =>
