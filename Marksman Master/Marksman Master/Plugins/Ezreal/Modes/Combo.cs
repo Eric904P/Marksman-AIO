@@ -178,7 +178,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 if (killable.Any() && Q.IsReady())
                     return;
 
-                if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) < 2)
+                if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()+100) == 0)
                 {
                     foreach (var target in EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 5000))
                     {
