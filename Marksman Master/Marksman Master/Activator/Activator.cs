@@ -134,7 +134,7 @@ namespace Marksman_Master.Activator
         {
             var summoner1 = Player.Instance.Spellbook.GetSpell(SpellSlot.Summoner1);
             var summoner2 = Player.Instance.Spellbook.GetSpell(SpellSlot.Summoner2);
-
+            
             Summoners[SpellSlot.Summoner1] = GetSummoner(summoner1.Name) != Summoner.Unknown
                 ? new Tuple<Summoner, SpellDataInst>(GetSummoner(summoner1.Name), summoner1)
                 : null;
@@ -218,7 +218,16 @@ namespace Marksman_Master.Activator
 
             if (Summoners.Any(x => x.Value != null && x.Value.Item1.HasFlag(Summoner.Smite)) && MenuManager.MenuValues["Activator.SummonersMenu.UseSmite"])
             {
-                var smite = Player.Instance.Spellbook.GetSpell(Summoners.First(x=>x.Value.Item1.HasFlag(Summoner.Smite)).Key);
+                var smiteSlot =
+                    Summoners.Where(x => x.Value != null && x.Value.Item1.HasFlag(Summoner.Smite)).Select(x => x.Key).FirstOrDefault();
+                
+                if(smiteSlot == SpellSlot.Unknown)
+                    return;
+
+                var smite = Player.Instance.Spellbook.GetSpell(smiteSlot);
+
+                if (smite == null)
+                    return;
 
                 if (smite.IsReady)
                 {

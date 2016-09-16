@@ -28,7 +28,6 @@
 #endregion
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -39,7 +38,6 @@ using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Utils;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Spells;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Graves
@@ -117,9 +115,10 @@ namespace Marksman_Master.Plugins.Graves
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
 
             Obj_AI_Base.OnSpellCast += Obj_AI_Base_OnSpellCast;
-
+            
             Obj_AI_Base.OnPlayAnimation += Obj_AI_Base_OnPlayAnimation;
         }
+
 
         private static void Obj_AI_Base_OnPlayAnimation(Obj_AI_Base sender, GameObjectPlayAnimationEventArgs args)
         {
