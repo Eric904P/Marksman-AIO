@@ -31,6 +31,8 @@ using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Events;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Lucian.Modes
 {
@@ -38,12 +40,12 @@ namespace Marksman_Master.Plugins.Lucian.Modes
     {
         public static void Execute()
         {
-            if (Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass))
+            if (Q.IsReady() && Settings.Harass.UseQ && !Player.Instance.IsRecalling() && !Player.Instance.Position.IsVectorUnderEnemyTower() && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass) && !Player.Instance.IsDashing())
             {
                 foreach (
                     var enemy in
                         EntityManager.Heroes.Enemies.Where(
-                            x => x.IsValidTarget(900) && Settings.Harass.IsAutoHarassEnabledFor(x))
+                            x => x.IsValidTarget(1100) && Settings.Harass.IsAutoHarassEnabledFor(x))
                             .OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
                 {
                     if (enemy.IsValidTarget(Q.Range))
@@ -52,8 +54,8 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                         return;
                     }
 
-                    if (!enemy.IsValidTarget(900))
-                        continue;
+                    if (!enemy.IsValidTarget(1100) || !Settings.Combo.ExtendQOnMinions)
+                        break;
 
                     foreach (
                         var entity in
@@ -61,9 +63,9 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                                 EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
                                     x => x.IsValidTarget(Q.Range))
                             let pos =
-                                Player.Instance.Position.Extend(entity, 900 - Player.Instance.Distance(entity))
+                                Player.Instance.Position.Extend(entity, Player.Instance.Distance(entity) > 1025 ? 1025 - Player.Instance.Distance(entity) : 1025)
                             let targetpos = Prediction.Position.PredictUnitPosition(enemy, 250)
-                            let rect = new Geometry.Polygon.Rectangle(entity.Position.To2D(), pos, 10)
+                            let rect = new Geometry.Polygon.Rectangle(entity.Position.To2D(), pos, 20)
                             where
                                 new Geometry.Polygon.Circle(targetpos, enemy.BoundingRadius).Points.Any(
                                     rect.IsInside)

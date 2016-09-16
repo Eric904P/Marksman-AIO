@@ -48,7 +48,10 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                 return;
 
             foreach (var jungleMinion in from jungleMinion in jungleMinions let rectangle = new Geometry.Polygon.Rectangle(Player.Instance.Position.To2D(),
-                Player.Instance.Position.Extend(jungleMinion, 900 - jungleMinion.Distance(Player.Instance)),
+                Player.Instance.Position.Extend(jungleMinion,
+                                    Player.Instance.Distance(jungleMinion) > 1025
+                                        ? 1025 - Player.Instance.Distance(jungleMinion)
+                                        : 1025),
                 10) let count = jungleMinions.Count(
                     minion => new Geometry.Polygon.Circle(minion.Position, jungleMinion.BoundingRadius).Points.Any(
                         rectangle.IsInside)) where count >= 2 select jungleMinion)

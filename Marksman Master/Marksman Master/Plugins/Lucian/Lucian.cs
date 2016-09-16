@@ -27,10 +27,12 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
@@ -55,9 +57,12 @@ namespace Marksman_Master.Plugins.Lucian
 
         protected static bool HasPassiveBuff
             => Player.Instance.Buffs.Any(x => x.Name.ToLowerInvariant() == "lucianpassivebuff");
-
+        
         protected static BuffInstance GetPassiveBuff
             => Player.Instance.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "lucianpassivebuff");
+
+        protected static bool HasWDebuff(Obj_AI_Base unit)
+            => unit.Buffs.Any(x => x.Name.ToLowerInvariant() == "lucianwdebuff");
 
         private static readonly ColorPicker[] ColorPicker;
         private static bool _changingRangeScan;
@@ -65,9 +70,12 @@ namespace Marksman_Master.Plugins.Lucian
         protected static bool IsPreAttack { get; private set; }
         protected static bool IsCastingR { get; set; }
 
+        private static readonly Dictionary<int, Dictionary<float, float>> Damages =
+            new Dictionary<int, Dictionary<float, float>>();
+
         static Lucian()
         {
-            Q = new Spell.Targeted(SpellSlot.Q, 750);
+            Q = new Spell.Targeted(SpellSlot.Q, 650);
             W = new Spell.Skillshot(SpellSlot.W, 1000, SkillShotType.Circular, 250, 1500, 80);
             E = new Spell.Skillshot(SpellSlot.E, 475, SkillShotType.Linear);
             R = new Spell.Skillshot(SpellSlot.R, 1150, SkillShotType.Linear, 250, 2000, 110);
@@ -99,13 +107,16 @@ namespace Marksman_Master.Plugins.Lucian
             if (!sender.Owner.IsMe || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
-            if (args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W || args.Slot == SpellSlot.E)// && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + (R.IsReady() ? 425 : 0)) >= 1)
+            if(args.Slot == SpellSlot.Q && Player.Instance.IsDashing())
+                args.Process = false;
+
+            if ((args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W ||
+                args.Slot == SpellSlot.E) && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 100) >= 1)
 
             {
-                if (HasPassiveBuff || IsPreAttack || Game.Time*1000 - LastCastTime < 200)
+                if (HasPassiveBuff || (Game.Time*1000 - LastCastTime < 225))
                     args.Process = false;
-
-                LastCastTime = Game.Time*1000;
+                else LastCastTime = Game.Time * 1000;
             }
         }
 
@@ -205,7 +216,6 @@ namespace Marksman_Master.Plugins.Lucian
                              Player.Instance.Position.Extend(Game.CursorPos, 420)
                                  .IsInRange(heroClient, heroClient.GetAutoAttackRange() * 1.5f)))
                         {
-                            Console.WriteLine("[DEBUG] 1v1 Game.CursorPos");
                             position = Game.CursorPos.Distance(Player.Instance) > 450
                                 ? Player.Instance.Position.Extend(Game.CursorPos, 450).To3D()
                                 : Game.CursorPos;
@@ -244,8 +254,6 @@ namespace Marksman_Master.Plugins.Lucian
                                             x.IsMelee ? x.GetAutoAttackRange() * 2 : x.GetAutoAttackRange())))
                             {
                                 position = asc;
-
-                                Console.WriteLine("[DEBUG] Paths low sorting Ascending");
                             }
                             else if (Player.Instance.CountEnemiesInRange(1000) <= 2 && (paths == 0 || paths == 1) &&
                                      ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2) ||
@@ -259,10 +267,8 @@ namespace Marksman_Master.Plugins.Lucian
                             {
                                 position =
                                     Misc.SortVectorsByDistanceDescending(list, heroClient.Position.To2D())[0].To3D();
-                                Console.WriteLine("[DEBUG] Paths high sorting Descending");
                             }
                         }
-                        else Console.WriteLine("[DEBUG] 1v1 not found positions...");
                     }
 
                     if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
@@ -386,16 +392,27 @@ namespace Marksman_Master.Plugins.Lucian
 
             var enemy = (AIHeroClient)unit;
 
-            if (enemy == null)
-                return 0;
+            return enemy == null ? 0 : GetComboDamage(unit);
+        }
+
+        protected static float GetComboDamage(Obj_AI_Base unit, int autoAttacks = 1)
+        {
+            if (Damages.ContainsKey(unit.NetworkId) &&
+                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200))) //
+                return Damages[unit.NetworkId].Values.FirstOrDefault();
 
             var damage = 0f;
 
-            if (unit.Distance(Player.Instance) < 900)
+            if (Player.Instance.IsInRange(unit, 1100) && W.IsReady())
                 damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
 
-            if (unit.Distance(Player.Instance) < W.Range)
+            if (unit.IsValidTarget(W.Range) && W.IsReady())
                 damage += Player.Instance.GetSpellDamage(unit, SpellSlot.W);
+
+            if (Player.Instance.IsInAutoAttackRange(unit))
+                damage += Player.Instance.GetAutoAttackDamage(unit) * autoAttacks;
+
+            Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
 
             return damage;
         }

@@ -43,7 +43,7 @@ namespace Marksman_Master.Plugins.Lucian.Modes
         public static void Execute()
         {
             var laneMinions =
-                EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy, Player.Instance.Position, 1000).ToList();
+                EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy, Player.Instance.Position, 1100).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
@@ -54,7 +54,10 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                 return;
 
             foreach (var objAiMinion in from objAiMinion in laneMinions let rectangle = new Geometry.Polygon.Rectangle(Player.Instance.Position.To2D(),
-                Player.Instance.Position.Extend(objAiMinion, 900 - objAiMinion.Distance(Player.Instance)),
+                Player.Instance.Position.Extend(objAiMinion,
+                                    Player.Instance.Distance(objAiMinion) > 1025
+                                        ? 1025 - Player.Instance.Distance(objAiMinion)
+                                        : 1025),
                 10) let count = laneMinions.Count(
                     minion => new Geometry.Polygon.Circle(minion.Position, objAiMinion.BoundingRadius).Points.Any(
                         rectangle.IsInside)) where count >= Settings.LaneClear.MinMinionsHitQ select objAiMinion)
