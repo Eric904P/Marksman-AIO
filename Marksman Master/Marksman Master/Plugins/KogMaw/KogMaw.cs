@@ -70,14 +70,13 @@ namespace Marksman_Master.Plugins.KogMaw
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "kogmawbioarcanebarrage");
 
         public static BuffInstance GetKogMawRBuff
-            =>
-                Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "kogmawlivingaltillery");
-
+            => Player.Instance.Buffs.FirstOrDefault(
+                b => b.IsActive && b.Name.ToLowerInvariant() == "kogmawlivingartillerycost");
+        
         public static bool HasKogMawRBuff
             =>
                 Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "kogmawlivingaltillery");
+                    b => b.IsActive && b.Name.ToLowerInvariant() == "kogmawlivingartillerycost");
 
         static KogMaw()
         {
@@ -90,7 +89,7 @@ namespace Marksman_Master.Plugins.KogMaw
             {
                 AllowedCollisionCount = int.MaxValue
             };
-            R = new Spell.Skillshot(SpellSlot.R, 1800, SkillShotType.Circular, 1450, int.MaxValue, 120)
+            R = new Spell.Skillshot(SpellSlot.R, 1800, SkillShotType.Circular, 1450, int.MaxValue, 230)
             {
                 AllowedCollisionCount = int.MaxValue
             };
@@ -179,7 +178,6 @@ namespace Marksman_Master.Plugins.KogMaw
                     E.Cast(sender);
                 else Core.DelayAction(() => E.Cast(sender), args.Delay);
             }
-
         }
 
         protected override void CreateMenu()

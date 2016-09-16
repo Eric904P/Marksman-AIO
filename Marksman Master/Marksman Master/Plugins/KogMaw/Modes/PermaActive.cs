@@ -46,11 +46,7 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
                 {
                     var rPrediction = R.GetPrediction(enemy);
 
-                    if (HasKogMawRBuff && (GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks + 1) && rPrediction.HitChancePercent >= Settings.Combo.RHitChancePercent)
-                    {
-                        R.Cast(rPrediction.CastPosition);
-                    }
-                    else if(!HasKogMawRBuff && rPrediction.HitChancePercent >= Settings.Combo.RHitChancePercent)
+                    if (((HasKogMawRBuff && (GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks + 1)) || !HasKogMawRBuff) && rPrediction.HitChancePercent >= Settings.Combo.RHitChancePercent)
                     {
                         R.Cast(rPrediction.CastPosition);
                     }

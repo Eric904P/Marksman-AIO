@@ -71,19 +71,10 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
             if (R.IsReady() && Settings.Combo.UseR && !Settings.Combo.UseROnlyToKs)
             {
                 var target = TargetSelector.GetTarget(R.Range, DamageType.Magical);
-
-                if (HasKogMawRBuff && GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks && (Player.Instance.Mana - (GetKogMawRBuff.Count + 1)*50 > 80))
+                
+                if (((HasKogMawRBuff && (GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks)) || !HasKogMawRBuff) && (Player.Instance.Mana - 50*(HasKogMawRBuff ? GetKogMawRBuff.Count + 1 : 1) > 80))
                 {
-                    if (target != null && target.HealthPercent < Settings.Combo.RMaxHealth && !target.HasSpellShield() && !target.HasUndyingBuffA())
-                    {
-                        var rPrediction = R.GetPrediction(target);
-
-                        if (rPrediction.HitChancePercent >= Settings.Combo.RHitChancePercent)
-                            R.Cast(rPrediction.CastPosition);
-                    }
-                } else if (!HasKogMawRBuff)
-                {
-                    if (target != null && target.HealthPercent < Settings.Combo.RMaxHealth && !target.HasSpellShield() && !target.HasUndyingBuffA())
+                    if (target != null && (target.HealthPercent <= Settings.Combo.RMaxHealth) && !target.HasSpellShield() && !target.HasUndyingBuffA())
                     {
                         var rPrediction = R.GetPrediction(target);
 
