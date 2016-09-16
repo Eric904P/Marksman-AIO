@@ -42,6 +42,26 @@ namespace Marksman_Master.Plugins.Graves.Modes
             if (!jungleMinions.Any())
                 return;
 
+            if (E.IsReady() && Settings.LaneClear.UseEInJungleClear &&
+                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE && GetAmmoCount < 2)
+            {
+                string[] allowedMonsters =
+                {
+                    "SRU_Gromp", "SRU_Blue", "SRU_Red", "SRU_Razorbeak", "SRU_Krug", "SRU_Murkwolf", "Sru_Crab",
+                    "SRU_Crab",
+                    "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
+                    "SRU_Dragon_Water", "SRU_Baron"
+                };
+
+                if (jungleMinions.Count > 1 || jungleMinions.Any(minion => allowedMonsters.Contains(minion.BaseSkinName) && minion.Health > Player.Instance.GetAutoAttackDamage(minion) * 2))
+                {
+                    E.Cast(Game.CursorPos.Distance(Player.Instance) > E.Range
+                        ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
+                        : Game.CursorPos);
+                }
+            }
+            
+
             if (!Q.IsReady() || !Settings.LaneClear.UseQInJungleClear || (Player.Instance.ManaPercent < Settings.LaneClear.MinManaQ))
                 return;
 

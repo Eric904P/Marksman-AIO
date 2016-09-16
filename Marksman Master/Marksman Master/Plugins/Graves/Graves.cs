@@ -146,7 +146,7 @@ namespace Marksman_Master.Plugins.Graves
                     rTarget.CountEnemiesInRange(600) <= 2 &&
                     !rTarget.HasUndyingBuffA() && !rTarget.Position.IsVectorUnderEnemyTower())
                 {
-                    var damage = Damage.GetQDamage(rTarget, true) + Damage.GetWDamage(rTarget) + Damage.GetRDamage(rTarget, true) + Player.Instance.GetAutoAttackDamage(rTarget, true) * 2;
+                    var damage = GetComboDamage(rTarget, 2);
 
                     if (damage >= rTarget.TotalHealthWithShields())
                     {
@@ -212,26 +212,28 @@ namespace Marksman_Master.Plugins.Graves
                 return 0;
             }
 
-            if (unit.GetType() != typeof (AIHeroClient))
-                return 0;
+            return unit.GetType() != typeof (AIHeroClient) ? 0 : GetComboDamage(unit);
+        }
 
+        private static float GetComboDamage(Obj_AI_Base unit, int autoAttacks = 1)
+        {
             if (Damages.ContainsKey(unit.NetworkId) &&
                 !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
                 return Damages[unit.NetworkId].Values.FirstOrDefault();
 
             var damage = 0f;
 
-            if (unit.IsValidTarget(Q.Range))
+            if (unit.IsValidTarget(Q.Range) && Q.IsReady())
                 damage += Damage.GetQDamage(unit, true);
-            
-            if (unit.IsValidTarget(W.Range))
+
+            if (unit.IsValidTarget(W.Range) && R.IsReady())
                 damage += Damage.GetWDamage(unit);
 
-            if (unit.IsValidTarget(R.Range))
+            if (unit.IsValidTarget(R.Range) && R.IsReady())
                 damage += Damage.GetRDamage(unit);
 
             if (Player.Instance.IsInAutoAttackRange(unit))
-                damage += Player.Instance.GetAutoAttackDamage(unit);
+                damage += Player.Instance.GetAutoAttackDamage(unit) * autoAttacks;
 
             Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
 
@@ -240,6 +242,8 @@ namespace Marksman_Master.Plugins.Graves
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
+            Player.Instance.Spellbook.CastSpell(SpellSlot.E, Game.CursorPos);
+
             if (target.GetType() != typeof(AIHeroClient) || target.IsMe || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))//no idea why it invokes twice
                 return;
 
@@ -456,6 +460,8 @@ namespace Marksman_Master.Plugins.Graves
             LaneClearMenu.AddSeparator(5);
             LaneClearMenu.Add("Plugins.Graves.LaneClearMenu.UseQInJungleClear", new CheckBox("Use Q in Jungle Clear"));
             LaneClearMenu.Add("Plugins.Graves.LaneClearMenu.MinManaQ", new Slider("Min mana percentage ({0}%) to use Q", 50, 1));
+            LaneClearMenu.Add("Plugins.Graves.LaneClearMenu.UseEInJungleClear", new CheckBox("Use E in Jungle Clear"));
+            LaneClearMenu.Add("Plugins.Graves.LaneClearMenu.MinManaE", new Slider("Min mana percentage ({0}%) to use E", 50, 1));
 
             MiscMenu = MenuManager.Menu.AddSubMenu("Misc");
             MiscMenu.AddGroupLabel("Misc settings for Graves addon");
@@ -796,6 +802,40 @@ namespace Marksman_Master.Plugins.Graves
                             LaneClearMenu["Plugins.Graves.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
                                 .CurrentValue
                                 = value;
+                    }
+                }
+
+                public static bool UseEInJungleClear
+                {
+                    get
+                    {
+                        return LaneClearMenu?["Plugins.Graves.LaneClearMenu.UseEInJungleClear"] != null &&
+                               LaneClearMenu["Plugins.Graves.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
+                                   .CurrentValue;
+                    }
+                    set
+                    {
+                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.UseEInJungleClear"] != null)
+                            LaneClearMenu["Plugins.Graves.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
+                                .CurrentValue
+                                = value;
+                    }
+                }
+
+                public static int MinManaE
+                {
+                    get
+                    {
+                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.MinManaE"] != null)
+                            return LaneClearMenu["Plugins.Graves.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue;
+
+                        Logger.Error("Couldn't get Plugins.Graves.LaneClearMenu.MinManaE menu item value.");
+                        return 0;
+                    }
+                    set
+                    {
+                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.MinManaE"] != null)
+                            LaneClearMenu["Plugins.Graves.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue = value;
                     }
                 }
 

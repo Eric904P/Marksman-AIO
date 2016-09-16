@@ -50,20 +50,16 @@ namespace Marksman_Master.Plugins.Graves.Modes
 
                     if (qPrediction.HitChancePercent >= 75)
                     {
-                        var distToPlayer =
-                            Player.Instance.Position.Extend(qPrediction.CastPosition, 1000)
-                                .CutVectorNearWall(1000)
-                                .Distance(Player.Instance);
-
-                        if (target.Distance(Player.Instance) < distToPlayer && !Player.Instance.Position.IsWallBetween(qPrediction.CastPosition))
+                        var endPos = Player.Instance.Position.Extend(qPrediction.CastPosition, Player.Instance.Distance(qPrediction.CastPosition) >= 1000 ? 0 : 1000).CutVectorNearWall(1000);
+                        var dir = (target.Position - endPos.To3D()).Normalized();
+                        
+                        if (Math.Abs(dir.To2D().DotProduct(endPos)) < 0.01 && !Player.Instance.Position.IsWallBetween(qPrediction.CastPosition))
                         {
                             Q.Cast(qPrediction.CastPosition);
-                            Console.WriteLine("[DEBUG] Q cast on {0}", target.ChampionName);
                         }
-                        else if(!Player.Instance.Position.IsWallBetween(qPrediction.CastPosition))
+                        else if(!Player.Instance.Position.IsWallBetween(qPrediction.CastPosition) && endPos.Distance(Player.Instance) < 600)
                         {
                             Q.Cast(qPrediction.CastPosition);
-                            Console.WriteLine("[DEBUG] Q cast on {0} v2", target.ChampionName);
                         }
                     }
                 }
