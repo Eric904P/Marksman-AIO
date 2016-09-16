@@ -28,7 +28,6 @@
 #endregion
 using System.Linq;
 using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.KogMaw.Modes
@@ -47,11 +46,11 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
                 {
                     var rPrediction = R.GetPrediction(enemy);
 
-                    if (HasKogMawRBuff && (GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks + 1) && rPrediction.HitChance >= HitChance.High)
+                    if (HasKogMawRBuff && (GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks + 1) && rPrediction.HitChancePercent >= 65)
                     {
                         R.Cast(rPrediction.CastPosition);
                     }
-                    else if(!HasKogMawRBuff && rPrediction.HitChance >= HitChance.High)
+                    else if(!HasKogMawRBuff && rPrediction.HitChancePercent >= 65)
                     {
                         R.Cast(rPrediction.CastPosition);
                     }

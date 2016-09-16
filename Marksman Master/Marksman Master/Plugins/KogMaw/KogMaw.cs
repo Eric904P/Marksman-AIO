@@ -205,7 +205,7 @@ namespace Marksman_Master.Plugins.KogMaw
             ComboMenu.Add("Plugins.KogMaw.ComboMenu.UseROnlyToKs", new CheckBox("Use R only to kill steal"));
             ComboMenu.Add("Plugins.KogMaw.ComboMenu.RAllowedStacks",
                 new Slider("Allowed stacks amount to use", 2, 0, 10));
-            ComboMenu.Add("Plugins.KogMaw.ComboMenu.RMaxHealth", new Slider("Max enemy health percent to cast R", 25));
+            ComboMenu.Add("Plugins.KogMaw.ComboMenu.RMaxHealth", new Slider("Minimum enemy health percent to cast R", 25));
             ComboMenu.AddSeparator(2);
             ComboMenu.AddLabel(
                 "Maximum health percent to cast R on target. If use R only to kill steal is selected this opction will\nbe ignored.");

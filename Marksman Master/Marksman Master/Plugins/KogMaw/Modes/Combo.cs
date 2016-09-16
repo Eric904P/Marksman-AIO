@@ -29,7 +29,6 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.KogMaw.Modes
@@ -79,7 +78,7 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
                     {
                         var rPrediction = R.GetPrediction(target);
 
-                        if (rPrediction.HitChance >= HitChance.High)
+                        if (rPrediction.HitChancePercent >= 65)
                             R.Cast(rPrediction.CastPosition);
                     }
                 } else if (!HasKogMawRBuff)
@@ -88,7 +87,7 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
                     {
                         var rPrediction = R.GetPrediction(target);
 
-                        if (rPrediction.HitChance >= HitChance.High)
+                        if (rPrediction.HitChancePercent >= 65)
                             R.Cast(rPrediction.CastPosition);
                     }
                 }
