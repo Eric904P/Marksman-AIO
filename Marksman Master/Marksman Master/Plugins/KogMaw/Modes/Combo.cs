@@ -63,7 +63,7 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
                 {
                     var ePrediction = E.GetPrediction(target);
 
-                    if (ePrediction.HitChancePercent > 80)
+                    if (ePrediction.HitChancePercent > 65)
                         E.Cast(ePrediction.CastPosition);
                 }
             }
@@ -78,7 +78,7 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
                     {
                         var rPrediction = R.GetPrediction(target);
 
-                        if (rPrediction.HitChancePercent >= 65)
+                        if (rPrediction.HitChancePercent >= Settings.Combo.RHitChancePercent)
                             R.Cast(rPrediction.CastPosition);
                     }
                 } else if (!HasKogMawRBuff)
@@ -87,7 +87,7 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
                     {
                         var rPrediction = R.GetPrediction(target);
 
-                        if (rPrediction.HitChancePercent >= 65)
+                        if (rPrediction.HitChancePercent >= Settings.Combo.RHitChancePercent)
                             R.Cast(rPrediction.CastPosition);
                     }
                 }

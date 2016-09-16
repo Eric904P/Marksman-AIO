@@ -203,6 +203,8 @@ namespace Marksman_Master.Plugins.KogMaw
             ComboMenu.AddLabel("Living Artillery (R) settings :");
             ComboMenu.Add("Plugins.KogMaw.ComboMenu.UseR", new CheckBox("Use R"));
             ComboMenu.Add("Plugins.KogMaw.ComboMenu.UseROnlyToKs", new CheckBox("Use R only to kill steal"));
+            ComboMenu.Add("Plugins.KogMaw.ComboMenu.RHitChancePercent",
+                new Slider("R hitchance percent : {0}", 60));
             ComboMenu.Add("Plugins.KogMaw.ComboMenu.RAllowedStacks",
                 new Slider("Allowed stacks amount to use", 2, 0, 10));
             ComboMenu.Add("Plugins.KogMaw.ComboMenu.RMaxHealth", new Slider("Minimum enemy health percent to cast R", 25));
@@ -437,6 +439,24 @@ namespace Marksman_Master.Plugins.KogMaw
                             ComboMenu["Plugins.KogMaw.ComboMenu.UseROnlyToKs"].Cast<CheckBox>()
                                 .CurrentValue
                                 = value;
+                    }
+                }
+
+
+                public static int RHitChancePercent
+                {
+                    get
+                    {
+                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.RHitChancePercent"] != null)
+                            return ComboMenu["Plugins.KogMaw.ComboMenu.RHitChancePercent"].Cast<Slider>().CurrentValue;
+
+                        Logger.Error("Couldn't get Plugins.KogMaw.ComboMenu.RHitChancePercent menu item value.");
+                        return 0;
+                    }
+                    set
+                    {
+                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.RHitChancePercent"] != null)
+                            ComboMenu["Plugins.KogMaw.ComboMenu.RHitChancePercent"].Cast<Slider>().CurrentValue = value;
                     }
                 }
 
