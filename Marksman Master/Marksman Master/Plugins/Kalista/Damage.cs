@@ -86,7 +86,7 @@ namespace Marksman_Master.Plugins.Kalista
                 !Kalista.E.IsReady() || target.GetRendBuff().Count < 1)
                 return false;
 
-            if (!(target is AIHeroClient))
+            if (target.GetType() !=  typeof(AIHeroClient))
                 return true;
 
             var heroClient = (AIHeroClient) target;

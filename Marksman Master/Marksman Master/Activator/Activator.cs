@@ -234,7 +234,7 @@ namespace Marksman_Master.Activator
                     if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(520)) &&
                         MenuManager.MenuValues["Activator.SummonersMenu.UseSmiteInCombo"] && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                     {
-                        if(Summoners.Any(x => x.Value.Item1.HasFlag(Summoner.ChillingSmite) || x.Value.Item1.HasFlag(Summoner.ChallengingSmite)))
+                        if(Summoners.Any(x => (x.Value != null && x.Value.Item1.HasFlag(Summoner.ChillingSmite)) || (x.Value != null && x.Value.Item1.HasFlag(Summoner.ChallengingSmite))))
                         {
                             var target = TargetSelector.GetTarget(520, DamageType.Physical);
                             if (target != null)
@@ -485,7 +485,7 @@ namespace Marksman_Master.Activator
         {
             if (!MenuManager.MenuValues["Activator.Enable"])
                 return;
-
+            
             LoadItem(args.Id);
         }
 
@@ -500,6 +500,11 @@ namespace Marksman_Master.Activator
         private static void ScanForItems()
         {
             _lastScanTick = (int) Game.Time*1000;
+
+            if (Summoners.Any(x => x.Value != null && x.Value.Item1.HasFlag(Summoner.Smite)))
+            {
+                LoadSummoners();
+            }
 
             foreach (var item in Enum.GetValues(typeof(ItemIds)).Cast<int>())
             {

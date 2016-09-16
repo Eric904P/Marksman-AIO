@@ -108,7 +108,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             if (hero == null)
                 return;
 
-            Q.CastMinimumHitchance(hero, 65);
+            Q.CastMinimumHitchance(hero, 60);
         }
     }
 }

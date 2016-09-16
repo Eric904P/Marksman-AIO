@@ -63,6 +63,8 @@ namespace Marksman_Master.Plugins.Kalista
         private static readonly Text Text;
         private static readonly ColorPicker[] ColorPicker;
 
+        private static float LastECastTime { get; set; }
+
         static Kalista()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 1150, SkillShotType.Linear, 250, 2400, 40)
@@ -90,8 +92,23 @@ namespace Marksman_Master.Plugins.Kalista
             Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;
             Orbwalker.OnUnkillableMinion += Orbwalker_OnUnkillableMinion;
             Game.OnTick += Game_OnTick;
+            Spellbook.OnCastSpell += Spellbook_OnCastSpell;
 
             WallJumper.Init();
+        }
+
+        private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
+        {
+            if (!sender.Owner.IsMe)
+                return;
+
+            if (args.Slot != SpellSlot.E)
+                return;
+
+            if (Game.Time * 1000 - LastECastTime < 200)
+            {
+                args.Process = false;
+            } else LastECastTime = Game.Time * 1000;
         }
 
         private static void Game_OnTick(EventArgs args)
