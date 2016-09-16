@@ -28,7 +28,6 @@
 #endregion
 using System;
 using System.Linq;
-using Marksman_Master.Interfaces;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Activator

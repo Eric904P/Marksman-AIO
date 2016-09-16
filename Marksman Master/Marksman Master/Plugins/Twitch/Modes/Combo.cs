@@ -72,7 +72,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
             {
                 if (Settings.Combo.EMode == 0) // percentage
                 {
-                    var enemyUnit = EntityManager.Heroes.Enemies.FirstOrDefault(unit => !unit.IsDead && unit.IsValidTarget(E.Range) && HasDeadlyVenomBuff(unit));
+                    var enemyUnit = EntityManager.Heroes.Enemies.Find(unit => !unit.IsDead && unit.IsValidTarget(E.Range) && HasDeadlyVenomBuff(unit));
 
                     if (enemyUnit != null && Damage.CanCastEOnUnit(enemyUnit))
                     {

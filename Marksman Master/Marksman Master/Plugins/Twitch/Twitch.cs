@@ -115,6 +115,9 @@ namespace Marksman_Master.Plugins.Twitch
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
+            if (!sender.Owner.IsMe)
+                return;
+
             if (args.Slot == SpellSlot.R)
             {
                 if (Activator.Activator.Items[ItemsEnum.Ghostblade] != null)
@@ -126,15 +129,16 @@ namespace Marksman_Master.Plugins.Twitch
             if (args.Slot != SpellSlot.Recall || !Q.IsReady() || !Settings.Misc.StealthRecall || Player.Instance.IsInShopRange())
                 return;
 
-            args.Process = false;
-
             Q.Cast();
-            Player.Instance.Spellbook.CastSpell(SpellSlot.Recall);
+
+            Core.DelayAction(() => Player.CastSpell(SpellSlot.Recall), 500); //bug possible stackoverflow w/o coredelay
+
+            args.Process = false;
         }
 
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
-            if (R.IsReady() && Settings.Combo.UseR && target is AIHeroClient)
+            if (R.IsReady() && Settings.Combo.UseR && target.GetType() == typeof(AIHeroClient))
             {
                 if (Player.Instance.CountEnemiesInRange(1000) < Settings.Combo.RIfEnemiesHit)
                     return;
@@ -165,11 +169,7 @@ namespace Marksman_Master.Plugins.Twitch
 
             var enemy = (AIHeroClient)unit;
 
-            if (enemy != null)
-            {
-                return Damage.GetEDamage(enemy);
-            }
-            return 0;
+            return enemy != null ? Damage.GetEDamage(enemy) : 0;
         }
 
         protected override void OnDraw()
@@ -1013,7 +1013,7 @@ namespace Marksman_Master.Plugins.Twitch
                 }
             }
         }
-
+        
         internal static class Damage
         {
             private static float[] EDamage { get; } = { 0, 20, 35, 50, 65, 80 };
@@ -1054,6 +1054,7 @@ namespace Marksman_Master.Plugins.Twitch
                     damage += GetEDamage(enemy, true, autos > 0 ? autos : CountEStacks(enemy));
                 
                 damage += Player.Instance.GetAutoAttackDamage(enemy, true) * autos < 1 ? 1 : autos;
+
                 ComboDamages[enemy.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
                 
                 return damage;
@@ -1167,7 +1168,7 @@ namespace Marksman_Master.Plugins.Twitch
 
                 EDamages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, dmg + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0) } };
 
-                return dmg+ (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0);
+                return dmg + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0);
             }
 
             public static int CountEStacks(Obj_AI_Base unit)
@@ -1222,7 +1223,7 @@ namespace Marksman_Master.Plugins.Twitch
                 }
 
                 EStacks[unit.NetworkId] = new Dictionary<float, int> { { Game.Time * 1000, stacks } };
-
+                
                 return stacks;
             }
         }
