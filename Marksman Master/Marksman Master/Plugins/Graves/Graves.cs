@@ -242,8 +242,6 @@ namespace Marksman_Master.Plugins.Graves
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
-            Player.Instance.Spellbook.CastSpell(SpellSlot.E, Game.CursorPos);
-
             if (target.GetType() != typeof(AIHeroClient) || target.IsMe || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))//no idea why it invokes twice
                 return;
 
