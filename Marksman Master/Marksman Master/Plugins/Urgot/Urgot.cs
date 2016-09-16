@@ -107,7 +107,7 @@ namespace Marksman_Master.Plugins.Urgot
 
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
-            if (target is AIHeroClient && Settings.Combo.UseW && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Player.Instance.Mana - 50 + 5*(E.Level - 1) > 220)
+            if (target is AIHeroClient && Settings.Combo.UseW && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Player.Instance.Mana - 50 + 5*(E.Level - 1) > 150)
             {
                 W.Cast();
             }
