@@ -26,7 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
@@ -82,7 +82,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                                 .To3D()
                                                 .IsVectorUnderEnemyTower())
                                         {
-                                            Console.WriteLine("[DEBUG] 1v1 Game.CursorPos");
+                                            Misc.PrintDebugMessage("1v1 Game.CursorPos");
                                             position = Player.Instance.Position.Extend(Game.CursorPos, 285).To3D();
                                         }
                                     }
@@ -100,11 +100,11 @@ namespace Marksman_Master.Plugins.Vayne.Modes
 
                                         if (list.Any())
                                         {
-                                            Console.WriteLine("[DEBUG] 1v1 found positions");
+                                            Misc.PrintDebugMessage("1v1 found positions");
                                             position =
                                                 Misc.SortVectorsByDistance(list, target.Position.To2D())[0].To3D();
                                         }
-                                        Console.WriteLine("[DEBUG] 1v1 not found positions...");
+                                        Misc.PrintDebugMessage("1v1 not found positions...");
                                     }
                                 }
                                     break;
@@ -125,7 +125,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                                 .Where(x => x.Value == 0 && !x.Key.To3D().IsVectorUnderEnemyTower())
                                                 .Select(source => source.Key)
                                                 .ToList();
-                                        Console.WriteLine("[DEBUG] 2v1 main if");
+                                        Misc.PrintDebugMessage("2v1 main if");
                                     }
                                     else
                                     {
@@ -136,15 +136,15 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                                 .Where(x => x.Value < 2 && !x.Key.To3D().IsVectorUnderEnemyTower())
                                                 .Select(source => source.Key)
                                                 .ToList();
-                                        Console.WriteLine("[DEBUG] 2v1 else .. ");
+                                        Misc.PrintDebugMessage("2v1 else .. ");
                                     }
                                     if (list.Any())
                                     {
 
-                                        Console.WriteLine("[DEBUG] 2v1 found positions");
+                                        Misc.PrintDebugMessage("2v1 found positions");
                                         position = Misc.SortVectorsByDistance(list, target.Position.To2D())[0].To3D();
                                     }
-                                    Console.WriteLine("[DEBUG] 2v1 not found positions");
+                                    Misc.PrintDebugMessage("2v1 not found positions");
                                 }
                                     break;
                                 case 3:
@@ -157,12 +157,12 @@ namespace Marksman_Master.Plugins.Vayne.Modes
 
                                     if (list.Any())
                                     {
-                                        Console.WriteLine("[DEBUG] 3v1 found positions ");
+                                        Misc.PrintDebugMessage("3v1 found positions ");
                                         position = Misc.SortVectorsByDistance(list, target.Position.To2D())[0].To3D();
                                     }
                                     else
                                     {
-                                        Console.WriteLine("[DEBUG] 3v1 not found positions ");
+                                        Misc.PrintDebugMessage("3v1 not found positions ");
                                         var list2 =
                                             SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900, 1300,
                                                 450)
@@ -175,7 +175,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
 
                                         if (list2.Any())
                                         {
-                                            Console.WriteLine("[DEBUG] 3v1 found positions else ");
+                                            Misc.PrintDebugMessage("3v1 found positions else ");
                                             position =
                                                 Misc.SortVectorsByDistanceDescending(list2,
                                                     closest.First().Position.To2D())

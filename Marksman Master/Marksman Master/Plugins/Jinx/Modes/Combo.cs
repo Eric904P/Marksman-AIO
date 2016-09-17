@@ -116,21 +116,21 @@ namespace Marksman_Master.Plugins.Jinx.Modes
             {
                 var rPrediction = R.GetPrediction(t);
 
-                if (rPrediction.HitChance != HitChance.High)
+                if (rPrediction.HitChancePercent < 65)
                     return;
 
                 R.Cast(rPrediction.CastPosition);
-                Console.WriteLine("KS ULT");
+                Misc.PrintDebugMessage("KS ULT");
             }
             else
             {
                 var rPrediction = R.GetPrediction(t);
 
-                if (t.CountEnemiesInRange(225) < 5 || rPrediction.HitChance != HitChance.High)
+                if (t.CountEnemiesInRange(225) < 5 || rPrediction.HitChancePercent < 65)
                     return;
 
                 R.Cast(rPrediction.CastPosition);
-                Console.WriteLine("AOE ULT");
+                Misc.PrintDebugMessage("AOE ULT");
             }
         }
     }

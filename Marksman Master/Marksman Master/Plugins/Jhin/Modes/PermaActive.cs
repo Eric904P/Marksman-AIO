@@ -44,17 +44,15 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                 {
                     if (EntityManager.Heroes.Enemies.Any(
                         x =>
-                            x.Distance(Player.Instance) < W.Range && x.IsHPBarRendered &&
+                            x.IsValidTarget(W.Range) && x.IsHPBarRendered &&
                             Damage.IsTargetKillableFromW(x)))
                     {
                         foreach (var rPrediction in
                             EntityManager.Heroes.Enemies.Where(
                                 x => x.IsValidTarget(W.Range) && !x.IsDead && Damage.IsTargetKillableFromW(x))
-                                .OrderBy(
-                                    x => x.Health)
                                 .Where(target => !target.HasUndyingBuffA() && !target.HasSpellShield())
                                 .Select(target => W.GetPrediction(target))
-                                .Where(rPrediction => rPrediction.HitChance >= HitChance.High))
+                                .Where(rPrediction => rPrediction.HitChancePercent >= 65))
                         {
                             W.Cast(rPrediction.CastPosition);
                             return;
@@ -65,7 +63,7 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                         foreach (
                             var target in
                                 EntityManager.Heroes.Enemies.Where(
-                                    x => !x.IsDead && x.IsUserInvisibleFor(250) && Damage.IsTargetKillableFromW(x)))
+                                    x => !x.IsDead && x.IsUserInvisibleFor(250) && !x.IsZombie && Damage.IsTargetKillableFromW(x)))
                         {
                             var data = target.GetVisibilityTrackerData();
 
@@ -88,15 +86,34 @@ namespace Marksman_Master.Plugins.Jhin.Modes
             if ((Settings.Combo.RMode != 0 || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) &&
                 (Settings.Combo.RMode != 1 || !Settings.Combo.RKeybind) && Settings.Combo.RMode != 2)
                 return;
-
-            if (EntityManager.Heroes.Enemies.Any(x=> x.Distance(Player.Instance) < R.Range && IsInsideRRange(x) && x.IsHPBarRendered))
+            
+            if (EntityManager.Heroes.Enemies.Any(x=> x.IsValidTarget(3700) && IsInsideRRange(x) && x.IsHPBarRendered))
             {
-                foreach (var rPrediction in EntityManager.Heroes.Enemies.Where(x=> x.IsValidTarget(R.Range) && !x.IsDead && IsInsideRRange(x))
-                    .OrderBy(
-                        x => x.Health).Where(target => !target.HasUndyingBuffA() && !target.HasSpellShield()).Select(target => R.GetPrediction(target)).Where(rPrediction => rPrediction.HitChance >= HitChance.High))
+                if (TargetSelector.SelectedTarget != null)
                 {
-                    R.Cast(rPrediction.CastPosition);
-                    return;
+                    var t =
+                        EntityManager.Heroes.Enemies.Find(x => x.NetworkId == TargetSelector.SelectedTarget.NetworkId);
+
+                    if (t == null)
+                        return;
+
+                    var rPrediction = R.GetPrediction(t);
+                    if (rPrediction.HitChancePercent >= 60)
+                    {
+                        R.Cast(rPrediction.CastPosition);
+                    }
+                }
+                else
+                {
+                    foreach (
+                        var target in
+                            EntityManager.Heroes.Enemies.Where(
+                                x => x.IsValidTarget(3700) && !x.IsDead && IsInsideRRange(x) && !x.HasUndyingBuffA() && !x.HasSpellShield())
+                                .OrderBy(x => Damage.GetRDamage(x)))
+                    {
+                        R.CastMinimumHitchance(target, 65);
+                        return;
+                    }
                 }
             }
             else if(Settings.Combo.EnableFowPrediction)

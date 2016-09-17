@@ -26,8 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
+
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -45,64 +44,33 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             if (Q.IsReady() && Settings.JungleLaneClear.UseQ && !Player.Instance.IsDashing() && Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForQ)
             {
                 var minions =
-                    EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Q.Range).Where(
-                        x => x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q)).ToList();
+                    EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Q.Range).ToList();
 
                 if (!minions.Any())
                     return;
 
-                foreach (var minion in minions)
+                string[] allowedMonsters =
                 {
-                    var qPrediction = Q.GetPrediction(minion);
-                    var collisionableObjects =
-                        qPrediction.GetCollisionObjects<Obj_AI_Base>()
-                            .Where(x => x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q))
-                            .ToList();
+                    "SRU_Gromp", "SRU_Blue", "SRU_Red", "SRU_Razorbeak", "SRU_Krug", "SRU_Murkwolf", "Sru_Crab",
+                    "SRU_Crab",
+                    "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
+                    "SRU_Dragon_Water", "SRU_Baron"
+                };
 
-                    foreach (var minionC in collisionableObjects)
-                    {
-                        if (minionC == null)
-                            continue;
-
-                        var id = collisionableObjects.FindIndex(x => x == minionC);
-                        var collisionObjects = new List<Obj_AI_Base> { minionC };
-
-                        for (var i = id; i < collisionableObjects.Count - 1; i++)
-                        {
-                            if (!(collisionableObjects[id].Health <=
-                                  Player.Instance.GetSpellDamage(collisionableObjects[id], SpellSlot.Q))) continue;
-
-                            collisionObjects.Add(collisionableObjects[id]);
-                            id++;
-                        }
-
-                        var rectangleP = new Geometry.Polygon.Rectangle(Player.Instance.Position,
-                            collisionableObjects[id].Position, 70);
-
-                        var list =
-                            EntityManager.MinionsAndMonsters.EnemyMinions.Where(
-                                x =>
-                                    x.IsValidTarget(1500) &&
-                                    new Geometry.Polygon.Circle(x.Position, x.BoundingRadius).Points.Any(
-                                        xx => rectangleP.IsInside(xx)))
-                                .Where(xd => xd.Health <= Player.Instance.GetSpellDamage(xd, SpellSlot.Q))
-                                .ToList();
-
-                        if (list.Count < 2)
-                            continue;
-
-                        var interectionPoint = rectangleP.Points[0].Intersection(rectangleP.Points[2],
-                            rectangleP.Points[1], rectangleP.Points[3]);
-
-                        Q.Cast(interectionPoint.Point.To3D());
-                    }
+                if (
+                    minions.Any(
+                        minion =>
+                            allowedMonsters.Contains(minion.BaseSkinName) &&
+                            minion.Health > Player.Instance.GetAutoAttackDamage(minion)*2))
+                {
+                    Q.Cast(minions.FirstOrDefault(minion => allowedMonsters.Contains(minion.BaseSkinName)));
                 }
             }
 
             if (E.IsReady() && Settings.JungleLaneClear.UseE &&
                 Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForE)
             {
-                var minions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).Where(unit => unit.IsTargetKillableByRend());
+                var minions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).Where(Damage.IsTargetKillableByRend);
 
                 if (minions.Count() >= Settings.JungleLaneClear.MinMinionsForE)
                 {

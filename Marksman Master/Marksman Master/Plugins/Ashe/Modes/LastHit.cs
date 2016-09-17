@@ -26,7 +26,6 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using EloBuddy;
 
 namespace Marksman_Master.Plugins.Ashe.Modes
 {

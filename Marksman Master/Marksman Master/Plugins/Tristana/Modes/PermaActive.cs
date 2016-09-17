@@ -42,7 +42,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
             {
                 foreach (var target in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range)).OrderBy(TargetSelector.GetPriority))
                 {
-                    var damage = Damage.GetEPhysicalDamage(target) + Damage.GetRDamage(target) - 25;
+                    var damage = IncomingDamage.GetIncomingDamage(target) + Damage.GetEPhysicalDamage(target) + Damage.GetRDamage(target) - 25;
 
                     if (target.Hero == Champion.Blitzcrank && !target.HasBuff("BlitzcrankManaBarrierCD") && !target.HasBuff("ManaBarrier"))
                     {

@@ -129,8 +129,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                 {
                     E.Cast(enemy.ServerPosition);
                 }
-                Console.WriteLine("Name : {0} | Duration : {1}", enemy.Hero,
-                    enemy.GetMovementBlockedDebuffDuration());
+                Misc.PrintDebugMessage($"Name : {enemy.Hero} | Duration : {enemy.GetMovementBlockedDebuffDuration()}");
             }
         }
     }

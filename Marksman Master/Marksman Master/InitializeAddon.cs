@@ -189,7 +189,8 @@ namespace Marksman_Master
             if (type == null)
                 return;
 
-            Console.WriteLine("[DEBUG] Getting saved colorpicker data");
+            Misc.PrintDebugMessage("Getting saved colorpicker data");
+
             var colorFileContent = FileHandler.ReadDataFile(FileHandler.ColorFileName);
 
             Bootstrap.SavedColorPickerData = colorFileContent != null ? colorFileContent.ToObject<Dictionary<string, ColorBGRA>>() : new Dictionary<string, ColorBGRA>();
@@ -198,7 +199,8 @@ namespace Marksman_Master
 
             //_plugin = (IHeroAddon) constructorInfo?.Invoke(new object[] {});
 
-            Console.WriteLine("[DEBUG] Creating activators instance");
+            Misc.PrintDebugMessage("Creating plugins instance");
+
             PluginInstance = (IHeroAddon)System.Activator.CreateInstance(type);
         }
 

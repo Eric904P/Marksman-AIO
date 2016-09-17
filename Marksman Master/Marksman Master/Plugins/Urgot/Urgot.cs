@@ -36,7 +36,6 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using Color = System.Drawing.Color;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using SharpDX;
 
@@ -44,32 +43,29 @@ namespace Marksman_Master.Plugins.Urgot
 {
     internal class Urgot : ChampionPlugin
     {
-        public static Spell.Skillshot Q { get; }
-        public static Spell.Skillshot SecoundQ { get; }
-        public static Spell.Active W { get; }
-        public static Spell.Skillshot E { get; }
-        public static Spell.Targeted R { get; }
+        protected static Spell.Skillshot Q { get; }
+        protected static Spell.Skillshot SecoundQ { get; }
+        protected static Spell.Active W { get; }
+        protected static Spell.Skillshot E { get; }
+        protected static Spell.Targeted R { get; }
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu HarassMenu { get; set; }
-        private static Menu LaneClearMenu { get; set; }
-        private static Menu MiscMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
 
         private static readonly ColorPicker[] ColorPicker;
 
-        public static List<Obj_AI_Base> CorrosiveDebufTargets { get; }=
+        protected static List<Obj_AI_Base> CorrosiveDebufTargets { get; }=
             new List<Obj_AI_Base>();
 
         private static float _lastScanTick;
         private static bool _changingRangeScan;
 
-        public static int FleeRange { get; } = 375;
+        protected static int FleeRange { get; } = 375;
 
-        public static bool HasSpottedBuff(Obj_AI_Base unit)
-        {
-            return CorrosiveDebufTargets.Contains(unit);
-        }
+        protected static bool HasSpottedBuff(Obj_AI_Base unit) => CorrosiveDebufTargets.Contains(unit);
 
         static Urgot()
         {
@@ -405,483 +401,73 @@ namespace Marksman_Master.Plugins.Urgot
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Urgot.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Urgot.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Urgot.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Urgot.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Urgot.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Urgot.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Urgot.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Urgot.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Urgot.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Urgot.ComboMenu.UseW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Urgot.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Urgot.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Urgot.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Urgot.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Urgot.ComboMenu.UseE"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Urgot.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Urgot.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Urgot.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Urgot.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.Urgot.ComboMenu.UseR"];
 
-
-                public static bool UseRToSwapPosUnderTower
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Urgot.ComboMenu.UseRToSwapPosUnderTower"] != null &&
-                               ComboMenu["Plugins.Urgot.ComboMenu.UseRToSwapPosUnderTower"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Urgot.ComboMenu.UseRToSwapPosUnderTower"] != null)
-                            ComboMenu["Plugins.Urgot.ComboMenu.UseRToSwapPosUnderTower"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseRToSwapPosUnderTower => MenuManager.MenuValues["Plugins.Urgot.ComboMenu.UseRToSwapPosUnderTower"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Urgot.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Urgot.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Urgot.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Urgot.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Urgot.HarassMenu.UseQ"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Urgot.HarassMenu.MinManaQ"] != null)
-                            return HarassMenu["Plugins.Urgot.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Urgot.HarassMenu.MinManaQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Urgot.HarassMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Urgot.HarassMenu.MinManaQ"] != null)
-                            HarassMenu["Plugins.Urgot.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Urgot.HarassMenu.UseE"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Urgot.HarassMenu.UseE"] != null &&
-                               HarassMenu["Plugins.Urgot.HarassMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Urgot.HarassMenu.UseE"] != null)
-                            HarassMenu["Plugins.Urgot.HarassMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinManaE
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Urgot.HarassMenu.MinManaE"] != null)
-                            return HarassMenu["Plugins.Urgot.HarassMenu.MinManaE"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Urgot.HarassMenu.MinManaE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Urgot.HarassMenu.MinManaE"] != null)
-                            HarassMenu["Plugins.Urgot.HarassMenu.MinManaE"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaE => MenuManager.MenuValues["Plugins.Urgot.HarassMenu.MinManaE", true];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Urgot.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Urgot.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Urgot.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Urgot.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Urgot.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Urgot.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Urgot.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Urgot.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Urgot.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Urgot.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Urgot.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Urgot.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Urgot.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Urgot.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Urgot.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Urgot.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Urgot.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Urgot.LaneClearMenu.MinManaQ", true];
 
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Urgot.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Urgot.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Urgot.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEInLaneClear => MenuManager.MenuValues["Plugins.Urgot.LaneClearMenu.UseEInLaneClear"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Urgot.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static bool UseEInJungleClear => MenuManager.MenuValues["Plugins.Urgot.LaneClearMenu.UseEInJungleClear"];
 
-                        Logger.Error("Couldn't get Plugins.Urgot.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Urgot.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static bool UseEInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Urgot.LaneClearMenu.UseEInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Urgot.LaneClearMenu.UseEInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.UseEInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Urgot.LaneClearMenu.UseEInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool UseEInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Urgot.LaneClearMenu.UseEInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Urgot.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.UseEInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Urgot.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinManaE
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.MinManaE"] != null)
-                            return LaneClearMenu["Plugins.Urgot.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Urgot.LaneClearMenu.MinManaE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Urgot.LaneClearMenu.MinManaE"] != null)
-                            LaneClearMenu["Plugins.Urgot.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaE => MenuManager.MenuValues["Plugins.Urgot.LaneClearMenu.MinManaE", true];
             }
 
             internal static class Misc
             {
-                public static bool EnableKillsteal
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Urgot.MiscMenu.EnableKillsteal"] != null &&
-                               MiscMenu["Plugins.Urgot.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Urgot.MiscMenu.EnableKillsteal"] != null)
-                            MiscMenu["Plugins.Urgot.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.EnableKillsteal"];
 
-                public static bool AutoHarass
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Urgot.MiscMenu.AutoHarass"] != null &&
-                               MiscMenu["Plugins.Urgot.MiscMenu.AutoHarass"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Urgot.MiscMenu.AutoHarass"] != null)
-                            MiscMenu["Plugins.Urgot.MiscMenu.AutoHarass"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool AutoHarass => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.AutoHarass"];
 
-                public static bool UseRAgainstGapclosers
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Urgot.MiscMenu.UseRAgainstGapclosers"] != null &&
-                               MiscMenu["Plugins.Urgot.MiscMenu.UseRAgainstGapclosers"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Urgot.MiscMenu.UseRAgainstGapclosers"] != null)
-                            MiscMenu["Plugins.Urgot.MiscMenu.UseRAgainstGapclosers"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static bool UseRToInterrupt
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Urgot.MiscMenu.UseRToInterrupt"] != null &&
-                               MiscMenu["Plugins.Urgot.MiscMenu.UseRToInterrupt"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Urgot.MiscMenu.UseRToInterrupt"] != null)
-                            MiscMenu["Plugins.Urgot.MiscMenu.UseRToInterrupt"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseRAgainstGapclosers => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.UseRAgainstGapclosers"];
 
-                public static int MinDamage
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Urgot.MiscMenu.WMinDamage"] != null)
-                            return MiscMenu["Plugins.Urgot.MiscMenu.WMinDamage"].Cast<Slider>().CurrentValue;
+                public static bool UseRToInterrupt => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.UseRToInterrupt"];
 
-                        Logger.Error("Couldn't get Plugins.Urgot.MiscMenu.WMinDamage menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Urgot.MiscMenu.WMinDamage"] != null)
-                            MiscMenu["Plugins.Urgot.MiscMenu.WMinDamage"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinDamage => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.WMinDamage", true];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Urgot.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.Urgot.DrawingsMenu.DrawQ"];
 
-                public static bool DrawE
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawE"] != null &&
-                               DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawE"] != null)
-                            DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawE => MenuManager.MenuValues["Plugins.Urgot.DrawingsMenu.DrawE"];
 
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.Urgot.DrawingsMenu.DrawR"];
 
-                public static bool DrawInfo
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawInfo"] != null &&
-                               DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawInfo"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Urgot.DrawingsMenu.DrawInfo"] != null)
-                            DrawingsMenu["Plugins.Urgot.DrawingsMenu.DrawInfo"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawInfo => MenuManager.MenuValues["Plugins.Urgot.DrawingsMenu.DrawInfo"];
             }
         }
     }

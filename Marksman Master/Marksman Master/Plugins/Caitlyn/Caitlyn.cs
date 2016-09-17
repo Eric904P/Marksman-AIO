@@ -37,7 +37,6 @@ using EloBuddy.SDK.Rendering;
 using SharpDX;
 using System.Drawing;
 using EloBuddy.SDK.Menu.Values;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Caitlyn
@@ -49,11 +48,11 @@ namespace Marksman_Master.Plugins.Caitlyn
         protected static Spell.Skillshot E { get; }
         protected static Spell.Targeted R { get; }
 
-        protected static Menu ComboMenu { get; set; }
-        protected static Menu HarassMenu { get; set; }
-        protected static Menu LaneClearMenu { get; set; }
-        protected static Menu DrawingsMenu { get; set; }
-        protected static Menu MiscMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
 
         private static ColorPicker[] ColorPicker { get; }
 
@@ -373,6 +372,7 @@ namespace Marksman_Master.Plugins.Caitlyn
         protected override void PermaActive()
         {
             R.Range = 2000 + (uint)(500*(R.Level - 1));
+
             Modes.PermaActive.Execute();
         }
 
@@ -410,398 +410,63 @@ namespace Marksman_Master.Plugins.Caitlyn
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Caitlyn.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Caitlyn.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Caitlyn.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Caitlyn.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Caitlyn.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Caitlyn.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Caitlyn.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Caitlyn.ComboMenu.UseW"];
 
-                public static bool UseWOnImmobile
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Caitlyn.ComboMenu.UseWOnImmobile"] != null &&
-                               ComboMenu["Plugins.Caitlyn.ComboMenu.UseWOnImmobile"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.UseWOnImmobile"] != null)
-                            ComboMenu["Plugins.Caitlyn.ComboMenu.UseWOnImmobile"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseWOnImmobile => MenuManager.MenuValues["Plugins.Caitlyn.ComboMenu.UseWOnImmobile"];
 
-                public static int WHitChancePercent
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.WHitChancePercent"] != null)
-                            return ComboMenu["Plugins.Caitlyn.ComboMenu.WHitChancePercent"].Cast<Slider>().CurrentValue;
+                public static int WHitChancePercent => MenuManager.MenuValues["Plugins.Caitlyn.ComboMenu.WHitChancePercent", true];
 
-                        Logger.Error("Couldn't get Plugins.Caitlyn.ComboMenu.WHitChancePercent menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.WHitChancePercent"] != null)
-                            ComboMenu["Plugins.Caitlyn.ComboMenu.WHitChancePercent"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Caitlyn.ComboMenu.UseE"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Caitlyn.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Caitlyn.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Caitlyn.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int EHitChancePercent => MenuManager.MenuValues["Plugins.Caitlyn.ComboMenu.EHitChancePercent", true];
 
-                public static int EHitChancePercent
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.EHitChancePercent"] != null)
-                            return ComboMenu["Plugins.Caitlyn.ComboMenu.EHitChancePercent"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Caitlyn.ComboMenu.EHitChancePercent menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.EHitChancePercent"] != null)
-                            ComboMenu["Plugins.Caitlyn.ComboMenu.EHitChancePercent"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Caitlyn.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Caitlyn.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Caitlyn.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Caitlyn.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.Caitlyn.ComboMenu.UseR"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Caitlyn.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Caitlyn.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Caitlyn.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Caitlyn.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Caitlyn.HarassMenu.UseQ"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Caitlyn.HarassMenu.MinManaQ"] != null)
-                            return HarassMenu["Plugins.Caitlyn.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Caitlyn.HarassMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Caitlyn.HarassMenu.MinManaQ"] != null)
-                            HarassMenu["Plugins.Caitlyn.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Caitlyn.HarassMenu.MinManaQ", true];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Caitlyn.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Caitlyn.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Caitlyn.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Caitlyn.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Caitlyn.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Caitlyn.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Caitlyn.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinMinionsKilledForQ => MenuManager.MenuValues["Plugins.Caitlyn.LaneClearMenu.MinMinionsKilledForQ", true];
 
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinMinionsKilledForQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.MinMinionsKilledForQ"] != null)
-                            return LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.MinMinionsKilledForQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Caitlyn.LaneClearMenu.MinMinionsKilledForQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.MinMinionsKilledForQ"] != null)
-                            LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.MinMinionsKilledForQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Caitlyn.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Caitlyn.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Caitlyn.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Caitlyn.LaneClearMenu.MinManaQ", true];
             }
 
             internal static class Misc
             {
-                public static bool EnableKillsteal
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Caitlyn.MiscMenu.EnableKillsteal"] != null &&
-                               MiscMenu["Plugins.Caitlyn.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Caitlyn.MiscMenu.EnableKillsteal"] != null)
-                            MiscMenu["Plugins.Caitlyn.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.Caitlyn.MiscMenu.EnableKillsteal"];
 
-                public static bool WAgainstGapclosers
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Caitlyn.MiscMenu.WAgainstGapclosers"] != null &&
-                               MiscMenu["Plugins.Caitlyn.MiscMenu.WAgainstGapclosers"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Caitlyn.MiscMenu.WAgainstGapclosers"] != null)
-                            MiscMenu["Plugins.Caitlyn.MiscMenu.WAgainstGapclosers"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool WAgainstGapclosers => MenuManager.MenuValues["Plugins.Caitlyn.MiscMenu.WAgainstGapclosers"];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Caitlyn.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.Caitlyn.DrawingsMenu.DrawQ"];
 
-                public static bool DrawE
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawE"] != null &&
-                               DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawE"] != null)
-                            DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawE => MenuManager.MenuValues["Plugins.Caitlyn.DrawingsMenu.DrawE"];
 
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.Caitlyn.DrawingsMenu.DrawR"];
 
-                public static bool DrawDamageIndicator
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawDamageIndicator"] != null &&
-                               DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Caitlyn.DrawingsMenu.DrawDamageIndicator"] != null)
-                            DrawingsMenu["Plugins.Caitlyn.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawDamageIndicator => MenuManager.MenuValues["Plugins.Caitlyn.DrawingsMenu.DrawDamageIndicator"];
             }
         }
 

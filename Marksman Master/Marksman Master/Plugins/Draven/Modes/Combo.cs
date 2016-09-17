@@ -60,7 +60,7 @@ namespace Marksman_Master.Plugins.Draven.Modes
                     if (rectangle.IsInside(posAfter))
                     {
                         R.Cast();
-                        Console.WriteLine("[DEBUG] hehe xd");
+                        Misc.PrintDebugMessage("hehe xd");
                     }
                 }
             }

@@ -36,7 +36,6 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using Color = SharpDX.Color;
 
@@ -45,14 +44,14 @@ namespace Marksman_Master.Plugins.Tristana
 {
     internal class Tristana : ChampionPlugin
     {
-        public static Spell.Active Q { get; }
-        public static Spell.Skillshot W { get; }
-        public static Spell.Targeted E { get; }
-        public static Spell.Targeted R { get; }
+        protected static Spell.Active Q { get; }
+        protected static Spell.Skillshot W { get; }
+        protected static Spell.Targeted E { get; }
+        protected static Spell.Targeted R { get; }
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu LaneClearMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
 
         private static readonly ColorPicker[] ColorPicker;
         private static bool _changingRangeScan;
@@ -341,7 +340,7 @@ namespace Marksman_Master.Plugins.Tristana
             LaneClearMenu.AddLabel("Explosive Charge (E) settings :");
             LaneClearMenu.Add("Plugins.Tristana.LaneClearMenu.UseEInLaneClear", new CheckBox("Use E in Lane Clear"));
             LaneClearMenu.Add("Plugins.Tristana.LaneClearMenu.UseEInJungleClear", new CheckBox("Use E in Jungle Clear"));
-            LaneClearMenu.Add("Plugins.Tristana.LaneClearMenu.MinManaE", new Slider("Min mana percentage ({0}%) to use W", 80, 1));
+            LaneClearMenu.Add("Plugins.Tristana.LaneClearMenu.MinManaE", new Slider("Min mana percentage ({0}%) to use E", 80, 1));
 
             MenuManager.BuildAntiGapcloserMenu();
             MenuManager.BuildInterrupterMenu();
@@ -426,390 +425,59 @@ namespace Marksman_Master.Plugins.Tristana
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseW"];
 
-                public static bool UseWVsGapclosers
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.UseWVsGapclosers"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.UseWVsGapclosers"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.UseWVsGapclosers"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.UseWVsGapclosers"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseWVsGapclosers => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseWVsGapclosers"];
 
-                public static bool DoubleWKeybind
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.DoubleWKeybind"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.DoubleWKeybind"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.DoubleWKeybind"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.DoubleWKeybind"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DoubleWKeybind => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.DoubleWKeybind"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseE"];
 
-                public static bool FocusE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.FocusE"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.FocusE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.FocusE"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.FocusE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool FocusE => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.FocusE"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseR"];
 
-                public static bool UseRVsMelees
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.UseRVsMelees"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.UseRVsMelees"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.UseRVsMelees"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.UseRVsMelees"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseRVsMelees => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseRVsMelees"];
 
-                public static bool UseRVsInterruptible
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.UseRVsInterruptible"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.UseRVsInterruptible"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.UseRVsInterruptible"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.UseRVsInterruptible"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseRVsInterruptible => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseRVsInterruptible"];
 
-                public static bool UseRVsGapclosers
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Tristana.ComboMenu.UseRVsGapclosers"] != null &&
-                               ComboMenu["Plugins.Tristana.ComboMenu.UseRVsGapclosers"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Tristana.ComboMenu.UseRVsGapclosers"] != null)
-                            ComboMenu["Plugins.Tristana.ComboMenu.UseRVsGapclosers"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseRVsGapclosers => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseRVsGapclosers"];
 
-                public static bool IsEnabledFor(AIHeroClient unit)
-                {
-                    return ComboMenu?["Plugins.Tristana.ComboMenu.UseEOn." + unit.Hero] != null &&
-                           ComboMenu["Plugins.Tristana.ComboMenu.UseEOn." + unit.Hero].Cast<CheckBox>()
-                               .CurrentValue;
-                }
+                public static bool IsEnabledFor(AIHeroClient unit) => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseEOn." + unit.Hero];
 
-                public static bool IsEnabledFor(string championName)
-                {
-                    return ComboMenu?["Plugins.Tristana.ComboMenu.UseEOn." + championName] != null &&
-                           ComboMenu["Plugins.Tristana.ComboMenu.UseEOn." + championName].Cast<CheckBox>()
-                               .CurrentValue;
-                }
+                public static bool IsEnabledFor(string championName) => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseEOn." + championName];
 
-                public static bool IsEnabledFor(Champion championName)
-                {
-                    return ComboMenu?["Plugins.Tristana.ComboMenu.UseEOn." + championName] != null &&
-                           ComboMenu["Plugins.Tristana.ComboMenu.UseEOn." + championName].Cast<CheckBox>()
-                               .CurrentValue;
-                }
+                public static bool IsEnabledFor(Champion championName) => MenuManager.MenuValues["Plugins.Tristana.ComboMenu.UseEOn." + championName];
             }
             
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Tristana.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Tristana.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Tristana.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Tristana.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Tristana.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Tristana.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Tristana.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Tristana.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Tristana.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Tristana.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Tristana.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Tristana.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEInLaneClear => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseEInLaneClear"];
 
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Tristana.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Tristana.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Tristana.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEInJungleClear => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseEInJungleClear"];
 
-                public static bool UseEInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Tristana.LaneClearMenu.UseEInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Tristana.LaneClearMenu.UseEInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.UseEInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Tristana.LaneClearMenu.UseEInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool UseEInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Tristana.LaneClearMenu.UseEInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Tristana.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.UseEInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Tristana.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinManaE
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.MinManaE"] != null)
-                            return LaneClearMenu["Plugins.Tristana.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Tristana.LaneClearMenu.MinManaE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Tristana.LaneClearMenu.MinManaE"] != null)
-                            LaneClearMenu["Plugins.Tristana.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-            }
-
-            internal static class Misc
-            {
-
+                public static int MinManaE => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.MinManaE", true];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Tristana.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Tristana.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Tristana.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Tristana.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Tristana.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawW
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Tristana.DrawingsMenu.DrawW"] != null &&
-                               DrawingsMenu["Plugins.Tristana.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Tristana.DrawingsMenu.DrawW"] != null)
-                            DrawingsMenu["Plugins.Tristana.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawW => MenuManager.MenuValues["Plugins.Tristana.DrawingsMenu.DrawW"];
 
-                public static bool DrawInfo
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Tristana.DrawingsMenu.DrawInfo"] != null &&
-                               DrawingsMenu["Plugins.Tristana.DrawingsMenu.DrawInfo"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Tristana.DrawingsMenu.DrawInfo"] != null)
-                            DrawingsMenu["Plugins.Tristana.DrawingsMenu.DrawInfo"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawInfo => MenuManager.MenuValues["Plugins.Tristana.DrawingsMenu.DrawInfo"];
             }
         }
 
@@ -845,18 +513,19 @@ namespace Marksman_Master.Plugins.Tristana
                                         ? unit.Buffs.Find(x => x.Name.ToLowerInvariant() == "tristanaecharge").Count
                                         : 0));
 
-                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, rawDamage);
+                var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, rawDamage);
+
+                return damage;
             }
 
             public static float GetRDamage(Obj_AI_Base unit)
             {
-                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical,
-                    RDamage[R.Level] + Player.Instance.FlatMagicDamageMod);
+                return Player.Instance.GetSpellDamage(unit, SpellSlot.R);
             }
 
             public static bool IsTargetKillableFromR(Obj_AI_Base unit)
             {
-                if (!(unit is AIHeroClient))
+                if (unit.GetType() != typeof(AIHeroClient))
                 {
                     return unit.TotalHealthWithShields() <= GetRDamage(unit);
                 }

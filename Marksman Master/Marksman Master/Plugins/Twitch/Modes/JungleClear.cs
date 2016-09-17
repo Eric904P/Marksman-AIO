@@ -30,6 +30,7 @@ using System;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Twitch.Modes
 {
@@ -53,14 +54,14 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                                  unit.BaseSkinName.Contains("Red") || unit.BaseSkinName.Contains("Crab")) && !unit.BaseSkinName.Contains("Mini") &&
                                 Damage.IsTargetKillableByE(unit)))
                 {
-                    Console.WriteLine("[DEBUG] Casting E to ks blue [" + Game.Time + "]");
+                    Misc.PrintDebugMessage($"Casting E to ks blue [{Game.Time}]");
                     E.Cast();
                 }
             }
 
             if (W.IsReady() && Settings.JungleClear.UseW && Player.Instance.ManaPercent >= Settings.JungleClear.WMinMana)
             {
-                var c = EntityManager.MinionsAndMonsters.GetCircularFarmLocation(jungleMinions, 200, 950,
+                var c = EntityManager.MinionsAndMonsters.GetCircularFarmLocation(jungleMinions, 260, 950,
                     250, 1400);
 
                 if (c.HitNumber > 1)

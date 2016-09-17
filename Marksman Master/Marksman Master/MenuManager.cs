@@ -27,7 +27,6 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -37,7 +36,6 @@ using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using Marksman_Master.Extensions;
-using Marksman_Master.Interfaces;
 using Marksman_Master.Utils;
 using SharpDX;
 
@@ -115,7 +113,7 @@ namespace Marksman_Master
                           "hope you will have fun. Good luck !");
             Menu.AddSeparator(40);
             Menu.AddLabel("Marksman AIO is currently in early beta phase.\nIf you experienced any bugs please report them in the forum thread.");
-            
+
             InitializeAddon.PluginInstance.CreateMenu();
         }
 
@@ -214,61 +212,5 @@ namespace Marksman_Master
                 }
             }
         }
-
-
-        //    public static T Get<T>(Menu type, string uniqueIdentifier, ItemTypes itemtype, bool getSelectedText = false)
-        //    {
-        //        if (type[uniqueIdentifier] == null)
-        //        {
-        //            Logger.Error("[Error] Menu item : " + uniqueIdentifier + " doesn't exists.");
-        //            return (T)Convert.ChangeType(false, typeof(T));
-        //        }
-        //        switch (itemtype)
-        //        {
-        //            case ItemTypes.ComboBox:
-        //                if (getSelectedText)
-        //                    return (T)Convert.ChangeType(type[uniqueIdentifier].Cast<ComboBox>().SelectedText, typeof(T));
-
-        //                return (T)Convert.ChangeType(type[uniqueIdentifier].Cast<ComboBox>().CurrentValue, typeof(T));
-        //            case ItemTypes.CheckBox:
-        //                return (T)Convert.ChangeType(type[uniqueIdentifier].Cast<CheckBox>().CurrentValue, typeof(T));
-        //            case ItemTypes.KeyBind:
-        //                return (T)Convert.ChangeType(type[uniqueIdentifier].Cast<KeyBind>().CurrentValue, typeof(T));
-        //            case ItemTypes.Slider:
-        //                return (T)Convert.ChangeType(type[uniqueIdentifier].Cast<Slider>().CurrentValue, typeof(T));
-        //            default:
-        //                throw new ArgumentOutOfRangeException(nameof(itemtype), itemtype, null);
-        //        }
-        //    }
-
-        //    public static void Set<T>(Menu type, string uniqueIdentifier, ItemTypes itemtype, T value,
-        //        Tuple<uint, uint> keys = null)
-        //    {
-        //        if (type[uniqueIdentifier] == null)
-        //        {
-        //            Logger.Error("[Error] Menu item : " + uniqueIdentifier + " doesn't exists.");
-        //            return;
-        //        }
-        //        switch (itemtype)
-        //        {
-        //            case ItemTypes.ComboBox:
-        //                type[uniqueIdentifier].Cast<ComboBox>().CurrentValue = Convert.ToInt32(value);
-        //                break;
-        //            case ItemTypes.CheckBox:
-        //                type[uniqueIdentifier].Cast<CheckBox>().CurrentValue = Convert.ToBoolean(value);
-        //                break;
-        //            case ItemTypes.KeyBind:
-        //                if (keys != null)
-        //                    type[uniqueIdentifier].Cast<KeyBind>().Keys = keys;
-        //                else
-        //                    type[uniqueIdentifier].Cast<KeyBind>().CurrentValue = Convert.ToBoolean(value);
-        //                break;
-        //            case ItemTypes.Slider:
-        //                type[uniqueIdentifier].Cast<Slider>().CurrentValue = Convert.ToInt32(value);
-        //                break;
-        //            default:
-        //                throw new ArgumentOutOfRangeException(nameof(itemtype), itemtype, null);
-        //        }
-        //    }
     }
 }

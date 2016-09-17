@@ -37,6 +37,19 @@ namespace Marksman_Master.Plugins.Corki.Modes
     {
         public static void Execute()
         {
+
+
+            if (W.IsReady() && Settings.Combo.UseW && !HasPackagesBuff && Player.Instance.CountEnemiesInRange(1500) == 1 && Player.Instance.Mana > QMana[Q.Level] + WMana + EMana + RMana)
+            {
+                var target = TargetSelector.GetTarget(W.Range, DamageType.Physical);
+
+                if (target != null && !target.IsUnderHisturret() && target.HealthPercent < Player.Instance.HealthPercent && target.Health < Damage.GetComboDamage(target, 2, 2))
+                {
+                    W.Cast(Player.Instance.Position.Extend(target, 580).To3D());
+                    Misc.PrintInfoMessage("Engaging on <font color=\"#ff1493\">" + target.Hero + "</font> because he can be killed from combo.");
+                }
+            }
+
             if (Q.IsReady() && Settings.Combo.UseQ && !HasSheenBuff)
             {
                 var target = TargetSelector.GetTarget(Q.Range, DamageType.Magical);
@@ -49,17 +62,6 @@ namespace Marksman_Master.Plugins.Corki.Modes
                     {
                         Q.Cast(prediction.CastPosition);
                     }
-                }
-            }
-
-            if (W.IsReady() && Settings.Combo.UseW && !HasPackagesBuff && Player.Instance.CountEnemiesInRange(1500) == 1 && Player.Instance.Mana > QMana[Q.Level] + WMana + EMana + RMana)
-            {
-                var target = TargetSelector.GetTarget(W.Range, DamageType.Physical);
-
-                if (target != null && !target.IsUnderHisturret() && target.HealthPercent < Player.Instance.HealthPercent && target.Health < Damage.GetComboDamage(target, 2, 2))
-                {
-                    W.Cast(Player.Instance.Position.Extend(target, 580).To3D());
-                    Misc.PrintInfoMessage("Engaging on <font color=\"#ff1493\">"+target.Hero+"</font> because he can be killed from combo.");
                 }
             }
 

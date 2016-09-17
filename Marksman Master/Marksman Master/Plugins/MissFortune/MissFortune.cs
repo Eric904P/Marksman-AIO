@@ -36,7 +36,6 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
 using SharpDX;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.PermaShow.Values;
 using Marksman_Master.Utils;
 using Color = System.Drawing.Color;
@@ -50,11 +49,11 @@ namespace Marksman_Master.Plugins.MissFortune
         protected static Spell.Skillshot E { get; }
         protected static Spell.Skillshot R { get; }
 
-        protected static Menu ComboMenu { get; set; }
-        protected static Menu HarassMenu { get; set; }
-        protected static Menu LaneClearMenu { get; set; }
-        protected static Menu DrawingsMenu { get; set; }
-        protected static Menu MiscMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
 
         private static BoolItem AutoHarassItem { get; set; }
 
@@ -260,7 +259,7 @@ namespace Marksman_Master.Plugins.MissFortune
             return unit.GetType() != typeof(AIHeroClient) ? 0 : GetComboDamage(unit);
         }
 
-        protected static float GetComboDamage(Obj_AI_Base unit)
+        protected static float GetComboDamage(Obj_AI_Base unit, int autoAttacks = 1)
         {
             if (Damages.ContainsKey(unit.NetworkId) &&
                 !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200))) //
@@ -274,11 +273,8 @@ namespace Marksman_Master.Plugins.MissFortune
             if (unit.IsValidTarget(E.Range) && E.IsReady())
                 damage += Player.Instance.GetSpellDamage(unit, SpellSlot.E);
 
-            if (unit.IsValidTarget(R.Range) && R.IsReady())
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.R) * 6;
-
             if (Player.Instance.IsInAutoAttackRange(unit))
-                damage += Player.Instance.GetAutoAttackDamage(unit);
+                damage += Player.Instance.GetAutoAttackDamage(unit, true) * autoAttacks;
 
             Damages[unit.NetworkId] = new Dictionary<float, float> {{Game.Time*1000, damage}};
 
@@ -596,553 +592,87 @@ namespace Marksman_Master.Plugins.MissFortune
             Modes.Flee.Execute();
         }
 
-
         protected internal static class Settings
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.MissFortune.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.MissFortune.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.MissFortune.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.MissFortune.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.MissFortune.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.MissFortune.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.MissFortune.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.MissFortune.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.MissFortune.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.MissFortune.ComboMenu.UseW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.MissFortune.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.MissFortune.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.MissFortune.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.MissFortune.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.MissFortune.ComboMenu.UseE"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.MissFortune.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.MissFortune.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.MissFortune.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.MissFortune.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.MissFortune.ComboMenu.UseR"];
 
-                public static bool RBlockMovement
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.MissFortune.ComboMenu.RBlockMovement"] != null &&
-                               ComboMenu["Plugins.MissFortune.ComboMenu.RBlockMovement"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.MissFortune.ComboMenu.RBlockMovement"] != null)
-                            ComboMenu["Plugins.MissFortune.ComboMenu.RBlockMovement"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool RBlockMovement => MenuManager.MenuValues["Plugins.MissFortune.ComboMenu.RBlockMovement"];
 
-                public static int RWhenXEnemies
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.MissFortune.ComboMenu.RWhenXEnemies"] != null)
-                            return ComboMenu["Plugins.MissFortune.ComboMenu.RWhenXEnemies"].Cast<Slider>().CurrentValue;
+                public static int RWhenXEnemies => MenuManager.MenuValues["Plugins.MissFortune.ComboMenu.RWhenXEnemies", true];
 
-                        Logger.Error("Couldn't get Plugins.MissFortune.ComboMenu.RWhenXEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.MissFortune.ComboMenu.RWhenXEnemies"] != null)
-                            ComboMenu["Plugins.MissFortune.ComboMenu.RWhenXEnemies"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static bool SemiAutoRKeybind
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.MissFortune.ComboMenu.SemiAutoRKeybind"] != null &&
-                               ComboMenu["Plugins.MissFortune.ComboMenu.SemiAutoRKeybind"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.MissFortune.ComboMenu.SemiAutoRKeybind"] != null)
-                            ComboMenu["Plugins.MissFortune.ComboMenu.SemiAutoRKeybind"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool SemiAutoRKeybind => MenuManager.MenuValues["Plugins.MissFortune.ComboMenu.SemiAutoRKeybind"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.MissFortune.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.MissFortune.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.MissFortune.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.MissFortune.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.MissFortune.HarassMenu.UseQ"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.MissFortune.HarassMenu.MinManaQ"] != null)
-                            return HarassMenu["Plugins.MissFortune.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.MissFortune.HarassMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.MissFortune.HarassMenu.MinManaQ"] != null)
-                            HarassMenu["Plugins.MissFortune.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.MissFortune.HarassMenu.MinManaQ", true];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.MissFortune.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.MissFortune.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.MissFortune.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.MissFortune.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.MissFortune.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.MinManaQ", true];
 
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseWInLaneClear => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.UseWInLaneClear"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.MissFortune.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static bool UseWInJungleClear => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.UseWInJungleClear"];
 
-                        Logger.Error("Couldn't get Plugins.MissFortune.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaW => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.MinManaW", true];
 
-                public static bool UseWInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseWInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseWInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseWInLaneClear"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseWInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEInLaneClear => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.UseEInLaneClear"];
 
-                public static bool UseWInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseWInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseWInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseWInJungleClear"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseWInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEInJungleClear => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.UseEInJungleClear"];
 
-                public static int MinManaW
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.MinManaW"] != null)
-                            return LaneClearMenu["Plugins.MissFortune.LaneClearMenu.MinManaW"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.MissFortune.LaneClearMenu.MinManaW menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.MinManaW"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.MinManaW"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static bool UseEInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseEInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseEInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseEInLaneClear"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseEInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool UseEInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseEInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.UseEInJungleClear"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinManaE
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.MinManaE"] != null)
-                            return LaneClearMenu["Plugins.MissFortune.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.MissFortune.LaneClearMenu.MinManaE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.MissFortune.LaneClearMenu.MinManaE"] != null)
-                            LaneClearMenu["Plugins.MissFortune.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaE => MenuManager.MenuValues["Plugins.MissFortune.LaneClearMenu.MinManaE", true];
             }
 
             internal static class Misc
             {
-                public static bool EnableKillsteal
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.MissFortune.MiscMenu.EnableKillsteal"] != null &&
-                               MiscMenu["Plugins.MissFortune.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.MissFortune.MiscMenu.EnableKillsteal"] != null)
-                            MiscMenu["Plugins.MissFortune.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.MissFortune.MiscMenu.EnableKillsteal"];
 
-                public static bool BounceQFromMinions
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.MissFortune.MiscMenu.BounceQFromMinions"] != null &&
-                               MiscMenu["Plugins.MissFortune.MiscMenu.BounceQFromMinions"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.MissFortune.MiscMenu.BounceQFromMinions"] != null)
-                            MiscMenu["Plugins.MissFortune.MiscMenu.BounceQFromMinions"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool BounceQFromMinions => MenuManager.MenuValues["Plugins.MissFortune.MiscMenu.BounceQFromMinions"];
 
-                public static bool AutoHarassQ
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassQ"] != null &&
-                               MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassQ"] != null)
-                            MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool AutoHarassQ => MenuManager.MenuValues["Plugins.MissFortune.MiscMenu.AutoHarassQ"];
 
-                public static int AutoHarassQMinMana
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassQMinMana"] != null)
-                            return MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassQMinMana"].Cast<Slider>().CurrentValue;
+                public static int AutoHarassQMinMana => MenuManager.MenuValues["Plugins.MissFortune.MiscMenu.AutoHarassQMinMana", true];
 
-                        Logger.Error("Couldn't get Plugins.MissFortune.MiscMenu.AutoHarassQMinMana menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassQMinMana"] != null)
-                            MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassQMinMana"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool IsAutoHarassEnabledFor(AIHeroClient unit) => MenuManager.MenuValues["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + unit.ChampionName];
 
-                public static bool IsAutoHarassEnabledFor(AIHeroClient unit)
-                {
-                    return MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + unit.ChampionName] != null &&
-                               MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + unit.ChampionName].Cast<CheckBox>()
-                                   .CurrentValue;
-                }
+                public static bool IsAutoHarassEnabledFor(string championName) => MenuManager.MenuValues["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + championName];
 
-                public static bool IsAutoHarassEnabledFor(string championName)
-                {
-                    return MiscMenu?["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + championName] != null &&
-                               MiscMenu["Plugins.MissFortune.MiscMenu.AutoHarassEnabled." + championName].Cast<CheckBox>()
-                                   .CurrentValue;
-                }
-
-                public static bool EVsGapclosers
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.MissFortune.MiscMenu.EVsGapclosers"] != null &&
-                               MiscMenu["Plugins.MissFortune.MiscMenu.EVsGapclosers"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.MissFortune.MiscMenu.EVsGapclosers"] != null)
-                            MiscMenu["Plugins.MissFortune.MiscMenu.EVsGapclosers"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EVsGapclosers => MenuManager.MenuValues["Plugins.MissFortune.MiscMenu.EVsGapclosers"];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.MissFortune.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.MissFortune.DrawingsMenu.DrawQ"];
 
-                public static bool DrawE
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawE"] != null &&
-                               DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawE"] != null)
-                            DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawE => MenuManager.MenuValues["Plugins.MissFortune.DrawingsMenu.DrawE"];
 
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.MissFortune.DrawingsMenu.DrawR"];
 
-                public static bool DrawDamageIndicator
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawDamageIndicator"] != null &&
-                               DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.MissFortune.DrawingsMenu.DrawDamageIndicator"] != null)
-                            DrawingsMenu["Plugins.MissFortune.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawDamageIndicator => MenuManager.MenuValues["Plugins.MissFortune.DrawingsMenu.DrawDamageIndicator"];
             }
         }
     }

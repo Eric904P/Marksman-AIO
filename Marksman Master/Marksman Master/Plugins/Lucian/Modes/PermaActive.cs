@@ -91,7 +91,6 @@ namespace Marksman_Master.Plugins.Lucian.Modes
             {
                 R.Cast(rPrediciton.CastPosition);
             }
-
         }
     }
 }

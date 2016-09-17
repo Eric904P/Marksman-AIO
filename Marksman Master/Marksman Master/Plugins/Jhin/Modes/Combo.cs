@@ -42,7 +42,7 @@ namespace Marksman_Master.Plugins.Jhin.Modes
     {
         public static void Execute()
         {
-            if (Q.IsReady() && Settings.Combo.UseQ && Player.Instance.Mana - (30 + (Q.Level - 1)*5) > 100)
+            if (Q.IsReady() && Settings.Combo.UseQ && (Player.Instance.Mana - (30 + (Q.Level - 1)*5) > (R.IsReady() ? 100 : 0)))
             {
                 var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
 
@@ -52,7 +52,7 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                 }
             }
 
-            if (W.IsReady() && Settings.Combo.UseW && Player.Instance.Mana - (50 + (Q.Level - 1)*10) > 100 &&
+            if (W.IsReady() && Settings.Combo.UseW && (Player.Instance.Mana - (50 + (Q.Level - 1)*10) > (R.IsReady() ? 100 : 0)) &&
                 EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(W.Range) && HasSpottedBuff(x)) &&
                 Player.Instance.CountEnemiesInRange(500) < 2)
             {
@@ -61,17 +61,36 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                     .OrderBy(x => x.HealthPercent)
                     .ThenByDescending(x => x.Distance(Player.Instance))
                     .Select(target => W.GetPrediction(target))
-                    .Where(wPrediction => wPrediction.HitChance >= HitChance.High && !wPrediction.GetCollisionObjects<AIHeroClient>().Any()) let count = EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(W.Range))
+                    .Where(
+                        wPrediction =>
+                            wPrediction.HitChance >= HitChance.High &&
+                            !wPrediction.GetCollisionObjects<AIHeroClient>().Any())
+                    let count = EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(W.Range))
                         .Select(enemy => Prediction.Position.PredictUnitPosition(enemy, 1000))
-                        .Count(position => position.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange()) where count < 3 select wPrediction)
+                        .Count(position => position.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange())
+                    where count < 3
+                    select wPrediction)
                 {
                     W.Cast(wPrediction.CastPosition);
                     break;
                 }
             }
 
-            if (!E.IsReady() || !Settings.Combo.UseE || Orbwalker.CanAutoAttack)
+            if (!E.IsReady() || !Settings.Combo.UseE || IsPreAttack)
                 return;
+
+            var t = E.GetTarget();
+
+            if (t != null)
+            {
+                var ePrediction = E.GetPrediction(t);
+
+                if (ePrediction.HitChancePercent >= 75 && ePrediction.CastPosition.Distance(t) > 250)
+                {
+                    E.Cast(ePrediction.CastPosition);
+                    return;
+                }
+            }
 
             foreach (var target in from target in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(E.Range))
                 let duration = target.GetMovementBlockedDebuffDuration() * 1000

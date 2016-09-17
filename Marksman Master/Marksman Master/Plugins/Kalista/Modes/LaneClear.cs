@@ -26,10 +26,11 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Collections.Generic;
+
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Events;
 
 namespace Marksman_Master.Plugins.Kalista.Modes
@@ -41,7 +42,6 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             if (Q.IsReady() && Settings.JungleLaneClear.UseQ && !Player.Instance.IsDashing() &&
                 Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForQ)
             {
-
                 var minions =
                     EntityManager.MinionsAndMonsters.EnemyMinions.Where(
                         x => x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q)).ToList();
@@ -49,59 +49,56 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 if (!minions.Any())
                     return;
 
-                foreach (var minion in minions)
+                foreach (var minion in minions.Where(x=> x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q) && Q.GetPrediction(x).HitChance >= HitChance.Medium))
                 {
-                    var qPrediction = Q.GetPrediction(minion);
+                    if (Settings.JungleLaneClear.MinMinionsForQ == 1)
+                    {
+                        Q.Cast(minion.ServerPosition);
+                        break;
+                    }
+
                     var collisionableObjects =
-                        qPrediction.GetCollisionObjects<Obj_AI_Minion>()
-                            .Where(x => x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q))
+                        EntityManager.MinionsAndMonsters.EnemyMinions.Where(
+                            x => x.IsValidTarget(Q.Range) &&
+                                 new Geometry.Polygon.Circle(x.Position, x.BoundingRadius).Points.Any(
+                                     b => new Geometry.Polygon.Rectangle(Player.Instance.Position,
+                                         Player.Instance.Position.Extend(minion.Position,
+                                             minion.Distance(Player.Instance) >= Q.Range ? 0 : Q.Range).To3D(), 40)
+                                         .IsInside(b)) && x.NetworkId != minion.NetworkId)
+                            .OrderBy(x => x.Distance(Player.Instance))
                             .ToList();
 
-                    foreach (var minionC in collisionableObjects)
+                    var count = 1;
+
+                    for (int i = 0, lenght = collisionableObjects.Count; i < lenght; i++)
                     {
-                        if (minionC == null)
-                            continue;
-
-                        var id = collisionableObjects.FindIndex(x => x == minionC);
-                        var collisionObjects = new List<Obj_AI_Minion> {minionC};
-
-                        for (var i = id; i < collisionableObjects.Count - 1; i++)
+                        if (collisionableObjects[i].Health <
+                            Player.Instance.GetSpellDamage(collisionableObjects[i], SpellSlot.Q))
                         {
-                            if (!(collisionableObjects[id].Health <=
-                                  Player.Instance.GetSpellDamage(collisionableObjects[id], SpellSlot.Q))) continue;
+                            count++;
 
-                            collisionObjects.Add(collisionableObjects[id]);
-                            id++;
+                            if (i + 1 < lenght && collisionableObjects[i + 1].Health >
+                                Player.Instance.GetSpellDamage(collisionableObjects[i + 1], SpellSlot.Q))
+                            {
+                                break;
+                            }
                         }
-
-                        var rectangleP = new Geometry.Polygon.Rectangle(Player.Instance.Position,
-                            collisionableObjects[id].Position, 70);
-
-                        var list =
-                            EntityManager.MinionsAndMonsters.EnemyMinions.Where(
-                                x =>
-                                    x.IsValidTarget(1500) &&
-                                    new Geometry.Polygon.Circle(x.Position, x.BoundingRadius).Points.Any(
-                                        xx => rectangleP.IsInside(xx)))
-                                .Where(xd => xd.Health <= Player.Instance.GetSpellDamage(xd, SpellSlot.Q))
-                                .ToList();
-
-                        if (list.Count < Settings.JungleLaneClear.MinMinionsForQ)
-                            continue;
-
-                        var interectionPoint = rectangleP.Points[0].Intersection(rectangleP.Points[2],
-                            rectangleP.Points[1], rectangleP.Points[3]);
-
-                        Q.Cast(interectionPoint.Point.To3D());
                     }
+
+                    if (count < Settings.JungleLaneClear.MinMinionsForQ)
+                        continue;
+
+                    Q.Cast(Q.GetPrediction(minion).CastPosition);
+                    break;
                 }
             }
 
-            if (E.IsReady() && Settings.JungleLaneClear.UseE &&
-                Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForE)
+            if (!E.IsReady() || !Settings.JungleLaneClear.UseE || !(Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForE))
+                return;
+
             {
                 var minions = EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
-                    Player.Instance.Position, E.Range).Where(unit => unit.IsTargetKillableByRend());
+                    Player.Instance.Position, E.Range).Where(Damage.IsTargetKillableByRend);
 
                 if (minions.Count() >= Settings.JungleLaneClear.MinMinionsForE)
                 {

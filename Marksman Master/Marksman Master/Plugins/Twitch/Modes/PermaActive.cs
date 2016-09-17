@@ -26,9 +26,10 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Linq;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Twitch.Modes
 {
@@ -41,7 +42,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                     client => !client.IsDead && client.IsValidTarget(E.Range) && Damage.IsTargetKillableByE(client)))
             {
                 E.Cast();
-                Console.WriteLine("[DEBUG] Casting E to ks !");
+                Misc.PrintDebugMessage("Casting E to ks !");
             }
         }
     }

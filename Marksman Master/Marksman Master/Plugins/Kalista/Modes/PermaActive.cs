@@ -49,14 +49,14 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 !target.HasUndyingBuffA() && Player.Instance.GetSpellDamage(target, SpellSlot.Q) >= target.TotalHealthWithShields())
             {
                 Q.Cast(Q.GetPrediction(target).CastPosition);
-                Console.WriteLine("[DEBUG] Casting Q to ks");
+                Misc.PrintDebugMessage("Casting Q to ks");
             }
             if (E.IsReady() && Settings.Combo.UseE)
             {
-                if(EntityManager.Heroes.Enemies.Any(unit => unit.IsValid && !unit.IsDead && unit.IsValidTarget(E.Range) && unit.IsTargetKillableByRend()))
+                if(EntityManager.Heroes.Enemies.Any(unit => unit.IsValid && !unit.IsDead && unit.IsValidTarget(E.Range) && Damage.IsTargetKillableByRend(unit)))
                 {
                     E.Cast();
-                    Console.WriteLine("[DEBUG] Casting E to ks");
+                    Misc.PrintDebugMessage("Casting E to ks");
                 }
             }
 
@@ -64,18 +64,18 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             {
                 if (Settings.JungleLaneClear.UseEToStealDragon)
                 {
-                    if(EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).Any(unit => (unit.BaseSkinName.Contains("Baron") || unit.BaseSkinName.Contains("Dragon") || unit.BaseSkinName.Contains("RiftHerald")) && unit.IsTargetKillableByRend()))
+                    if(EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).Any(unit => (unit.BaseSkinName.Contains("Baron") || unit.BaseSkinName.Contains("Dragon") || unit.BaseSkinName.Contains("RiftHerald")) && Damage.IsTargetKillableByRend(unit)))
                     {
-                        Console.WriteLine("[DEBUG] Casting E to ks baron");
+                        Misc.PrintDebugMessage("Casting E to ks baron");
                         E.Cast();
                     }
                 }
 
                 if (Settings.JungleLaneClear.UseEToStealBuffs)
                 {
-                    if (EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).Any(unit => unit.IsValidTarget(E.Range) && (unit.BaseSkinName.Contains("Blue") || unit.BaseSkinName.Contains("Red")) && !unit.BaseSkinName.Contains("Mini") && unit.IsTargetKillableByRend()))
+                    if (EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).Any(unit => unit.IsValidTarget(E.Range) && (unit.BaseSkinName.Contains("Blue") || unit.BaseSkinName.Contains("Red")) && !unit.BaseSkinName.Contains("Mini") && Damage.IsTargetKillableByRend(unit)))
                     {
-                        Console.WriteLine("[DEBUG] Casting E to ks blue ["+Game.Time+"]");
+                        Misc.PrintDebugMessage($"Casting E to ks blue [{Game.Time}]");
                         E.Cast();
                     }
                 }

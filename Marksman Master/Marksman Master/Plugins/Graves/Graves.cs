@@ -50,11 +50,11 @@ namespace Marksman_Master.Plugins.Graves
         protected static Spell.Skillshot R { get; }
         protected static Spell.Skillshot RCone { get; }
 
-        protected static Menu ComboMenu { get; set; }
-        protected static Menu HarassMenu { get; set; }
-        protected static Menu LaneClearMenu { get; set; }
-        protected static Menu DrawingsMenu { get; set; }
-        protected static Menu MiscMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
 
         private static ColorPicker[] ColorPicker { get; }
 
@@ -277,7 +277,7 @@ namespace Marksman_Master.Plugins.Graves
                          Player.Instance.Position.Extend(Game.CursorPos, 420)
                              .IsInRange(heroClient, heroClient.GetAutoAttackRange() * 1.5f)))
                     {
-                        Console.WriteLine("[DEBUG] 1v1 Game.CursorPos");
+                        Misc.PrintDebugMessage("1v1 Game.CursorPos");
                         position = Game.CursorPos.Distance(Player.Instance) > E.Range
                             ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
                             : Game.CursorPos;
@@ -317,7 +317,7 @@ namespace Marksman_Master.Plugins.Graves
                         {
                             position = asc;
 
-                            Console.WriteLine("[DEBUG] Paths low sorting Ascending");
+                            Misc.PrintDebugMessage("Paths low sorting Ascending");
                         }
                         else if (Player.Instance.CountEnemiesInRange(1000) <= 2 && (paths == 0 || paths == 1) &&
                                  ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2) ||
@@ -331,10 +331,10 @@ namespace Marksman_Master.Plugins.Graves
                         {
                             position =
                                 Misc.SortVectorsByDistanceDescending(list, heroClient.Position.To2D())[0].To3D();
-                            Console.WriteLine("[DEBUG] Paths high sorting Descending");
+                            Misc.PrintDebugMessage("Paths high sorting Descending");
                         }
                     }
-                    else Console.WriteLine("[DEBUG] 1v1 not found positions...");
+                    else Misc.PrintDebugMessage("1v1 not found positions...");
                 }
 
                 if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
@@ -558,441 +558,75 @@ namespace Marksman_Master.Plugins.Graves
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Graves.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Graves.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Graves.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Graves.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Graves.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Graves.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Graves.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Graves.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Graves.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Graves.ComboMenu.UseW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Graves.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Graves.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Graves.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Graves.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Graves.ComboMenu.UseE"];
 
-                public static bool UseEOnlyToDardoch
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"] != null &&
-                               ComboMenu["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"] != null)
-                            ComboMenu["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEOnlyToDardoch => MenuManager.MenuValues["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"];
                 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Graves.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Graves.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Graves.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Graves.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static int RMinEnemiesHit
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Graves.ComboMenu.RMinEnemiesHit"] != null)
-                            return ComboMenu["Plugins.Graves.ComboMenu.RMinEnemiesHit"].Cast<Slider>().CurrentValue;
+                public static bool UseR => MenuManager.MenuValues["Plugins.Graves.ComboMenu.UseR"];
 
-                        Logger.Error("Couldn't get Plugins.Graves.ComboMenu.RMinEnemiesHit menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Graves.ComboMenu.RMinEnemiesHit"] != null)
-                            ComboMenu["Plugins.Graves.ComboMenu.RMinEnemiesHit"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int RMinEnemiesHit => MenuManager.MenuValues["Plugins.Graves.ComboMenu.RMinEnemiesHit", true];
 
-                public static bool RKeybind
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Graves.ComboMenu.RKeybind"] != null &&
-                               ComboMenu["Plugins.Graves.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Graves.ComboMenu.RKeybind"] != null)
-                            ComboMenu["Plugins.Graves.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool RKeybind => MenuManager.MenuValues["Plugins.Graves.ComboMenu.RKeybind"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Graves.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Graves.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Graves.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Graves.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Graves.HarassMenu.UseQ"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Graves.HarassMenu.MinManaQ"] != null)
-                            return HarassMenu["Plugins.Graves.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Graves.HarassMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Graves.HarassMenu.MinManaQ"] != null)
-                            HarassMenu["Plugins.Graves.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Graves.HarassMenu.MinManaQ", true];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Graves.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Graves.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Graves.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Graves.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Graves.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Graves.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Graves.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Graves.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Graves.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Graves.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Graves.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Graves.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Graves.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Graves.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Graves.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Graves.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Graves.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEInJungleClear => MenuManager.MenuValues["Plugins.Graves.LaneClearMenu.UseEInJungleClear"];
 
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Graves.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Graves.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Graves.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaE => MenuManager.MenuValues["Plugins.Graves.LaneClearMenu.MinManaE", true];
 
-                public static bool UseEInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Graves.LaneClearMenu.UseEInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Graves.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.UseEInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Graves.LaneClearMenu.UseEInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinMinionsHitQ => MenuManager.MenuValues["Plugins.Graves.LaneClearMenu.MinMinionsHitQ", true];
 
-                public static int MinManaE
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.MinManaE"] != null)
-                            return LaneClearMenu["Plugins.Graves.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Graves.LaneClearMenu.MinManaE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.MinManaE"] != null)
-                            LaneClearMenu["Plugins.Graves.LaneClearMenu.MinManaE"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int MinMinionsHitQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.MinMinionsHitQ"] != null)
-                            return LaneClearMenu["Plugins.Graves.LaneClearMenu.MinMinionsHitQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Graves.LaneClearMenu.MinMinionsHitQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.MinMinionsHitQ"] != null)
-                            LaneClearMenu["Plugins.Graves.LaneClearMenu.MinMinionsHitQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Graves.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Graves.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Graves.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Graves.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Graves.LaneClearMenu.MinManaQ", true];
             }
 
             internal static class Misc
             {
-                public static bool EnableKillsteal
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Graves.MiscMenu.EnableKillsteal"] != null &&
-                               MiscMenu["Plugins.Graves.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Graves.MiscMenu.EnableKillsteal"] != null)
-                            MiscMenu["Plugins.Graves.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.Graves.MiscMenu.EnableKillsteal"];
 
                 /// <summary>
                 /// 0 - "Auto"
                 /// 1 - "Cursor Pos"
                 /// </summary>
-                public static int EMode
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Graves.MiscMenu.EMode"] != null)
-                            return MiscMenu["Plugins.Graves.MiscMenu.EMode"].Cast<ComboBox>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Graves.MiscMenu.EMode menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Graves.MiscMenu.EMode"] != null)
-                            MiscMenu["Plugins.Graves.MiscMenu.EMode"].Cast<ComboBox>().CurrentValue = value;
-                    }
-                }
+                public static int EMode => MenuManager.MenuValues["Plugins.Graves.MiscMenu.EMode", true];
 
                 /// <summary>
                 /// 0 - "Always"
                 /// 1 - "After autoattack only"
                 /// </summary>
-                public static int EUsageMode
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Graves.MiscMenu.EUsageMode"] != null)
-                            return MiscMenu["Plugins.Graves.MiscMenu.EUsageMode"].Cast<ComboBox>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Graves.MiscMenu.EUsageMode menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Graves.MiscMenu.EUsageMode"] != null)
-                            MiscMenu["Plugins.Graves.MiscMenu.EUsageMode"].Cast<ComboBox>().CurrentValue = value;
-                    }
-                }
+                public static int EUsageMode => MenuManager.MenuValues["Plugins.Graves.MiscMenu.EUsageMode", true];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Graves.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Graves.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Graves.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Graves.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Graves.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Graves.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.Graves.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Graves.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.Graves.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Graves.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.Graves.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Graves.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.Graves.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.Graves.DrawingsMenu.DrawQ"];
 
-                public static bool DrawDamageIndicator
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Graves.DrawingsMenu.DrawDamageIndicator"] != null &&
-                               DrawingsMenu["Plugins.Graves.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Graves.DrawingsMenu.DrawDamageIndicator"] != null)
-                            DrawingsMenu["Plugins.Graves.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.Graves.DrawingsMenu.DrawR"];
+
+                public static bool DrawDamageIndicator => MenuManager.MenuValues["Plugins.Graves.DrawingsMenu.DrawDamageIndicator"];
             }
         }
 

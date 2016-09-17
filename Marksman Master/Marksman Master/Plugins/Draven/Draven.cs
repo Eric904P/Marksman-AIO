@@ -36,7 +36,6 @@ using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using SharpDX;
 using Color = System.Drawing.Color;
@@ -52,12 +51,12 @@ namespace Marksman_Master.Plugins.Draven
         protected static Spell.Skillshot E { get; }
         protected static Spell.Skillshot R { get; }
 
-        protected static Menu ComboMenu { get; set; }
-        protected static Menu HarassMenu { get; set; }
-        protected static Menu LaneClearMenu { get; set; }
-        protected static Menu DrawingsMenu { get; set; }
-        protected static Menu MiscMenu { get; set; }
-        protected static Menu AxeSettingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
+        internal static Menu AxeSettingsMenu { get; set; }
 
         private static readonly List<AxeObjectData> AxeObjects = new List<AxeObjectData>();
         private static readonly Text Text;
@@ -117,7 +116,7 @@ namespace Marksman_Master.Plugins.Draven
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
-            if (!(target is AIHeroClient) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+            if (target.GetType() != typeof(AIHeroClient) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
             if (Q.IsReady() && GetAxesCount() != 0 && GetAxesCount() < Settings.Combo.MaxAxesAmount)
@@ -171,7 +170,7 @@ namespace Marksman_Master.Plugins.Draven
                 }
             }
 
-            if (!(target is AIHeroClient) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+            if (target.GetType() != typeof(AIHeroClient) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
             if (Q.IsReady() && GetAxesCount() == 0)
@@ -648,524 +647,85 @@ namespace Marksman_Master.Plugins.Draven
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Draven.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Draven.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Draven.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Draven.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static int MaxAxesAmount
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Draven.ComboMenu.MaxAxesAmount"] != null)
-                            return ComboMenu["Plugins.Draven.ComboMenu.MaxAxesAmount"].Cast<Slider>().CurrentValue;
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Draven.ComboMenu.UseQ"];
 
-                        Logger.Error("Couldn't get Plugins.Draven.ComboMenu.MaxAxesAmount menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Draven.ComboMenu.MaxAxesAmount"] != null)
-                            ComboMenu["Plugins.Draven.ComboMenu.MaxAxesAmount"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MaxAxesAmount => MenuManager.MenuValues["Plugins.Draven.ComboMenu.MaxAxesAmount", true];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Draven.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Draven.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Draven.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Draven.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Draven.ComboMenu.UseW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Draven.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Draven.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Draven.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Draven.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Draven.ComboMenu.UseE"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Draven.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Draven.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Draven.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Draven.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.Draven.ComboMenu.UseR"];
 
-                public static bool RKeybind
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Draven.ComboMenu.RKeybind"] != null &&
-                               ComboMenu["Plugins.Draven.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Draven.ComboMenu.RKeybind"] != null)
-                            ComboMenu["Plugins.Draven.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static int RRangeKeybind
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Draven.ComboMenu.RRangeKeybind"] != null)
-                            return ComboMenu["Plugins.Draven.ComboMenu.RRangeKeybind"].Cast<Slider>().CurrentValue;
+                public static bool RKeybind => MenuManager.MenuValues["Plugins.Draven.ComboMenu.RKeybind"];
 
-                        Logger.Error("Couldn't get Plugins.Draven.ComboMenu.RRangeKeybind menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Draven.ComboMenu.RRangeKeybind"] != null)
-                            ComboMenu["Plugins.Draven.ComboMenu.RRangeKeybind"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-                
+                public static int RRangeKeybind => MenuManager.MenuValues["Plugins.Draven.ComboMenu.RRangeKeybind", true];
             }
 
             internal static class Axe
             {
-                public static bool CatchAxes
-                {
-                    get
-                    {
-                        return AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxes"] != null &&
-                               AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxes"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxes"] != null)
-                            AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxes"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool CatchAxes => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.CatchAxes"];
 
-                public static bool UseWToCatch
-                {
-                    get
-                    {
-                        return AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.UseWToCatch"] != null &&
-                               AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.UseWToCatch"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.UseWToCatch"] != null)
-                            AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.UseWToCatch"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseWToCatch => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.UseWToCatch"];
 
                 /// <summary>
                 /// 0 - Lane clear and combo
                 /// 1 - Only in Combo
                 /// </summary>
-                public static int CatchAxesWhen
-                {
-                    get
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxesWhen"] != null)
-                            return AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxesWhen"].Cast<ComboBox>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Draven.AxeSettingsMenu.CatchAxesWhen menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxesWhen"] != null)
-                            AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxesWhen"].Cast<ComboBox>().CurrentValue = value;
-                    }
-                }
+                public static int CatchAxesWhen => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.CatchAxesWhen", true];
 
                 /// <summary>
                 /// 0 - Default
                 /// 1 - Brutal
                 /// </summary>
-                public static int CatchAxesMode
-                {
-                    get
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxesMode"] != null)
-                            return AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxesMode"].Cast<ComboBox>().CurrentValue;
+                public static int CatchAxesMode => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.CatchAxesMode", true];
 
-                        Logger.Error("Couldn't get Plugins.Draven.AxeSettingsMenu.CatchAxesMode menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxesMode"] != null)
-                            AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxesMode"].Cast<ComboBox>().CurrentValue = value;
-                    }
-                }
+                public static int AxeCatchRange => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.AxeCatchRange", true];
 
-                public static int AxeCatchRange
-                {
-                    get
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.AxeCatchRange"] != null)
-                            return AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.AxeCatchRange"].Cast<Slider>().CurrentValue;
+                public static bool CatchAxesUnderTower => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.CatchAxesUnderTower"];
 
-                        Logger.Error("Couldn't get Plugins.Draven.AxeSettingsMenu.AxeCatchRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.AxeCatchRange"] != null)
-                            AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.AxeCatchRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static bool CatchAxesUnderTower
-                {
-                    get
-                    {
-                        return AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxesUnderTower"] != null &&
-                               AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxesUnderTower"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxesUnderTower"] != null)
-                            AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxesUnderTower"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool CatchAxesNearEnemies
-                {
-                    get
-                    {
-                        return AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxesNearEnemies"] != null &&
-                               AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxesNearEnemies"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (AxeSettingsMenu?["Plugins.Draven.AxeSettingsMenu.CatchAxesNearEnemies"] != null)
-                            AxeSettingsMenu["Plugins.Draven.AxeSettingsMenu.CatchAxesNearEnemies"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool CatchAxesNearEnemies => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.CatchAxesNearEnemies"];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Draven.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Draven.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Draven.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Draven.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Draven.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Draven.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Draven.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Draven.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Draven.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Draven.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Draven.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Draven.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Draven.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Draven.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Draven.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Draven.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Draven.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Draven.LaneClearMenu.MinManaQ", true];
 
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Draven.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Draven.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Draven.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Draven.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static bool UseWInLaneClear => MenuManager.MenuValues["Plugins.Draven.LaneClearMenu.UseWInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Draven.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Draven.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseWInJungleClear => MenuManager.MenuValues["Plugins.Draven.LaneClearMenu.UseWInJungleClear"];
 
-                public static bool UseWInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Draven.LaneClearMenu.UseWInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Draven.LaneClearMenu.UseWInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.UseWInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Draven.LaneClearMenu.UseWInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool UseWInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Draven.LaneClearMenu.UseWInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Draven.LaneClearMenu.UseWInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.UseWInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Draven.LaneClearMenu.UseWInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinManaW
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.MinManaW"] != null)
-                            return LaneClearMenu["Plugins.Draven.LaneClearMenu.MinManaW"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Draven.LaneClearMenu.MinManaW menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Draven.LaneClearMenu.MinManaW"] != null)
-                            LaneClearMenu["Plugins.Draven.LaneClearMenu.MinManaW"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaW => MenuManager.MenuValues["Plugins.Draven.LaneClearMenu.MinManaW", true];
             }
 
             internal static class Misc
             {
-                public static bool EnableInterrupter
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Draven.MiscMenu.EnableInterrupter"] != null &&
-                               MiscMenu["Plugins.Draven.MiscMenu.EnableInterrupter"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Draven.MiscMenu.EnableInterrupter"] != null)
-                            MiscMenu["Plugins.Draven.MiscMenu.EnableInterrupter"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableInterrupter => MenuManager.MenuValues["Plugins.Draven.MiscMenu.EnableInterrupter"];
 
-                public static bool EnableAntiGapcloser
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Draven.MiscMenu.EnableAntiGapcloser"] != null &&
-                               MiscMenu["Plugins.Draven.MiscMenu.EnableAntiGapcloser"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Draven.MiscMenu.EnableAntiGapcloser"] != null)
-                            MiscMenu["Plugins.Draven.MiscMenu.EnableAntiGapcloser"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableAntiGapcloser => MenuManager.MenuValues["Plugins.Draven.MiscMenu.EnableAntiGapcloser"];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                
-                public static bool DrawAxes
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawAxes"] != null &&
-                               DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawAxes"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawAxes"] != null)
-                            DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawAxes"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Draven.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawAxesTimer
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawAxesTimer"] != null &&
-                               DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawAxesTimer"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawAxesTimer"] != null)
-                            DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawAxesTimer"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawAxes => MenuManager.MenuValues["Plugins.Draven.DrawingsMenu.DrawAxes"];
 
-                public static bool DrawAxesCatchRange
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawAxesCatchRange"] != null &&
-                               DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawAxesCatchRange"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawAxesCatchRange"] != null)
-                            DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawAxesCatchRange"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawAxesTimer => MenuManager.MenuValues["Plugins.Draven.DrawingsMenu.DrawAxesTimer"];
 
-                public static bool DrawE
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawE"] != null &&
-                               DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Draven.DrawingsMenu.DrawE"] != null)
-                            DrawingsMenu["Plugins.Draven.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawAxesCatchRange => MenuManager.MenuValues["Plugins.Draven.DrawingsMenu.DrawAxesCatchRange"];
+
+                public static bool DrawE => MenuManager.MenuValues["Plugins.Draven.DrawingsMenu.DrawE"];
             }
         }
     }

@@ -137,9 +137,9 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 {
                     if (!Q.IsCharging && !IsPreAttack &&
                         (possibleTargets.Any(
-                            x => (x.TotalHealthWithShields() < Damage.GetQDamage(x) + Damage.GetWDamage(x)) && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) <= 1) ||
-                         !possibleTargets.Any(x => x.IsValidTarget(Settings.Combo.QMinDistanceToTarget))) &&
-                        !IsPreAttack)
+                            x => (x.TotalHealthWithShields() < Damage.GetQDamage(x) + Damage.GetWDamage(x)) &&
+                                Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) <= 1) ||
+                         Player.Instance.CountEnemiesInRange(Settings.Combo.QMinDistanceToTarget) == 0) && !IsPreAttack)
                     {
                         Q.StartCharging();
                         return;
@@ -162,9 +162,18 @@ namespace Marksman_Master.Plugins.Varus.Modes
                         {
                             Q.Cast(qPrediction.CastPosition);
                         }
-                        else if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) != 0 || Q.IsFullyCharged && qPrediction.HitChancePercent >= 60)
+                        else if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) != 0 ||
+                                 Q.IsFullyCharged && qPrediction.HitChancePercent >= 60)
                         {
                             Q.Cast(qPrediction.CastPosition);
+                        }
+                    }
+                    else if(Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) >= 1)
+                    {
+                        var t = Q.GetTarget();
+                        if (t != null)
+                        {
+                            Q.CastMinimumHitchance(t, 50);
                         }
                     }
                 }

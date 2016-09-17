@@ -37,7 +37,6 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
 using SharpDX;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using Color = SharpDX.Color;
 
@@ -45,24 +44,24 @@ namespace Marksman_Master.Plugins.Twitch
 {
     internal class Twitch : ChampionPlugin
     {
-        public static Spell.Active Q { get; }
-        public static Spell.Skillshot W { get; }
-        public static Spell.Active E { get; }
-        public static Spell.Active R { get; }
+        protected static Spell.Active Q { get; }
+        protected static Spell.Skillshot W { get; }
+        protected static Spell.Active E { get; }
+        protected static Spell.Active R { get; }
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu HarassMenu { get; set; }
-        private static Menu JungleClearMenu { get; set; }
-        private static Menu LaneClearMenu { get; set; }
-        private static Menu MiscMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu JungleClearMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
 
         private static readonly ColorPicker[] ColorPicker;
 
-        public static bool HasDeadlyVenomBuff(Obj_AI_Base unit) => unit.Buffs.Any(
+        protected static bool HasDeadlyVenomBuff(Obj_AI_Base unit) => unit.Buffs.Any(
             b => b.IsActive && b.DisplayName.ToLowerInvariant() == "twitchdeadlyvenom");
 
-        public static BuffInstance GetDeadlyVenomBuff(Obj_AI_Base unit) => unit.Buffs.FirstOrDefault(
+        protected static BuffInstance GetDeadlyVenomBuff(Obj_AI_Base unit) => unit.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "twitchdeadlyvenom");
 
         private static readonly Text Text;
@@ -72,7 +71,7 @@ namespace Marksman_Master.Plugins.Twitch
         static Twitch()
         {
             Q = new Spell.Active(SpellSlot.Q);
-            W = new Spell.Skillshot(SpellSlot.W, 950, SkillShotType.Circular, 250, 1400, 100)
+            W = new Spell.Skillshot(SpellSlot.W, 950, SkillShotType.Circular, 250, 1400, 260)
             {
                 AllowedCollisionCount = int.MaxValue
             };
@@ -460,557 +459,84 @@ namespace Marksman_Master.Plugins.Twitch
         {
             internal static class Combo
             {
-                public static bool UseQAfterKill
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Twitch.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Twitch.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Twitch.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQAfterKill => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Twitch.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Twitch.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Twitch.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Twitch.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Twitch.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Twitch.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseE"];
 
-                public static int EMode
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.UseEIfDmg"] != null)
-                            return ComboMenu["Plugins.Twitch.ComboMenu.UseEIfDmg"].Cast<ComboBox>().CurrentValue;
+                public static int EMode => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseEIfDmg", true];
 
-                        Logger.Error("Couldn't get Plugins.Twitch.ComboMenu.UseEIfDmg menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.UseEIfDmg"] != null)
-                            ComboMenu["Plugins.Twitch.ComboMenu.UseEIfDmg"].Cast<ComboBox>().CurrentValue = value;
-                    }
-                }
+                public static int EAt => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.EAtStacks", true];
 
-                public static int EAt
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.EAtStacks"] != null)
-                            return ComboMenu["Plugins.Twitch.ComboMenu.EAtStacks"].Cast<Slider>().CurrentValue;
+                public static bool UseR => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseR"];
 
-                        Logger.Error("Couldn't get Plugins.Twitch.ComboMenu.EAtStacks menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.EAtStacks"] != null)
-                            ComboMenu["Plugins.Twitch.ComboMenu.EAtStacks"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool RifTargetOutOfRange => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.RifTargetOutOfRange"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Twitch.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Twitch.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Twitch.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static bool RifTargetOutOfRange
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Twitch.ComboMenu.RifTargetOutOfRange"] != null &&
-                               ComboMenu["Plugins.Twitch.ComboMenu.RifTargetOutOfRange"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.RifTargetOutOfRange"] != null)
-                            ComboMenu["Plugins.Twitch.ComboMenu.RifTargetOutOfRange"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int RIfEnemiesHit
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.RIfEnemiesHit"] != null)
-                            return ComboMenu["Plugins.Twitch.ComboMenu.RIfEnemiesHit"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Twitch.ComboMenu.RIfEnemiesHit menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Twitch.ComboMenu.RIfEnemiesHit"] != null)
-                            ComboMenu["Plugins.Twitch.ComboMenu.RIfEnemiesHit"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int RIfEnemiesHit => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.RIfEnemiesHit", true];
             }
 
             internal static class Harass
             {
-                public static bool UseW
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Twitch.HarassMenu.UseW"] != null &&
-                               HarassMenu["Plugins.Twitch.HarassMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Twitch.HarassMenu.UseW"] != null)
-                            HarassMenu["Plugins.Twitch.HarassMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Twitch.HarassMenu.UseW"];
 
-                public static int MinManaToUseW
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Twitch.HarassMenu.WMinMana"] != null)
-                            return HarassMenu["Plugins.Twitch.HarassMenu.WMinMana"].Cast<Slider>().CurrentValue;
+                public static int MinManaToUseW => MenuManager.MenuValues["Plugins.Twitch.HarassMenu.WMinMana", true];
 
-                        Logger.Error("Couldn't get Plugins.Twitch.HarassMenu.WMinMana menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Twitch.HarassMenu.WMinMana"] != null)
-                            HarassMenu["Plugins.Twitch.HarassMenu.WMinMana"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Twitch.HarassMenu.UseE"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Twitch.HarassMenu.UseE"] != null &&
-                               HarassMenu["Plugins.Twitch.HarassMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Twitch.HarassMenu.UseE"] != null)
-                            HarassMenu["Plugins.Twitch.HarassMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool TwoEnemiesMin => MenuManager.MenuValues["Plugins.Twitch.HarassMenu.TwoEnemiesMin"];
 
-                public static bool TwoEnemiesMin
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Twitch.HarassMenu.TwoEnemiesMin"] != null &&
-                               HarassMenu["Plugins.Twitch.HarassMenu.TwoEnemiesMin"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Twitch.HarassMenu.TwoEnemiesMin"] != null)
-                            HarassMenu["Plugins.Twitch.HarassMenu.TwoEnemiesMin"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int EMinMana => MenuManager.MenuValues["Plugins.Twitch.HarassMenu.EMinMana", true];
 
-                public static int EMinMana
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Twitch.HarassMenu.EMinMana"] != null)
-                            return HarassMenu["Plugins.Twitch.HarassMenu.EMinMana"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Twitch.HarassMenu.EMinMana menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Twitch.HarassMenu.EMinMana"] != null)
-                            HarassMenu["Plugins.Twitch.HarassMenu.EMinMana"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int EMinStacks
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Twitch.HarassMenu.EMinStacks"] != null)
-                            return HarassMenu["Plugins.Twitch.HarassMenu.EMinStacks"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Twitch.HarassMenu.EMinStacks menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Twitch.HarassMenu.EMinStacks"] != null)
-                            HarassMenu["Plugins.Twitch.HarassMenu.EMinStacks"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int EMinStacks => MenuManager.MenuValues["Plugins.Twitch.HarassMenu.EMinStacks", true];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Twitch.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Twitch.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Twitch.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Twitch.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Twitch.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Twitch.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Twitch.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Twitch.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Twitch.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Twitch.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseW => MenuManager.MenuValues["Plugins.Twitch.LaneClearMenu.UseW"];
 
-                        Logger.Error("Couldn't get Plugins.Twitch.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Twitch.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static int WMinMana => MenuManager.MenuValues["Plugins.Twitch.LaneClearMenu.WMinMana", true];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Twitch.LaneClearMenu.UseW"] != null &&
-                               LaneClearMenu["Plugins.Twitch.LaneClearMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.UseW"] != null)
-                            LaneClearMenu["Plugins.Twitch.LaneClearMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Twitch.LaneClearMenu.UseE"];
 
-                public static int WMinMana
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.WMinMana"] != null)
-                            return LaneClearMenu["Plugins.Twitch.LaneClearMenu.WMinMana"].Cast<Slider>().CurrentValue;
+                public static int EMinMana => MenuManager.MenuValues["Plugins.Twitch.LaneClearMenu.EMinMana", true];
 
-                        Logger.Error("Couldn't get Plugins.Twitch.LaneClearMenu.WMinMana menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.WMinMana"] != null)
-                            LaneClearMenu["Plugins.Twitch.LaneClearMenu.WMinMana"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static bool UseE
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Twitch.LaneClearMenu.UseE"] != null &&
-                               LaneClearMenu["Plugins.Twitch.LaneClearMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.UseE"] != null)
-                            LaneClearMenu["Plugins.Twitch.LaneClearMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int EMinMana
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.EMinMana"] != null)
-                            return LaneClearMenu["Plugins.Twitch.LaneClearMenu.EMinMana"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Twitch.LaneClearMenu.EMinMana menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.EMinMana"] != null)
-                            LaneClearMenu["Plugins.Twitch.LaneClearMenu.EMinMana"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int EMinMinionsHit
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.EMinMinionsHit"] != null)
-                            return
-                                LaneClearMenu["Plugins.Twitch.LaneClearMenu.EMinMinionsHit"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Twitch.LaneClearMenu.EMinMinionsHit menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Twitch.LaneClearMenu.EMinMinionsHit"] != null)
-                            LaneClearMenu["Plugins.Twitch.LaneClearMenu.EMinMinionsHit"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static int EMinMinionsHit => MenuManager.MenuValues["Plugins.Twitch.LaneClearMenu.EMinMinionsHit", true];
             }
 
             internal static class JungleClear
             {
-                public static bool UseW
-                {
-                    get
-                    {
-                        return JungleClearMenu?["Plugins.Twitch.JungleClearMenu.UseW"] != null &&
-                               JungleClearMenu["Plugins.Twitch.JungleClearMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Twitch.JungleClearMenu.UseW"] != null)
-                            JungleClearMenu["Plugins.Twitch.JungleClearMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Twitch.JungleClearMenu.UseW"];
                 
-                public static int WMinMana
-                {
-                    get
-                    {
-                        if (JungleClearMenu?["Plugins.Twitch.JungleClearMenu.WMinMana"] != null)
-                            return JungleClearMenu["Plugins.Twitch.JungleClearMenu.WMinMana"].Cast<Slider>().CurrentValue;
+                public static int WMinMana => MenuManager.MenuValues["Plugins.Twitch.JungleClearMenu.WMinMana", true];
 
-                        Logger.Error("Couldn't get Plugins.Twitch.JungleClearMenu.WMinMana menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Twitch.JungleClearMenu.WMinMana"] != null)
-                            JungleClearMenu["Plugins.Twitch.JungleClearMenu.WMinMana"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Twitch.JungleClearMenu.UseE"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return JungleClearMenu?["Plugins.Twitch.JungleClearMenu.UseE"] != null &&
-                               JungleClearMenu["Plugins.Twitch.JungleClearMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Twitch.JungleClearMenu.UseE"] != null)
-                            JungleClearMenu["Plugins.Twitch.JungleClearMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int EMinMana
-                {
-                    get
-                    {
-                        if (JungleClearMenu?["Plugins.Twitch.JungleClearMenu.EMinMana"] != null)
-                            return JungleClearMenu["Plugins.Twitch.JungleClearMenu.EMinMana"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Twitch.JungleClearMenu.EMinMana menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Twitch.JungleClearMenu.EMinMana"] != null)
-                            JungleClearMenu["Plugins.Twitch.JungleClearMenu.EMinMana"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int EMinMana => MenuManager.MenuValues["Plugins.Twitch.JungleClearMenu.EMinMana", true];
             }
 
             internal static class Misc
             {
-                public static bool StealthRecall
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Twitch.MiscMenu.StealthRecall"] != null &&
-                               MiscMenu["Plugins.Twitch.MiscMenu.StealthRecall"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Twitch.MiscMenu.StealthRecall"] != null)
-                            MiscMenu["Plugins.Twitch.MiscMenu.StealthRecall"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool StealthRecall => MenuManager.MenuValues["Plugins.Twitch.MiscMenu.StealthRecall"];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Twitch.DrawingsMenu.DrawSpellRangesWhenReady"];
                 
-                public static bool DrawW
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawW"] != null &&
-                               DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawW"] != null)
-                            DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawW => MenuManager.MenuValues["Plugins.Twitch.DrawingsMenu.DrawW"];
 
-                public static bool DrawE
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawE"] != null &&
-                               DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawE"] != null)
-                            DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawE => MenuManager.MenuValues["Plugins.Twitch.DrawingsMenu.DrawE"];
 
-                public static bool DrawDamageIndicator
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawDamageIndicator"] != null &&
-                               DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Twitch.DrawingsMenu.DrawDamageIndicator"] != null)
-                            DrawingsMenu["Plugins.Twitch.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>()
-                                .CurrentValue =
-                                value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.Twitch.DrawingsMenu.DrawR"];
+
+                public static bool DrawDamageIndicator => MenuManager.MenuValues["Plugins.Twitch.DrawingsMenu.DrawDamageIndicator"];
             }
         }
         

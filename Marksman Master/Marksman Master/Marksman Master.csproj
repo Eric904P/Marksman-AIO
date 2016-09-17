@@ -111,8 +111,6 @@
     <Compile Include="InitializeAddon.cs" />
     <Compile Include="MenuManager.cs" />
     <Compile Include="Plugins\Draven\AxeObjectData.cs" />
-    <Compile Include="Plugins\Kalista\Damage.cs" />
-    <Compile Include="Plugins\Kalista\WallJumper.cs" />
     <Compile Include="Plugins\Varus\Varus.cs" />
     <Compile Include="Plugins\Varus\Modes\Combo.cs" />
     <Compile Include="Plugins\Varus\Modes\Flee.cs" />

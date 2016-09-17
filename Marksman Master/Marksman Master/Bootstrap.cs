@@ -43,7 +43,7 @@ namespace Marksman_Master
 
         public static void Initialize()
         {
-            Console.WriteLine("[DEBUG] Initializing addon");
+            Misc.PrintDebugMessage("Initializing addon");
 
             var pluginInitialized = InitializeAddon.Initialize();
 
@@ -53,15 +53,18 @@ namespace Marksman_Master
             Core.DelayAction(
                 () =>
                 {
-                    Console.WriteLine("[DEBUG] Creating Menu");
+                    Misc.PrintDebugMessage("Creating Menu");
+
                     MenuManager.CreateMenu();
-                    Console.WriteLine("[DEBUG] Creating plugin instance");
+
+                    Misc.PrintDebugMessage("Initializing activator");
+
                     Activator.Activator.InitializeActivator();
+
                     MenuLoaded = true;
 
-                    Misc.PrintInfoMessage("<b><font color=\"#5ED43D\">" + Player.Instance.ChampionName +
-                                          "</font></b> loaded successfully.");
-                    Console.WriteLine("[DEBUG] Marksman AIO  fully loaded");
+                    Misc.PrintInfoMessage($"<b><font color=\"#5ED43D\"> {Player.Instance.ChampionName}</font></b> loaded successfully.");
+                    Misc.PrintDebugMessage("Marksman AIO  fully loaded");
                 }, 250);
         }
     }

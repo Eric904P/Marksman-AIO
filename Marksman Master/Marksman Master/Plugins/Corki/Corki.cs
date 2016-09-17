@@ -44,63 +44,63 @@ namespace Marksman_Master.Plugins.Corki
 {
     internal class Corki : ChampionPlugin
     {
-        public static Spell.Skillshot Q { get; }
-        public static Spell.Skillshot W { get; }
-        public static Spell.Active E { get; }
-        public static Spell.Skillshot R { get; }
+        protected static Spell.Skillshot Q { get; }
+        protected static Spell.Skillshot W { get; }
+        protected static Spell.Active E { get; }
+        protected static Spell.Skillshot R { get; }
 
-        public static int[] QMana { get; } = {0, 60, 70, 80, 90, 100};
-        public static int WMana { get; } = 100;
-        public static int EMana { get; } = 50;
-        public static int RMana { get; } = 20;
+        protected static int[] QMana { get; } = {0, 60, 70, 80, 90, 100};
+        protected static int WMana { get; } = 100;
+        protected static int EMana { get; } = 50;
+        protected static int RMana { get; } = 20;
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu HarassMenu { get; set; }
-        private static Menu JungleClearMenu { get; set; }
-        private static Menu LaneClearMenu { get; set; }
-        private static Menu MiscMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu JungleClearMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
 
         private static bool _changingRangeScan;
         
         private static readonly ColorPicker[] ColorPicker;
 
-        public static BuffInstance GetRBigMissileBuff
+        protected static BuffInstance GetRBigMissileBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkimissilebarragecounterbig");
 
-        public static bool HasBigRMissile
+        protected static bool HasBigRMissile
             =>
                 Player.Instance.Buffs.Any(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkimissilebarragecounterbig");
 
-        public static BuffInstance GetRNormalMissileBuff
+        protected static BuffInstance GetRNormalMissileBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkimissilebarragecounternormal");
 
-        public static bool HasNormalRMissile
+        protected static bool HasNormalRMissile
             =>
                 Player.Instance.Buffs.Any(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkimissilebarragecounternormal");
 
-        public static bool HasPackagesBuff
+        protected static bool HasPackagesBuff
             =>
                 Player.Instance.Buffs.Any(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkiloaded");
 
-        public static BuffInstance GetPackagesBuff
+        protected static BuffInstance GetPackagesBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkiloaded");
 
-        public static bool HasSheenBuff
+        protected static bool HasSheenBuff
             =>
                 Player.Instance.Buffs.Any(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "sheen");
 
-        public static BuffInstance GetSheenBuff
+        protected static BuffInstance GetSheenBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "sheen");
@@ -416,761 +416,118 @@ namespace Marksman_Master.Plugins.Corki
             Modes.Flee.Execute();
         }
 
-        internal static class Settings
+        protected static class Settings
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Corki.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Corki.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Corki.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Corki.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Corki.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Corki.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Corki.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Corki.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Corki.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Corki.ComboMenu.UseW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Corki.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Corki.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Corki.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Corki.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Corki.ComboMenu.UseE"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Corki.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Corki.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Corki.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Corki.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static bool RAllowCollision
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Corki.ComboMenu.RAllowCollision"] != null &&
-                               ComboMenu["Plugins.Corki.ComboMenu.RAllowCollision"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Corki.ComboMenu.RAllowCollision"] != null)
-                            ComboMenu["Plugins.Corki.ComboMenu.RAllowCollision"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.Corki.ComboMenu.UseR"];
 
-                public static int MinStacksForR
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Corki.ComboMenu.MinStacksForR"] != null)
-                            return ComboMenu["Plugins.Corki.ComboMenu.MinStacksForR"].Cast<Slider>().CurrentValue;
+                public static bool RAllowCollision => MenuManager.MenuValues["Plugins.Corki.ComboMenu.RAllowCollision"];
 
-                        Logger.Error("Couldn't get Plugins.Corki.ComboMenu.MinStacksForR menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Corki.ComboMenu.MinStacksForR"] != null)
-                            ComboMenu["Plugins.Corki.ComboMenu.MinStacksForR"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinStacksForR => MenuManager.MenuValues["Plugins.Corki.ComboMenu.MinStacksForR", true];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Corki.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Corki.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Corki.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Corki.HarassMenu.UseQ"];
 
-                public static int MinManaToUseQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.MinManaToUseQ"] != null)
-                            return HarassMenu["Plugins.Corki.HarassMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaToUseQ => MenuManager.MenuValues["Plugins.Corki.HarassMenu.MinManaToUseQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Corki.HarassMenu.MinManaToUseQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.MinManaToUseQ"] != null)
-                            HarassMenu["Plugins.Corki.HarassMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Corki.HarassMenu.UseE"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Corki.HarassMenu.UseE"] != null &&
-                               HarassMenu["Plugins.Corki.HarassMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.UseE"] != null)
-                            HarassMenu["Plugins.Corki.HarassMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaToUseE => MenuManager.MenuValues["Plugins.Corki.HarassMenu.MinManaToUseE", true];
 
-                public static int MinManaToUseE
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.MinManaToUseE"] != null)
-                            return HarassMenu["Plugins.Corki.HarassMenu.MinManaToUseE"].Cast<Slider>().CurrentValue;
+                public static bool UseR => MenuManager.MenuValues["Plugins.Corki.HarassMenu.UseR"];
 
-                        Logger.Error("Couldn't get Plugins.Corki.HarassMenu.MinManaToUseE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.MinManaToUseE"] != null)
-                            HarassMenu["Plugins.Corki.HarassMenu.MinManaToUseE"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-                
-                public static bool UseR
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Corki.HarassMenu.UseR"] != null &&
-                               HarassMenu["Plugins.Corki.HarassMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.UseR"] != null)
-                            HarassMenu["Plugins.Corki.HarassMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool RAllowCollision => MenuManager.MenuValues["Plugins.Corki.HarassMenu.RAllowCollision"];
 
-                public static bool RAllowCollision
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Corki.HarassMenu.RAllowCollision"] != null &&
-                               HarassMenu["Plugins.Corki.HarassMenu.RAllowCollision"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.RAllowCollision"] != null)
-                            HarassMenu["Plugins.Corki.HarassMenu.RAllowCollision"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaToUseR => MenuManager.MenuValues["Plugins.Corki.HarassMenu.MinManaToUseR", true];
 
-                public static int MinManaToUseR
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.MinManaToUseR"] != null)
-                            return HarassMenu["Plugins.Corki.HarassMenu.MinManaToUseR"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Corki.HarassMenu.MinManaToUseR menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.MinManaToUseR"] != null)
-                            HarassMenu["Plugins.Corki.HarassMenu.MinManaToUseR"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int MinStacksToUseR
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.MinStacksToUseR"] != null)
-                            return HarassMenu["Plugins.Corki.HarassMenu.MinStacksToUseR"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Corki.HarassMenu.MinStacksToUseR menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Corki.HarassMenu.MinStacksToUseR"] != null)
-                            HarassMenu["Plugins.Corki.HarassMenu.MinStacksToUseR"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinStacksToUseR => MenuManager.MenuValues["Plugins.Corki.HarassMenu.MinStacksToUseR", true];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Corki.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Corki.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Corki.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Corki.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.AllowedEnemies"] != null)
-                            return LaneClearMenu["Plugins.Corki.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.AllowedEnemies", true];
 
-                        Logger.Error("Couldn't get Plugins.Corki.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.UseQ"];
 
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Corki.LaneClearMenu.UseQ"] != null &&
-                               LaneClearMenu["Plugins.Corki.LaneClearMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.UseQ"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinMinionsKilledToUseQ => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.MinMinionsKilledToUseQ", true];
 
-                public static int MinMinionsKilledToUseQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinMinionsKilledToUseQ"] != null)
-                            return LaneClearMenu["Plugins.Corki.LaneClearMenu.MinMinionsKilledToUseQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaToUseQ => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.MinManaToUseQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Corki.LaneClearMenu.MinMinionsKilledToUseQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinMinionsKilledToUseQ"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.MinMinionsKilledToUseQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.UseE"];
 
-                public static int MinManaToUseQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinManaToUseQ"] != null)
-                            return LaneClearMenu["Plugins.Corki.LaneClearMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaToUseE => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.MinManaToUseE", true];
 
-                        Logger.Error("Couldn't get Plugins.Corki.LaneClearMenu.MinManaToUseQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinManaToUseQ"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.UseR"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Corki.LaneClearMenu.UseE"] != null &&
-                               LaneClearMenu["Plugins.Corki.LaneClearMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.UseE"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool RAllowCollision => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.RAllowCollision"];
 
-                public static int MinManaToUseE
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinManaToUseE"] != null)
-                            return LaneClearMenu["Plugins.Corki.LaneClearMenu.MinManaToUseE"].Cast<Slider>().CurrentValue;
+                public static int MinManaToUseR => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.MinManaToUseR", true];
 
-                        Logger.Error("Couldn't get Plugins.Corki.LaneClearMenu.MinManaToUseE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinManaToUseE"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.MinManaToUseE"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-                
-                public static bool UseR
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Corki.LaneClearMenu.UseR"] != null &&
-                               LaneClearMenu["Plugins.Corki.LaneClearMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.UseR"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool RAllowCollision
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Corki.LaneClearMenu.RAllowCollision"] != null &&
-                               LaneClearMenu["Plugins.Corki.LaneClearMenu.RAllowCollision"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.RAllowCollision"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.RAllowCollision"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                
-                public static int MinManaToUseR
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinManaToUseR"] != null)
-                            return LaneClearMenu["Plugins.Corki.LaneClearMenu.MinManaToUseR"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Corki.LaneClearMenu.MinManaToUseR menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinManaToUseR"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.MinManaToUseR"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int MinStacksToUseR
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinStacksToUseR"] != null)
-                            return LaneClearMenu["Plugins.Corki.LaneClearMenu.MinStacksToUseR"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Corki.LaneClearMenu.MinStacksToUseR menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Corki.LaneClearMenu.MinStacksToUseR"] != null)
-                            LaneClearMenu["Plugins.Corki.LaneClearMenu.MinStacksToUseR"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinStacksToUseR => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.MinStacksToUseR", true];
             }
 
             internal static class JungleClear
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return JungleClearMenu?["Plugins.Corki.JungleClearMenu.UseQ"] != null &&
-                               JungleClearMenu["Plugins.Corki.JungleClearMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.UseQ"] != null)
-                            JungleClearMenu["Plugins.Corki.JungleClearMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Corki.JungleClearMenu.UseQ"];
 
-                public static int MinManaToUseQ
-                {
-                    get
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.MinManaToUseQ"] != null)
-                            return JungleClearMenu["Plugins.Corki.JungleClearMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaToUseQ => MenuManager.MenuValues["Plugins.Corki.JungleClearMenu.MinManaToUseQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Corki.JungleClearMenu.MinManaToUseQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.MinManaToUseQ"] != null)
-                            JungleClearMenu["Plugins.Corki.JungleClearMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Corki.JungleClearMenu.UseE"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return JungleClearMenu?["Plugins.Corki.JungleClearMenu.UseE"] != null &&
-                               JungleClearMenu["Plugins.Corki.JungleClearMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.UseE"] != null)
-                            JungleClearMenu["Plugins.Corki.JungleClearMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaToUseE => MenuManager.MenuValues["Plugins.Corki.JungleClearMenu.MinManaToUseE", true];
 
-                public static int MinManaToUseE
-                {
-                    get
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.MinManaToUseE"] != null)
-                            return JungleClearMenu["Plugins.Corki.JungleClearMenu.MinManaToUseE"].Cast<Slider>().CurrentValue;
+                public static bool UseR => MenuManager.MenuValues["Plugins.Corki.JungleClearMenu.UseR"];
 
-                        Logger.Error("Couldn't get Plugins.Corki.JungleClearMenu.MinManaToUseE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.MinManaToUseE"] != null)
-                            JungleClearMenu["Plugins.Corki.JungleClearMenu.MinManaToUseE"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool RAllowCollision => MenuManager.MenuValues["Plugins.Corki.JungleClearMenu.RAllowCollision"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return JungleClearMenu?["Plugins.Corki.JungleClearMenu.UseR"] != null &&
-                               JungleClearMenu["Plugins.Corki.JungleClearMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.UseR"] != null)
-                            JungleClearMenu["Plugins.Corki.JungleClearMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaToUseR => MenuManager.MenuValues["Plugins.Corki.JungleClearMenu.MinManaToUseR", true];
 
-                public static bool RAllowCollision
-                {
-                    get
-                    {
-                        return JungleClearMenu?["Plugins.Corki.JungleClearMenu.RAllowCollision"] != null &&
-                               JungleClearMenu["Plugins.Corki.JungleClearMenu.RAllowCollision"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.RAllowCollision"] != null)
-                            JungleClearMenu["Plugins.Corki.JungleClearMenu.RAllowCollision"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinManaToUseR
-                {
-                    get
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.MinManaToUseR"] != null)
-                            return JungleClearMenu["Plugins.Corki.JungleClearMenu.MinManaToUseR"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Corki.JungleClearMenu.MinManaToUseR menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.MinManaToUseR"] != null)
-                            JungleClearMenu["Plugins.Corki.JungleClearMenu.MinManaToUseR"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-                
-                public static int MinStacksToUseR
-                {
-                    get
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.MinStacksToUseR"] != null)
-                            return JungleClearMenu["Plugins.Corki.JungleClearMenu.MinStacksToUseR"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Corki.JungleClearMenu.MinStacksToUseR menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleClearMenu?["Plugins.Corki.JungleClearMenu.MinStacksToUseR"] != null)
-                            JungleClearMenu["Plugins.Corki.JungleClearMenu.MinStacksToUseR"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinStacksToUseR => MenuManager.MenuValues["Plugins.Corki.JungleClearMenu.MinStacksToUseR", true];
             }
 
             internal static class Misc
             {
-                public static bool AutoHarassEnabled
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Corki.MiscMenu.AutoHarassEnabled"] != null &&
-                               MiscMenu["Plugins.Corki.MiscMenu.AutoHarassEnabled"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Corki.MiscMenu.AutoHarassEnabled"] != null)
-                            MiscMenu["Plugins.Corki.MiscMenu.AutoHarassEnabled"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool AutoHarassEnabled => MenuManager.MenuValues["Plugins.Corki.MiscMenu.AutoHarassEnabled"];
 
-                public static bool UseBigBomb
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Corki.MiscMenu.UseBigBomb"] != null &&
-                               MiscMenu["Plugins.Corki.MiscMenu.UseBigBomb"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Corki.MiscMenu.UseBigBomb"] != null)
-                            MiscMenu["Plugins.Corki.MiscMenu.UseBigBomb"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseBigBomb => MenuManager.MenuValues["Plugins.Corki.MiscMenu.UseBigBomb"];
 
-                public static int MinStacksToUseR
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Corki.MiscMenu.MinStacksToUseR"] != null)
-                            return MiscMenu["Plugins.Corki.MiscMenu.MinStacksToUseR"].Cast<Slider>().CurrentValue;
+                public static int MinStacksToUseR => MenuManager.MenuValues["Plugins.Corki.MiscMenu.MinStacksToUseR", true];
 
-                        Logger.Error("Couldn't get Plugins.Corki.MiscMenu.MinStacksToUseR menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Corki.MiscMenu.MinStacksToUseR"] != null)
-                            MiscMenu["Plugins.Corki.MiscMenu.MinStacksToUseR"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool IsAutoHarassEnabledFor(AIHeroClient champion) => MenuManager.MenuValues["Plugins.Corki.MiscMenu.AutoHarassEnabled." + champion.Hero];
 
-                public static bool IsAutoHarassEnabledFor(AIHeroClient champion)
-                {
-                    if (MiscMenu?["Plugins.Corki.MiscMenu.AutoHarassEnabled." + champion.Hero] != null)
-                    {
-                        return MiscMenu["Plugins.Corki.MiscMenu.AutoHarassEnabled." + champion.Hero].Cast<CheckBox>()
-                                .CurrentValue;
-                    }
-                    return false;
-                }
+                public static bool IsAutoHarassEnabledFor(Champion hero) => MenuManager.MenuValues["Plugins.Corki.MiscMenu.AutoHarassEnabled." + hero];
 
-                public static bool IsAutoHarassEnabledFor(Champion hero)
-                {
-                    if (MiscMenu?["Plugins.Corki.MiscMenu.AutoHarassEnabled." + hero] != null)
-                    {
-                        return MiscMenu["Plugins.Corki.MiscMenu.AutoHarassEnabled." + hero].Cast<CheckBox>()
-                                .CurrentValue;
-                    }
-                    return false;
-                }
-
-                public static bool IsAutoHarassEnabledFor(string championName)
-                {
-                    if (MiscMenu?["Plugins.Corki.MiscMenu.AutoHarassEnabled." + championName] != null)
-                    {
-                        return MiscMenu["Plugins.Corki.MiscMenu.AutoHarassEnabled." + championName].Cast<CheckBox>()
-                                .CurrentValue;
-                    }
-                    return false;
-                }
+                public static bool IsAutoHarassEnabledFor(string championName) => MenuManager.MenuValues["Plugins.Corki.MiscMenu.AutoHarassEnabled." + championName];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Corki.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.Corki.DrawingsMenu.DrawQ"];
 
-                public static bool DrawW
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawW"] != null &&
-                               DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawW"] != null)
-                            DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawW => MenuManager.MenuValues["Plugins.Corki.DrawingsMenu.DrawW"];
 
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.Corki.DrawingsMenu.DrawR"];
 
-                public static bool DrawDamageIndicator
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawDamageIndicator"] != null &&
-                               DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Corki.DrawingsMenu.DrawDamageIndicator"] != null)
-                            DrawingsMenu["Plugins.Corki.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>()
-                                .CurrentValue =
-                                value;
-                    }
-                }
+                public static bool DrawDamageIndicator => MenuManager.MenuValues["Plugins.Corki.DrawingsMenu.DrawDamageIndicator"];
             }
         }
 
-        internal static class Damage
+        protected static class Damage
         {
             private static float[] QDamage { get; } = {0, 70, 115, 160, 205, 250};
             private static float QDamageBounsAdMod { get; } = 0.5f;

@@ -26,11 +26,10 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Linq;
+
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
-using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Draven.Modes
 {

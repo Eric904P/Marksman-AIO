@@ -86,11 +86,11 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
 
             if (R.IsReady() && Settings.Combo.UseR && !IsPreAttack && !IsAfterAttack && !new Geometry.Polygon.Circle(Player.Instance.Position,  Player.Instance.BoundingRadius).Points.Any(x=>x.To3D().IsVectorUnderEnemyTower()))
             {
-                if (Player.Instance.CountEnemiesInRange(800) == 1)
+                if (Player.Instance.CountEnemiesInRange(820) == 1)
                 {
                     var target = R.GetTarget();
 
-                    if (target != null && target.Distance(Player.Instance) < 600)
+                    if (target != null && target.TotalHealthWithShields() > GetComboDamage(target, 3) && target.Distance(Player.Instance) < 600)
                     {
                         var waves = (int) Math.Floor(target.Health/Player.Instance.GetSpellDamage(target, SpellSlot.R));
                         if (waves < RWaves[R.Level] && !Player.Instance.IsMoving && !IsPreAttack && !IsAfterAttack)
@@ -101,7 +101,7 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
                     }
                 }
 
-                if (Player.Instance.CountEnemiesInRange(725) > 0)
+                if (Player.Instance.CountEnemiesInRange(825) > 0)
                     return;
 
                 if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(R.Range)))

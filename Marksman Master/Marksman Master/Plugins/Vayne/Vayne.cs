@@ -35,7 +35,6 @@ using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.PermaShow.Values;
 using Marksman_Master.Utils;
 using SharpDX;
@@ -51,11 +50,11 @@ namespace Marksman_Master.Plugins.Vayne
         protected static Spell.Targeted E { get; }
         protected static Spell.Active R { get; }
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu HarassMenu { get; set; }
-        private static Menu LaneClearMenu { get; set; }
-        private static Menu MiscMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
 
         private BoolItem DontAa { get; set; }
         private BoolItem SafetyChecks { get; set; }
@@ -130,7 +129,7 @@ namespace Marksman_Master.Plugins.Vayne
                 {
                     if (Damage.IsKillableFromSilverEAndAuto(enemy) && enemy.Health > IncomingDamage.GetIncomingDamage(enemy))
                     {
-                        Console.WriteLine("[DEBUG] casting e to ks");
+                        Misc.PrintDebugMessage("casting e to ks");
                         E.Cast(enemy);
                     }}, 40 + Game.Ping / 2);
             }
@@ -154,7 +153,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             foreach (var rengar in EntityManager.Heroes.Enemies.Where(x => x.ChampionName == "Rengar").Where(rengar => rengar.Distance(Player.Instance.Position) < 1000).Where(rengar => rengar.IsValidTarget(E.Range) && E.IsReady()))
             {
-                Console.WriteLine("[DEBUG] casting e as anti-rengar");
+                Misc.PrintDebugMessage("casting e as anti-rengar");
                 E.Cast(rengar);
             }
         }
@@ -184,7 +183,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             Misc.PrintInfoMessage("Interrupting " + sender.ChampionName + "'s " + args.SpellName);
 
-            Console.WriteLine("[DEBUG] OnInterruptible | Champion : {0} | SpellSlot : {1}", sender.ChampionName, args.SpellSlot);
+            Misc.PrintDebugMessage($"[DEBUG] OnInterruptible | Champion : {sender.ChampionName} | SpellSlot : {args.SpellSlot}");
         }
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
@@ -195,7 +194,7 @@ namespace Marksman_Master.Plugins.Vayne
                     E.Cast(sender);
                 else Core.DelayAction(() => E.Cast(sender), args.Delay);
 
-                Console.WriteLine("[DEBUG] OnGapcloser | Champion : {0} | SpellSlot : {1}", sender.ChampionName, args.SpellSlot);
+                Misc.PrintDebugMessage($"[DEBUG] OnGapcloser | Champion : {sender.ChampionName} | SpellSlot : {args.SpellSlot}");
             }
         }
 
@@ -418,384 +417,67 @@ namespace Marksman_Master.Plugins.Vayne
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Vayne.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Vayne.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Vayne.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Vayne.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQ"];
                 
-                public static bool UseQOnlyToProcW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Vayne.ComboMenu.UseQOnlyToProcW"] != null &&
-                               ComboMenu["Plugins.Vayne.ComboMenu.UseQOnlyToProcW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Vayne.ComboMenu.UseQOnlyToProcW"] != null)
-                            ComboMenu["Plugins.Vayne.ComboMenu.UseQOnlyToProcW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQOnlyToProcW => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQOnlyToProcW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Vayne.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Vayne.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Vayne.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Vayne.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseE"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Vayne.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Vayne.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Vayne.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Vayne.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseR"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Vayne.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Vayne.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Vayne.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Vayne.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Vayne.HarassMenu.UseQ"];
 
-                public static int MinManaToUseQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Vayne.HarassMenu.MinManaToUseQ"] != null)
-                            return HarassMenu["Plugins.Vayne.HarassMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Vayne.HarassMenu.MinManaToUseQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Vayne.HarassMenu.MinManaToUseQ"] != null)
-                            HarassMenu["Plugins.Vayne.HarassMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaToUseQ => MenuManager.MenuValues["Plugins.Vayne.HarassMenu.MinManaToUseQ", true];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Vayne.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Vayne.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Vayne.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Vayne.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Vayne.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Vayne.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Vayne.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Vayne.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Vayne.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.ScanRange", true];
                 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Vayne.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Vayne.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.AllowedEnemies", true];
 
-                        Logger.Error("Couldn't get Plugins.Vayne.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Vayne.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Vayne.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQToLaneClear => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.UseQToLaneClear"];
 
-                public static bool UseQToLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Vayne.LaneClearMenu.UseQToLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Vayne.LaneClearMenu.UseQToLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Vayne.LaneClearMenu.UseQToLaneClear"] != null)
-                            LaneClearMenu["Plugins.Vayne.LaneClearMenu.UseQToLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool UseQToJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Vayne.LaneClearMenu.UseQToJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Vayne.LaneClearMenu.UseQToJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Vayne.LaneClearMenu.UseQToJungleClear"] != null)
-                            LaneClearMenu["Plugins.Vayne.LaneClearMenu.UseQToJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQToJungleClear => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.UseQToJungleClear"];
                 
-                public static int MinMana
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Vayne.LaneClearMenu.MinMana"] != null)
-                            return LaneClearMenu["Plugins.Vayne.LaneClearMenu.MinMana"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Vayne.LaneClearMenu.MinMana menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Vayne.LaneClearMenu.MinMana"] != null)
-                            LaneClearMenu["Plugins.Vayne.LaneClearMenu.MinMana"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinMana => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.MinMana", true];
             }
 
             internal static class Misc
             {
-                public static bool NoAaWhileStealth
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Vayne.MiscMenu.NoAAWhileStealth"] != null &&
-                               MiscMenu["Plugins.Vayne.MiscMenu.NoAAWhileStealth"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.NoAAWhileStealth"] != null)
-                            MiscMenu["Plugins.Vayne.MiscMenu.NoAAWhileStealth"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool NoAaWhileStealth => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.NoAAWhileStealth"];
 
-                public static int NoAaDelay
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.NoAADelay"] != null)
-                            return MiscMenu["Plugins.Vayne.MiscMenu.NoAADelay"].Cast<Slider>().CurrentValue;
+                public static int NoAaDelay => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.NoAADelay", true];
 
-                        Logger.Error("Couldn't get Plugins.Vayne.MiscMenu.NoAADelay menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.NoAADelay"] != null)
-                            MiscMenu["Plugins.Vayne.MiscMenu.NoAADelay"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool EAntiRengar => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.EAntiRengar"];
 
-                public static bool EAntiRengar
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Vayne.MiscMenu.EAntiRengar"] != null &&
-                               MiscMenu["Plugins.Vayne.MiscMenu.EAntiRengar"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.EAntiRengar"] != null)
-                            MiscMenu["Plugins.Vayne.MiscMenu.EAntiRengar"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EKs => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.Eks"];
 
-                public static bool EKs
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Vayne.MiscMenu.Eks"] != null &&
-                               MiscMenu["Plugins.Vayne.MiscMenu.Eks"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.Eks"] != null)
-                            MiscMenu["Plugins.Vayne.MiscMenu.Eks"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int PushDistance
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.PushDistance"] != null)
-                            return MiscMenu["Plugins.Vayne.MiscMenu.PushDistance"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Vayne.MiscMenu.PushDistance menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.PushDistance"] != null)
-                            MiscMenu["Plugins.Vayne.MiscMenu.PushDistance"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int PushDistance => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.PushDistance", true];
 
                 /// <summary>
                 /// 0 - Always
                 /// 1 - Only in combo
                 /// </summary>
-                public static int EMode
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.EMode"] != null)
-                            return MiscMenu["Plugins.Vayne.MiscMenu.EMode"].Cast<ComboBox>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Vayne.MiscMenu.EMode menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.EMode"] != null)
-                            MiscMenu["Plugins.Vayne.MiscMenu.EMode"].Cast<ComboBox>().CurrentValue = value;
-                    }
-                }
+                public static int EMode => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.EMode", true];
 
                 /// <summary>
                 /// 0 - CursorPos
                 /// 1 - Auto
                 /// </summary>
-                public static int QMode
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.QMode"] != null)
-                            return MiscMenu["Plugins.Vayne.MiscMenu.QMode"].Cast<ComboBox>().CurrentValue;
+                public static int QMode => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.QMode", true];
 
-                        Logger.Error("Couldn't get Plugins.Vayne.MiscMenu.QMode menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.QMode"] != null)
-                            MiscMenu["Plugins.Vayne.MiscMenu.QMode"].Cast<ComboBox>().CurrentValue = value;
-                    }
-                }
-
-                public static bool QSafetyChecks
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Vayne.MiscMenu.QSafetyChecks"] != null &&
-                               MiscMenu["Plugins.Vayne.MiscMenu.QSafetyChecks"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Vayne.MiscMenu.QSafetyChecks"] != null)
-                            MiscMenu["Plugins.Vayne.MiscMenu.QSafetyChecks"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool QSafetyChecks => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.QSafetyChecks"];
             }
 
             internal static class Drawings
             {
-                public static bool DrawInfo
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Vayne.DrawingsMenu.DrawInfo"] != null &&
-                               DrawingsMenu["Plugins.Vayne.DrawingsMenu.DrawInfo"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Vayne.DrawingsMenu.DrawInfo"] != null)
-                            DrawingsMenu["Plugins.Vayne.DrawingsMenu.DrawInfo"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawInfo => MenuManager.MenuValues["Plugins.Vayne.DrawingsMenu.DrawInfo"];
             }
         }
 

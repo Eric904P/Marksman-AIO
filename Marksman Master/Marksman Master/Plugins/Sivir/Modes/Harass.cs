@@ -26,11 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
@@ -52,12 +48,12 @@ namespace Marksman_Master.Plugins.Sivir.Modes
 
                     if (qPrediction.HitChance >= HitChance.Medium && target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(target, true) * 2 + Player.Instance.GetSpellDamage(target, SpellSlot.Q))
                     {
-                        Console.WriteLine("[DEBUG] Casting Q on {0} variant 1", target.Hero);
+                        Misc.PrintDebugMessage($"Casting Q on {target.Hero} variant 1");
                         Q.Cast(qPrediction.CastPosition);
                     }
                     else if (qPrediction.HitChance >= HitChance.High && Player.Instance.Mana - 60 > 100 && Player.Instance.IsInRange(target, Player.Instance.GetAutoAttackRange()))
                     {
-                        Console.WriteLine("[DEBUG] Casting Q on {0} variant 2", target.Hero);
+                        Misc.PrintDebugMessage($"Casting Q on {target.Hero} variant 2");
                         Q.Cast(qPrediction.CastPosition);
                     }
                 }
@@ -73,12 +69,12 @@ namespace Marksman_Master.Plugins.Sivir.Modes
                     target.Health - IncomingDamage.GetIncomingDamage(target) <
                     Player.Instance.GetAutoAttackDamage(target, true))
                 {
-                    Console.WriteLine("[DEBUG] Casting W on {0} variant 1", target.Hero);
+                    Misc.PrintDebugMessage($"Casting W on {target.Hero} variant 1");
                     W.Cast();
                 }
                 else if (target != null && target.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange() - 100)
                 {
-                    Console.WriteLine("[DEBUG] Casting W on {0} variant 2", target.Hero);
+                    Misc.PrintDebugMessage($"Casting W on {target.Hero} variant 2");
                     W.Cast();
                 }
             }

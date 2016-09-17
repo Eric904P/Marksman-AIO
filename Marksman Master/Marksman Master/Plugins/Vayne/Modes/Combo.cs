@@ -64,7 +64,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                     .To3D()
                                     .IsVectorUnderEnemyTower() && (!target.IsMelee || Player.Instance.Position.Extend(Game.CursorPos, 285).IsInRange(target, target.GetAutoAttackRange()* 1.5f)))
                                 {
-                                    Console.WriteLine("[DEBUG] 1v1 Game.CursorPos");
+                                    Misc.PrintDebugMessage("1v1 Game.CursorPos");
                                     position = Player.Instance.Position.Extend(Game.CursorPos, 285).To3D();
                                 }
                             }
@@ -95,7 +95,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                     {
                                         position = asc;
 
-                                        Console.WriteLine("[DEBUG] Paths low sorting Ascending");
+                                        Misc.PrintDebugMessage("Paths low sorting Ascending");
                                     } else if (Player.Instance.CountEnemiesInRange(1000) <= 2 && (paths == 0 || paths == 1) && ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2) || (Orbwalker.LastTarget is AIHeroClient && Orbwalker.LastTarget.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2)))
                                     {
                                         position = asc;
@@ -104,9 +104,9 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                     {
                                         position =
                                             Misc.SortVectorsByDistanceDescending(list, target.Position.To2D())[0].To3D();
-                                        Console.WriteLine("[DEBUG] Paths high sorting Descending");
+                                        Misc.PrintDebugMessage("Paths high sorting Descending");
                                     }
-                                } else Console.WriteLine("[DEBUG] 1v1 not found positions...");
+                                } else Misc.PrintDebugMessage("1v1 not found positions...");
                             }
 
                             if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))

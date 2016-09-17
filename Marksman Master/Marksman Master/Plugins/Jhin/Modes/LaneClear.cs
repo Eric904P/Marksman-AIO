@@ -59,6 +59,7 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                     {
                         count++;
                         var kMinion = kminion.First();
+
                         if (kMinion != null && kMinion.Health < Damage.GetQDamage(kMinion) * 1.35f)
                         {
                             count++;
@@ -85,11 +86,11 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                                             count++;
                                         }
                                     }
-                                } else continue;
-                            } else continue;
-                        } else continue;
+                                }
+                            }
+                        }
                     }
-                    if (count <= 2)
+                    if (count < Settings.LaneClear.MinMinionsKilledFromQ || IsPreAttack)
                         continue;
 
                     Q.Cast(minion);
@@ -104,7 +105,7 @@ namespace Marksman_Master.Plugins.Jhin.Modes
 
             var farmLocation = EntityManager.MinionsAndMonsters.GetLineFarmLocation(laneMinions, 40, 2500);
 
-            if (farmLocation.HitNumber > 2)
+            if (farmLocation.HitNumber > 2 && !IsPreAttack)
             {
                 W.Cast(farmLocation.CastPosition);
             }

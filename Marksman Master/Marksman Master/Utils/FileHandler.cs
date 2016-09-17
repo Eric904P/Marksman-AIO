@@ -50,13 +50,12 @@ namespace Marksman_Master.Utils
 
             if (File.Exists(filePath) == false)
             {
-                Logger.Error("File not found: " + filePath);
-                Console.WriteLine("[DEBUG]  File not found");
+                Misc.PrintDebugMessage("File not found: " + filePath);
                 return null;
             }
             try
             {
-                Console.WriteLine("[DEBUG] Starting new task");
+                Misc.PrintDebugMessage("Starting new task");
                 return Task.Factory.StartNew(() => ReadJsonFile(filePath)).Result;
             }
             catch (Exception e)
@@ -68,14 +67,14 @@ namespace Marksman_Master.Utils
 
         private static JToken ReadJsonFile(string path)
         {
-            Console.WriteLine("[DEBUG] ReadJsonFile start");
+            Misc.PrintDebugMessage("ReadJsonFile start");
             JToken token;
 
             using (var streamReader = new StreamReader(path))
             {
-                Console.WriteLine("[DEBUG] StreamReader start");
+                Misc.PrintDebugMessage("StreamReader start");
                 var file = new JsonTextReader(streamReader);
-                Console.WriteLine("[DEBUG] saving token");
+                Misc.PrintDebugMessage("saving token");
 
                 token = GetFileLinesNumber(path) != 0 ? JToken.ReadFrom(file) : null;
                 //foreach (var xd in token.First)
@@ -83,19 +82,19 @@ namespace Marksman_Master.Utils
                 //    Console.WriteLine("[DEBUG] " + xd);
                 //}
             }
-            Console.WriteLine("[DEBUG] returning token");
+            Misc.PrintDebugMessage("returning token");
             return token;
         }
 
         public static void WriteToDataFile(string uniqueId, ColorBGRA color)
         {
-            Console.WriteLine("[DEBUG] WriteToDataFile start");
+            Misc.PrintDebugMessage("WriteToDataFile start");
             var filePath = Path.Combine(SandboxConfig.DataDirectory, Path.Combine("Marksman AIO", ColorFileName));
 
             //Check if directory is created
             if (!Directory.Exists(Path.Combine(SandboxConfig.DataDirectory, "Marksman AIO")))
             {
-                Console.WriteLine("[DEBUG] Directory doesnt exist. Creating Marksman AIO folder");
+                Misc.PrintDebugMessage("Directory doesnt exist. Creating Marksman AIO folder");
                 Directory.CreateDirectory(Path.Combine(SandboxConfig.DataDirectory, "Marksman AIO"));
             }
 
@@ -110,7 +109,7 @@ namespace Marksman_Master.Utils
             {
                 try
                 {
-                    Console.WriteLine("[DEBUG] WriteToDataFile try sequence");
+                    Misc.PrintDebugMessage("WriteToDataFile try sequence");
                     var file = ReadDataFile(ColorFileName);
 
                     Dictionary<string, ColorBGRA> dictionary;
@@ -118,35 +117,35 @@ namespace Marksman_Master.Utils
                     //Empty file
                     if (file == null)
                     {
-                        Console.WriteLine("[DEBUG] Empty file");
+                        Misc.PrintDebugMessage("Empty file");
                         dictionary = new Dictionary<string, ColorBGRA> {{uniqueId, color}};
                     }
                     else
                     {
-                        Console.WriteLine("[DEBUG] file not empty");
+                        Misc.PrintDebugMessage("file not empty");
                         dictionary = file.ToObject<Dictionary<string, ColorBGRA>>();
 
                         if (dictionary.ContainsKey(uniqueId))
                         {
-                            Console.WriteLine("[DEBUG] dic contains key");
+                            Console.WriteLine("dic contains key");
                             dictionary[uniqueId] = color;
                         }
                         else
                         {
-                            Console.WriteLine("[DEBUG]  dic does not contain a key");
+                            Misc.PrintDebugMessage("dic does not contain a key");
                             dictionary.Add(uniqueId, color);
                         }
                     }
-                    Console.WriteLine("[DEBUG] File.Open");
+                    Misc.PrintDebugMessage("File.Open");
                     var fileStream = File.Open(filePath, FileMode.Open);
-                    Console.WriteLine("[DEBUG] StreamWriter start");
+                    Misc.PrintDebugMessage("StreamWriter start");
                     var streamWriter = new StreamWriter(fileStream);
 
                     using (JsonWriter jsonWriter = new JsonTextWriter(streamWriter))
                     {
-                        Console.WriteLine("[DEBUG] JsonTextWriter start");
+                        Misc.PrintDebugMessage("JsonTextWriter start");
                         jsonWriter.Formatting = Formatting.Indented;
-                        Console.WriteLine("[DEBUG] JsonSerializer");
+                        Misc.PrintDebugMessage("JsonSerializer");
                         new JsonSerializer().Serialize(jsonWriter, dictionary);
                     }
                 }

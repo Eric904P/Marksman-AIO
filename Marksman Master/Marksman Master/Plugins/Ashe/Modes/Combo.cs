@@ -41,17 +41,11 @@ namespace Marksman_Master.Plugins.Ashe.Modes
     {
         public static void Execute()
         {
-            if (Q.IsReady() && IsAfterAttack && Settings.Combo.UseQ)
+            if (Q.IsReady() && Settings.Combo.UseQ &&
+                EntityManager.Heroes.Enemies.Any(
+                    x => x.IsValidTarget(Player.Instance.GetAutoAttackRange() - 50) && !IsPreAttack))
             {
-                var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange(), DamageType.Physical);
-
-                if (target != null)
-                {
-                    if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange() - 50)))
-                    {
-                        Q.Cast();
-                    }
-                }
+                Q.Cast();
             }
 
             if (W.IsReady() && Settings.Combo.UseW && Player.Instance.Mana - 50 > 100)

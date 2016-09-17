@@ -36,7 +36,6 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
 using EloBuddy.SDK.Spells;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using SharpDX;
 using Color = System.Drawing.Color;
@@ -46,21 +45,21 @@ namespace Marksman_Master.Plugins.Ashe
 {
     internal class Ashe : ChampionPlugin
     {
-        public static Spell.Active Q { get; }
-        public static Spell.Skillshot W { get; }
-        public static Spell.Skillshot E { get; }
-        public static Spell.Skillshot R { get; }
+        protected static Spell.Active Q { get; }
+        protected static Spell.Skillshot W { get; }
+        protected static Spell.Skillshot E { get; }
+        protected static Spell.Skillshot R { get; }
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu HarassMenu { get; set; }
-        private static Menu LaneClearMenu { get; set; }
-        private static Menu MiscMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
 
         private static readonly ColorPicker[] ColorPicker;
         private static bool _changingRangeScan;
-        public static bool IsPreAttack { get; private set; }
-        public static bool IsAfterAttack { get; private set; }
+        protected static bool IsPreAttack { get; private set; }
+        protected static bool IsAfterAttack { get; private set; }
 
         static Ashe()
         {
@@ -91,7 +90,7 @@ namespace Marksman_Master.Plugins.Ashe
             Orbwalker.OnPostAttack += (a, b) => { IsPreAttack = false; IsAfterAttack = true; };
             Game.OnPostTick += args => IsAfterAttack = false;
         }
-        
+
         protected override void OnDraw()
         {
             if (_changingRangeScan)
@@ -102,7 +101,7 @@ namespace Marksman_Master.Plugins.Ashe
                 Circle.Draw(ColorPicker[0].Color, W.Range, Player.Instance);
 
             if (Settings.Drawings.DrawR && (!Settings.Drawings.DrawSpellRangesWhenReady || R.IsReady()))
-                Circle.Draw(ColorPicker[1].Color, W.Range, Player.Instance);
+                Circle.Draw(ColorPicker[1].Color, Settings.Combo.RMaximumRange, Player.Instance);
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
@@ -135,7 +134,7 @@ namespace Marksman_Master.Plugins.Ashe
         {
             if (R.IsReady() && args.End.Distance(Player.Instance.Position) < 400)
             {
-                R.Cast(sender);
+                R.CastMinimumHitchance(sender, 65);
             }
         }
 
@@ -295,371 +294,58 @@ namespace Marksman_Master.Plugins.Ashe
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ashe.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Ashe.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ashe.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Ashe.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ashe.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Ashe.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ashe.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Ashe.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ashe.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Ashe.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ashe.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Ashe.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ashe.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Ashe.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ashe.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Ashe.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Ashe.ComboMenu.UseQ"];
 
-                public static int RMinimumRange
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Ashe.ComboMenu.RMinimumRange"] != null)
-                            return ComboMenu["Plugins.Ashe.ComboMenu.RMinimumRange"].Cast<Slider>().CurrentValue;
+                public static bool UseW => MenuManager.MenuValues["Plugins.Ashe.ComboMenu.UseW"];
 
-                        Logger.Error("Couldn't get Plugins.Ashe.ComboMenu.RMinimumRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ashe.ComboMenu.RMinimumRange"] != null)
-                            ComboMenu["Plugins.Ashe.ComboMenu.RMinimumRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Ashe.ComboMenu.UseE"];
 
-                public static int RMaximumRange
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Ashe.ComboMenu.RMaximumRange"] != null)
-                            return ComboMenu["Plugins.Ashe.ComboMenu.RMaximumRange"].Cast<Slider>().CurrentValue;
+                public static bool UseR => MenuManager.MenuValues["Plugins.Ashe.ComboMenu.UseR"];
 
-                        Logger.Error("Couldn't get Plugins.Ashe.ComboMenu.RMaximumRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ashe.ComboMenu.RMaximumRange"] != null)
-                            ComboMenu["Plugins.Ashe.ComboMenu.RMaximumRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int RMinimumRange => MenuManager.MenuValues["Plugins.Ashe.ComboMenu.RMinimumRange", true];
+
+                public static int RMaximumRange => MenuManager.MenuValues["Plugins.Ashe.ComboMenu.RMaximumRange", true];
             }
 
             internal static class Harass
             {
-                public static bool UseW
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Ashe.HarassMenu.UseW"] != null &&
-                               HarassMenu["Plugins.Ashe.HarassMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Ashe.HarassMenu.UseW"] != null)
-                            HarassMenu["Plugins.Ashe.HarassMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Ashe.HarassMenu.UseW"];
 
-                public static int MinManaForW
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Ashe.HarassMenu.MinManaForW"] != null)
-                            return HarassMenu["Plugins.Ashe.HarassMenu.MinManaForW"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Ashe.HarassMenu.MinManaForW menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Ashe.HarassMenu.MinManaForW"] != null)
-                            HarassMenu["Plugins.Ashe.HarassMenu.MinManaForW"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaForW => MenuManager.MenuValues["Plugins.Ashe.HarassMenu.MinManaForW", true];
             }
-
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Ashe.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Ashe.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Ashe.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Ashe.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Ashe.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Ashe.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Ashe.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Ashe.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Ashe.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Ashe.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Ashe.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Ashe.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Ashe.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Ashe.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Ashe.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Ashe.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Ashe.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Ashe.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Ashe.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Ashe.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Ashe.LaneClearMenu.MinManaQ", true];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Ashe.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static bool UseWInLaneClear => MenuManager.MenuValues["Plugins.Ashe.LaneClearMenu.UseWInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Ashe.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Ashe.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseWInJungleClear => MenuManager.MenuValues["Plugins.Ashe.LaneClearMenu.UseWInJungleClear"];
 
-                public static bool UseWInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Ashe.LaneClearMenu.UseWInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Ashe.LaneClearMenu.UseWInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.UseWInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Ashe.LaneClearMenu.UseWInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                
-                public static bool UseWInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Ashe.LaneClearMenu.UseWInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Ashe.LaneClearMenu.UseWInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.UseWInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Ashe.LaneClearMenu.UseWInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                
-                public static int MinManaW
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.MinManaW"] != null)
-                            return LaneClearMenu["Plugins.Ashe.LaneClearMenu.MinManaW"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Ashe.LaneClearMenu.MinManaW menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ashe.LaneClearMenu.MinManaW"] != null)
-                            LaneClearMenu["Plugins.Ashe.LaneClearMenu.MinManaW"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaW => MenuManager.MenuValues["Plugins.Ashe.LaneClearMenu.MinManaW", true];
             }
 
             internal static class Misc
             {
-                public static int MaxInterrupterRange
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Ashe.MiscMenu.MaxInterrupterRange"] != null)
-                            return MiscMenu["Plugins.Ashe.MiscMenu.MaxInterrupterRange"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Ashe.MiscMenu.MaxInterrupterRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Ashe.MiscMenu.MaxInterrupterRange"] != null)
-                            MiscMenu["Plugins.Ashe.MiscMenu.MaxInterrupterRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MaxInterrupterRange => MenuManager.MenuValues["Plugins.Ashe.MiscMenu.MaxInterrupterRange", true];
             }
 
             internal static class Drawings
             {
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Ashe.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Ashe.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Ashe.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Ashe.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Ashe.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawW => MenuManager.MenuValues["Plugins.Ashe.DrawingsMenu.DrawW"];
 
-                public static bool DrawW
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Ashe.DrawingsMenu.DrawW"] != null &&
-                               DrawingsMenu["Plugins.Ashe.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Ashe.DrawingsMenu.DrawW"] != null)
-                            DrawingsMenu["Plugins.Ashe.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
-
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Ashe.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.Ashe.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Ashe.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.Ashe.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.Ashe.DrawingsMenu.DrawR"];
             }
         }
     }

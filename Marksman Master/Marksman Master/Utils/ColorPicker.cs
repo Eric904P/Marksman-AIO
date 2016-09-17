@@ -63,7 +63,7 @@ namespace Marksman_Master.Utils
         {
             _uniqueId = uniqueId;
 
-            Console.WriteLine("[DEBUG] Constructing ColorPicker !");
+            Misc.PrintDebugMessage("Constructing ColorPicker !");
 
             Color = Bootstrap.SavedColorPickerData.ContainsKey(uniqueId) ? Bootstrap.SavedColorPickerData[uniqueId] : defaultColor;
         }
@@ -272,7 +272,7 @@ namespace Marksman_Master.Utils
 
                 using (var backgroundWorker = new BackgroundWorker())
                 {
-                    Console.WriteLine("[DEBUG] Color Picker : Setting Values...");
+                    Misc.PrintDebugMessage("Color Picker : Setting Values...");
 
                     backgroundWorker.DoWork += (sender, args) =>
                     {
@@ -284,7 +284,7 @@ namespace Marksman_Master.Utils
                     };
                     backgroundWorker.RunWorkerCompleted += (sender, args) =>
                     {
-                        Console.WriteLine("[DEBUG] Color Picker : Values has been set.");
+                        Misc.PrintDebugMessage("Color Picker : Values has been set.");
                     };
 
                     backgroundWorker.RunWorkerAsync();

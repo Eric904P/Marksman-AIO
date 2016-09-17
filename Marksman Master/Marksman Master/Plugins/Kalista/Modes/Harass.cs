@@ -60,8 +60,8 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 return;
 
             var enemy =
-                EntityManager.Heroes.Enemies.FirstOrDefault(x => x.IsValidTarget(E.Range) && x.HasRendBuff() &&
-                                                                 x.GetRendBuff().Count > Settings.Harass.MinStacksForE);
+                EntityManager.Heroes.Enemies.FirstOrDefault(x => x.IsValidTarget(E.Range) && Damage.HasRendBuff(x) &&
+                                                                 Damage.GetRendBuff(x).Count > Settings.Harass.MinStacksForE);
 
             if (enemy == null)
                 return;
@@ -69,7 +69,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
 
             if (Settings.Harass.UseEIfManaWillBeRestored &&
                 EntityManager.MinionsAndMonsters.CombinedAttackable.Count(
-                    x => x.IsValidTarget(E.Range) && x.IsTargetKillableByRend()) >= 2)
+                    x => x.IsValidTarget(E.Range) && Damage.IsTargetKillableByRend(x)) >= 2)
             {
                 E.Cast();
             }

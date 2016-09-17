@@ -61,7 +61,7 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                 !(incomingDamage > Player.Instance.Health))
                 return;
 
-            Console.WriteLine("casting W too much incoming damage...");
+            Misc.PrintDebugMessage("casting W too much incoming damage...");
             W.Cast();
         }
     }

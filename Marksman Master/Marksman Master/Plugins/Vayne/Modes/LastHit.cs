@@ -26,8 +26,6 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
-using EloBuddy;
 
 namespace Marksman_Master.Plugins.Vayne.Modes
 {

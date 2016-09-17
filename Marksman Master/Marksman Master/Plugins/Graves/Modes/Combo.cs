@@ -148,7 +148,7 @@ namespace Marksman_Master.Plugins.Graves.Modes
                              Player.Instance.Position.Extend(Game.CursorPos, 420)
                                  .IsInRange(heroClient, heroClient.GetAutoAttackRange() * 1.5f)))
                         {
-                            Console.WriteLine("[DEBUG] 1v1 Game.CursorPos");
+                            Misc.PrintDebugMessage("1v1 Game.CursorPos");
                             position = Game.CursorPos.Distance(Player.Instance) > E.Range
                                 ? Player.Instance.Position.Extend(Game.CursorPos, 420).To3D()
                                 : Game.CursorPos;
@@ -188,7 +188,7 @@ namespace Marksman_Master.Plugins.Graves.Modes
                             {
                                 position = asc;
 
-                                Console.WriteLine("[DEBUG] Paths low sorting Ascending");
+                                Misc.PrintDebugMessage("Paths low sorting Ascending");
                             }
                             else if (Player.Instance.CountEnemiesInRange(1000) <= 2 && (paths == 0 || paths == 1) &&
                                      ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2) ||
@@ -202,10 +202,10 @@ namespace Marksman_Master.Plugins.Graves.Modes
                             {
                                 position =
                                     Misc.SortVectorsByDistanceDescending(list, heroClient.Position.To2D())[0].To3D();
-                                Console.WriteLine("[DEBUG] Paths high sorting Descending");
+                                Misc.PrintDebugMessage("Paths high sorting Descending");
                             }
                         }
-                        else Console.WriteLine("[DEBUG] 1v1 not found positions...");
+                        else Misc.PrintDebugMessage("1v1 not found positions...");
                     }
 
                     if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
@@ -269,7 +269,7 @@ namespace Marksman_Master.Plugins.Graves.Modes
                             GetRSplashHits(t).Count() >= Settings.Combo.RMinEnemiesHit)
                         {
                             R.Cast(t);
-                            Console.WriteLine("KS R");
+                            Misc.PrintDebugMessage("KS R");
                         } else if (Settings.Combo.RMinEnemiesHit == 0 && !t.HasUndyingBuffA() &&
                                    t.TotalHealthWithShields() < (GetRSplashHits(rPrediction.CastPosition).Any(x=>x.NetworkId == t.NetworkId) ? Damage.GetRDamage(t, true) : Damage.GetRDamage(t)))
                         {
@@ -291,7 +291,7 @@ namespace Marksman_Master.Plugins.Graves.Modes
                         if (p2.HitChance >= HitChance.Medium)
                         {
                             R.Cast(Player.Instance.Position.Extend(p2.CastPosition, R.Range).To3D());
-                            Console.WriteLine("KS R");
+                            Misc.PrintDebugMessage("KS R");
                         }
                     }
                 }

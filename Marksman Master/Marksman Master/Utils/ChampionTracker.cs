@@ -72,7 +72,7 @@ namespace Marksman_Master.Utils
             if (_initialized && Flags.HasFlag(flags))
                 return;
 
-            Flags = flags;
+            Flags |= flags;
 
             if (Flags.HasFlag(ChampionTrackerFlags.VisibilityTracker))
             {
@@ -190,7 +190,7 @@ namespace Marksman_Master.Utils
 
             if (Game.Time * 1000 - _lastTick < 25)
                 return;
-
+            
             foreach (var visibilityTracker in ChampionVisibility.Where(x=> Game.Time * 1000 - x.LastVisibleGameTime * 1000 < 1000))
             {
                 foreach (var unit in EntityManager.Heroes.Enemies.Where(

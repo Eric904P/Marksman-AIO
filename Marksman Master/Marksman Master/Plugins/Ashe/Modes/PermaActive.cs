@@ -26,7 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
@@ -73,21 +73,8 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                         });
 
                         if (rPrediction.HitChance >= HitChance.High)
-                        {/*
-                            if (rPrediction.HitChance == HitChance.Collision)
-                            {
-                                var polygon = new Geometry.Polygon.Rectangle(Player.Instance.Position,
-                                    rPrediction.CastPosition, 120);
-                                
-                                if (!EntityManager.Heroes.Enemies.Any(x => polygon.IsInside(x)))
-                                {
-                                    Console.WriteLine("[DEBUG] Casting R on : {0} to killsteal ! v 1", target.Hero);
-                                    R.Cast(rPrediction.CastPosition);
-                                }
-                            }
-                            else
-                            {*/
-                            Console.WriteLine("[DEBUG] Casting R on : {0} to killsteal ! v 1", target.Hero);
+                        {
+                            Misc.PrintDebugMessage($"Casting R on : {target.Hero} to killsteal ! v 1");
                             R.Cast(rPrediction.CastPosition);
                             break;
                         }

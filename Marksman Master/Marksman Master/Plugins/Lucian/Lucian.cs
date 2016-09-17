@@ -36,7 +36,6 @@ using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using SharpDX;
 
@@ -49,11 +48,11 @@ namespace Marksman_Master.Plugins.Lucian
         protected static Spell.Skillshot E { get; }
         protected static Spell.Skillshot R { get; }
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu HarassMenu { get; set; }
-        private static Menu LaneClearMenu { get; set; }
-        private static Menu MiscMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
 
         protected static bool HasPassiveBuff
             => Player.Instance.Buffs.Any(x => x.Name.ToLowerInvariant() == "lucianpassivebuff");
@@ -110,13 +109,12 @@ namespace Marksman_Master.Plugins.Lucian
             if(args.Slot == SpellSlot.Q && Player.Instance.IsDashing())
                 args.Process = false;
 
-            if ((args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W ||
-                args.Slot == SpellSlot.E) && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 100) >= 1)
-
+            if (args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W)
             {
-                if (HasPassiveBuff || (Game.Time*1000 - LastCastTime < 225))
+                if ((HasPassiveBuff || (Game.Time*1000 - LastCastTime < 100)) && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 100) >= 1)
+                {
                     args.Process = false;
-                else LastCastTime = Game.Time * 1000;
+                } else LastCastTime = Game.Time*1000;
             }
         }
 
@@ -603,422 +601,75 @@ namespace Marksman_Master.Plugins.Lucian
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Lucian.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Lucian.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Lucian.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Lucian.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Lucian.ComboMenu.UseQ"];
 
-                public static bool ExtendQOnMinions
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Lucian.ComboMenu.ExtendQOnMinions"] != null &&
-                               ComboMenu["Plugins.Lucian.ComboMenu.ExtendQOnMinions"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Lucian.ComboMenu.ExtendQOnMinions"] != null)
-                            ComboMenu["Plugins.Lucian.ComboMenu.ExtendQOnMinions"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool ExtendQOnMinions => MenuManager.MenuValues["Plugins.Lucian.ComboMenu.ExtendQOnMinions"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Lucian.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Lucian.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Lucian.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Lucian.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Lucian.ComboMenu.UseW"];
 
-                public static bool IgnoreCollisionW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Lucian.ComboMenu.IgnoreCollisionW"] != null &&
-                               ComboMenu["Plugins.Lucian.ComboMenu.IgnoreCollisionW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Lucian.ComboMenu.IgnoreCollisionW"] != null)
-                            ComboMenu["Plugins.Lucian.ComboMenu.IgnoreCollisionW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool IgnoreCollisionW => MenuManager.MenuValues["Plugins.Lucian.ComboMenu.IgnoreCollisionW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Lucian.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Lucian.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Lucian.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Lucian.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Lucian.ComboMenu.UseE"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Lucian.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Lucian.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Lucian.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Lucian.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.Lucian.ComboMenu.UseR"];
 
-                public static bool RKeybind
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Lucian.ComboMenu.RKeybind"] != null &&
-                               ComboMenu["Plugins.Lucian.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Lucian.ComboMenu.RKeybind"] != null)
-                            ComboMenu["Plugins.Lucian.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool RKeybind => MenuManager.MenuValues["Plugins.Lucian.ComboMenu.RKeybind"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Lucian.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Lucian.HarassMenu.UseQ"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Lucian.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Lucian.HarassMenu.UseQ"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Lucian.HarassMenu.UseQ"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Lucian.HarassMenu.MinManaQ"] != null)
-                            return HarassMenu["Plugins.Lucian.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Lucian.HarassMenu.MinManaQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Lucian.HarassMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Lucian.HarassMenu.MinManaQ"] != null)
-                            HarassMenu["Plugins.Lucian.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool IsAutoHarassEnabledFor(AIHeroClient unit) => MenuManager.MenuValues["Plugins.Lucian.HarassMenu.UseQ." + unit.Hero];
 
-                public static bool IsAutoHarassEnabledFor(AIHeroClient unit)
-                {
-                    return HarassMenu?["Plugins.Lucian.HarassMenu.UseQ." + unit.Hero] != null &&
-                           HarassMenu["Plugins.Lucian.HarassMenu.UseQ." + unit.Hero].Cast<CheckBox>()
-                               .CurrentValue;
-                }
-
-                public static bool IsAutoHarassEnabledFor(string championName)
-                {
-                    return HarassMenu?["Plugins.Lucian.HarassMenu.UseQ." + championName] != null &&
-                           HarassMenu["Plugins.Lucian.HarassMenu.UseQ." + championName].Cast<CheckBox>()
-                               .CurrentValue;
-                }
+                public static bool IsAutoHarassEnabledFor(string championName) => MenuManager.MenuValues["Plugins.Lucian.HarassMenu.UseQ." + championName];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Lucian.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Lucian.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Lucian.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Lucian.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Lucian.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Lucian.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Lucian.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Lucian.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Lucian.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Lucian.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Lucian.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Lucian.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinMinionsHitQ => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.MinMinionsHitQ", true];
 
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Lucian.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Lucian.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Lucian.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinMinionsHitQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.MinMinionsHitQ"] != null)
-                            return LaneClearMenu["Plugins.Lucian.LaneClearMenu.MinMinionsHitQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Lucian.LaneClearMenu.MinMinionsHitQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.MinMinionsHitQ"] != null)
-                            LaneClearMenu["Plugins.Lucian.LaneClearMenu.MinMinionsHitQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Lucian.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Lucian.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Lucian.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Lucian.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.MinManaQ", true];
             }
 
             internal static class Misc
             {
-                public static bool EnableKillsteal
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Lucian.MiscMenu.EnableKillsteal"] != null &&
-                               MiscMenu["Plugins.Lucian.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Lucian.MiscMenu.EnableKillsteal"] != null)
-                            MiscMenu["Plugins.Lucian.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.Lucian.MiscMenu.EnableKillsteal"];
 
                 /// <summary>
                 /// 0 - "Auto"
                 /// 1 - "Cursor Pos"
                 /// </summary>
-                public static int EMode
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Lucian.MiscMenu.EMode"] != null)
-                            return MiscMenu["Plugins.Lucian.MiscMenu.EMode"].Cast<ComboBox>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Lucian.MiscMenu.EMode menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Lucian.MiscMenu.EMode"] != null)
-                            MiscMenu["Plugins.Lucian.MiscMenu.EMode"].Cast<ComboBox>().CurrentValue = value;
-                    }
-                }
+                public static int EMode => MenuManager.MenuValues["Plugins.Lucian.MiscMenu.EMode", true];
 
                 /// <summary>
                 /// 0 - "Always"
                 /// 1 - "After autoattack only"
                 /// </summary>
-                public static int EUsageMode
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Lucian.MiscMenu.EUsageMode"] != null)
-                            return MiscMenu["Plugins.Lucian.MiscMenu.EUsageMode"].Cast<ComboBox>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Lucian.MiscMenu.EUsageMode menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Lucian.MiscMenu.EUsageMode"] != null)
-                            MiscMenu["Plugins.Lucian.MiscMenu.EUsageMode"].Cast<ComboBox>().CurrentValue = value;
-                    }
-                }
+                public static int EUsageMode => MenuManager.MenuValues["Plugins.Lucian.MiscMenu.EUsageMode", true];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Lucian.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Lucian.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Lucian.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Lucian.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Lucian.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Lucian.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.Lucian.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Lucian.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.Lucian.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Lucian.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.Lucian.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Lucian.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.Lucian.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.Lucian.DrawingsMenu.DrawQ"];
 
-                public static bool DrawInfo
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Lucian.DrawingsMenu.DrawInfo"] != null &&
-                               DrawingsMenu["Plugins.Lucian.DrawingsMenu.DrawInfo"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Lucian.DrawingsMenu.DrawInfo"] != null)
-                            DrawingsMenu["Plugins.Lucian.DrawingsMenu.DrawInfo"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.Lucian.DrawingsMenu.DrawR"];
+
+                public static bool DrawInfo => MenuManager.MenuValues["Plugins.Lucian.DrawingsMenu.DrawInfo"];
             }
         }
 

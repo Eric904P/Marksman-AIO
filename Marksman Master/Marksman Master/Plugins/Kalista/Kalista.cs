@@ -27,6 +27,7 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using EloBuddy;
@@ -35,7 +36,6 @@ using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Plugins.Kalista.Modes;
 using Marksman_Master.Utils;
 using SharpDX;
@@ -51,12 +51,12 @@ namespace Marksman_Master.Plugins.Kalista
         public static Spell.Active E { get; }
         public static Spell.Active R { get; }
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu HarassMenu { get; set; }
-        private static Menu JungleLaneClearMenu { get; set; }
-        private static Menu FleeMenu { get; set; }
-        private static Menu MiscMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu JungleLaneClearMenu { get; set; }
+        internal static Menu FleeMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
 
         public static AIHeroClient SouldBoundAlliedHero { get; private set; }
 
@@ -165,7 +165,7 @@ namespace Marksman_Master.Plugins.Kalista
 
                         if (enemy != null && enemy.Distance(Player.Instance) > 500)
                         {
-                            if (Settings.Misc.BlitzComboKillable && enemy.Health < enemy.GetComboDamage(8))
+                            if (Settings.Misc.BlitzComboKillable && enemy.Health < Damage.GetComboDamage(enemy, 8))
                             {
                                 Misc.PrintInfoMessage("Doing Blitzcrank-Kalista combo on <font color=\"#ff1493\">" +
                                                       enemy.Hero + "</font>");
@@ -192,7 +192,7 @@ namespace Marksman_Master.Plugins.Kalista
 
                         if (enemy != null && enemy.Distance(Player.Instance) > 500)
                         {
-                            if (Settings.Misc.BlitzComboKillable && enemy.Health < enemy.GetComboDamage(8))
+                            if (Settings.Misc.BlitzComboKillable && enemy.Health < Damage.GetComboDamage(enemy, 8))
                             {
                                 Misc.PrintInfoMessage("Doing Tahm Kench-Kalista combo on <font color=\"#ff1493\">" +
                                                       enemy.Hero + "</font>");
@@ -219,7 +219,7 @@ namespace Marksman_Master.Plugins.Kalista
 
                         if (enemy != null && enemy.Distance(Player.Instance) > 500)
                         {
-                            if (Settings.Misc.BlitzComboKillable && enemy.Health < enemy.GetComboDamage(8))
+                            if (Settings.Misc.BlitzComboKillable && enemy.Health < Damage.GetComboDamage(enemy, 8))
                             {
                                 Misc.PrintInfoMessage("Doing Skarner-Kalista combo on <font color=\"#ff1493\">" +
                                                       enemy.Hero + "</font>");
@@ -269,7 +269,7 @@ namespace Marksman_Master.Plugins.Kalista
             if (aiMinion == null || Prediction.Health.GetPrediction(aiMinion, 300) < 10)
                 return;
 
-            if (aiMinion.IsTargetKillableByRend())
+            if (Damage.IsTargetKillableByRend(aiMinion))
             {
                 E.Cast();
             }
@@ -281,17 +281,17 @@ namespace Marksman_Master.Plugins.Kalista
                 return 0f;
 
             if (target.GetType() != typeof(AIHeroClient))
-                return target.GetRendDamageOnTarget();
+                return Damage.GetRendDamageOnTarget(target);
 
             if(Settings.Drawings.DamageIndicatorMode == 0)
-                return target.GetRendDamageOnTarget();
+                return Damage.GetRendDamageOnTarget(target);
 
             var hero = (AIHeroClient) target;
 
             float damage = 0;
 
-            damage += hero.GetRendDamageOnTarget();
-            damage += hero.GetComboDamage(0);
+            damage += Damage.GetRendDamageOnTarget(hero);
+            damage += Damage.GetComboDamage(hero, 0);
 
             return damage;
         }
@@ -316,27 +316,32 @@ namespace Marksman_Master.Plugins.Kalista
             if (!Settings.Drawings.DrawDamageIndicator)
                 return;
 
-            foreach (var source in EntityManager.Heroes.Enemies.Where(x => x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && x.HasRendBuff()))
+            foreach (
+                var source in
+                    EntityManager.Heroes.Enemies.Where(
+                        x => x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && Damage.HasRendBuff(x)))
             {
                 var hpPosition = source.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 30; // tracker friendly.
-                var timeLeft = source.GetRendBuff().EndTime - Game.Time;
-                var endPos = timeLeft * 0x3e8 / 0x25;
+                var timeLeft = Damage.GetRendBuff(source).EndTime - Game.Time;
+                var endPos = timeLeft*0x3e8/0x25;
 
-                var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 4000d * 100d, 3, 110);
+                var degree = Misc.GetNumberInRangeFromProcent(timeLeft*1000d/4000d*100d, 3, 110);
                 var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
 
-                Text.X = (int)(hpPosition.X + endPos);
-                Text.Y = (int)hpPosition.Y + 15; // + text size 
+                Text.X = (int) (hpPosition.X + endPos);
+                Text.Y = (int) hpPosition.Y + 15; // + text size 
                 Text.Color = color;
                 Text.TextValue = timeLeft.ToString("F1");
                 Text.Draw();
 
-                var percentDamage = Math.Min(100, source.GetRendDamageOnTarget() / source.TotalHealthWithShields() * 100);
+                var percentDamage = Math.Min(100,
+                    Damage.GetRendDamageOnTarget(source)/source.TotalHealthWithShields()*100);
 
-                Text.X = (int)(hpPosition.X - 50);
-                Text.Y = (int)source.HPBarPosition.Y;
-                Text.Color = new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
+                Text.X = (int) (hpPosition.X - 50);
+                Text.Y = (int) source.HPBarPosition.Y;
+                Text.Color =
+                    new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
                 Text.TextValue = percentDamage.ToString("F1");
                 Text.Draw();
 
@@ -568,608 +573,570 @@ namespace Marksman_Master.Plugins.Kalista
             Modes.Flee.Execute();
         }
 
-        internal static class Settings
+        protected static class Settings
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Kalista.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Kalista.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Kalista.ComboMenu.UseQ"].Cast<CheckBox>().CurrentValue
-                                = value;
-                    }
-                }
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Kalista.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Kalista.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Kalista.ComboMenu.UseE"].Cast<CheckBox>().CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Kalista.ComboMenu.UseQ"];
 
-                public static bool UseEBeforeDeath
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Kalista.ComboMenu.UseEBeforeDeath"] != null &&
-                               ComboMenu["Plugins.Kalista.ComboMenu.UseEBeforeDeath"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.UseEBeforeDeath"] != null)
-                            ComboMenu["Plugins.Kalista.ComboMenu.UseEBeforeDeath"].Cast<CheckBox>().CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Kalista.ComboMenu.UseE"];
 
-                public static bool UseEBeforeEnemyLeavesRange
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRange"] != null &&
-                               ComboMenu["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRange"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRange"] != null)
-                            ComboMenu["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRange"].Cast<CheckBox>().CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEBeforeDeath => MenuManager.MenuValues["Plugins.Kalista.ComboMenu.UseEBeforeDeath"];
 
-                public static int MinDamagePercToUseEBeforeEnemyLeavesRange
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRangeS"] != null)
-                            return
-                                ComboMenu["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRangeS"].Cast<Slider>()
-                                   .CurrentValue;
+                public static bool UseEBeforeEnemyLeavesRange => MenuManager.MenuValues["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRange"];
 
-                        Logger.Error("Couldn't get Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRangeS menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRangeS"] != null)
-                            ComboMenu["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRangeS"].Cast<Slider>().CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinDamagePercToUseEBeforeEnemyLeavesRange => MenuManager.MenuValues["Plugins.Kalista.ComboMenu.UseEBeforeEnemyLeavesRangeS", true];
 
-                public static bool UseEToSlow
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Kalista.ComboMenu.UseEToSlow"] != null &&
-                               ComboMenu["Plugins.Kalista.ComboMenu.UseEToSlow"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.UseEToSlow"] != null)
-                            ComboMenu["Plugins.Kalista.ComboMenu.UseEToSlow"].Cast<CheckBox>().CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEToSlow => MenuManager.MenuValues["Plugins.Kalista.ComboMenu.UseEToSlow"];
 
-                public static int UseEToSlowMinMinions
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.UseEToSlowMinMinions"] != null)
-                            return
-                                ComboMenu["Plugins.Kalista.ComboMenu.UseEToSlowMinMinions"].Cast<Slider>()
-                                   .CurrentValue;
+                public static int UseEToSlowMinMinions => MenuManager.MenuValues["Plugins.Kalista.ComboMenu.UseEToSlowMinMinions", true];
 
-                        Logger.Error("Couldn't get Plugins.Kalista.ComboMenu.UseEToSlowMinMinions menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.UseEToSlowMinMinions"] != null)
-                            ComboMenu["Plugins.Kalista.ComboMenu.UseEToSlowMinMinions"].Cast<Slider>().CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool JumpOnMinions
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Kalista.ComboMenu.JumpOnMinions"] != null &&
-                               ComboMenu["Plugins.Kalista.ComboMenu.JumpOnMinions"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Kalista.ComboMenu.JumpOnMinions"] != null)
-                            ComboMenu["Plugins.Kalista.ComboMenu.JumpOnMinions"].Cast<CheckBox>().CurrentValue
-                                = value;
-                    }
-                }
+                public static bool JumpOnMinions => MenuManager.MenuValues["Plugins.Kalista.ComboMenu.JumpOnMinions"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Kalista.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Kalista.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Kalista.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Kalista.HarassMenu.UseQ"].Cast<CheckBox>().CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Kalista.HarassMenu.UseQ"];
 
-                public static int MinManaForQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Kalista.HarassMenu.MinManaForQ"] != null)
-                            return
-                                HarassMenu["Plugins.Kalista.HarassMenu.MinManaForQ"].Cast<Slider>()
-                                    .CurrentValue;
+                public static int MinManaForQ => MenuManager.MenuValues["Plugins.Kalista.HarassMenu.MinManaForQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Kalista.HarassMenu.MinManaForQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Kalista.HarassMenu.MinManaForQ"] != null)
-                            HarassMenu["Plugins.Kalista.HarassMenu.MinManaForQ"].Cast<Slider>().CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Kalista.HarassMenu.UseE"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Kalista.HarassMenu.UseE"] != null &&
-                               HarassMenu["Plugins.Kalista.HarassMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Kalista.HarassMenu.UseE"] != null)
-                            HarassMenu["Plugins.Kalista.HarassMenu.UseE"].Cast<CheckBox>().CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEIfManaWillBeRestored => MenuManager.MenuValues["Plugins.Kalista.HarassMenu.UseEIfManaWillBeRestored"];
 
-                public static bool UseEIfManaWillBeRestored
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Kalista.HarassMenu.UseEIfManaWillBeRestored"] != null &&
-                               HarassMenu["Plugins.Kalista.HarassMenu.UseEIfManaWillBeRestored"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Kalista.HarassMenu.UseEIfManaWillBeRestored"] != null)
-                            HarassMenu["Plugins.Kalista.HarassMenu.UseEIfManaWillBeRestored"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaForE => MenuManager.MenuValues["Plugins.Kalista.HarassMenu.MinManaForE", true];
 
-                public static int MinManaForE
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Kalista.HarassMenu.MinManaForE"] != null)
-                            return
-                                HarassMenu["Plugins.Kalista.HarassMenu.MinManaForE"].Cast<Slider>()
-                                    .CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Kalista.HarassMenu.MinManaForE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Kalista.HarassMenu.MinManaForE"] != null)
-                            HarassMenu["Plugins.Kalista.HarassMenu.MinManaForE"].Cast<Slider>().CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinStacksForE
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Kalista.HarassMenu.MinStacksForE"] != null)
-                            return
-                                HarassMenu["Plugins.Kalista.HarassMenu.MinStacksForE"].Cast<Slider>()
-                                    .CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Kalista.HarassMenu.MinStacksForE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Kalista.HarassMenu.MinStacksForE"] != null)
-                            HarassMenu["Plugins.Kalista.HarassMenu.MinStacksForE"].Cast<Slider>().CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinStacksForE => MenuManager.MenuValues["Plugins.Kalista.HarassMenu.MinStacksForE", true];
             }
 
             internal static class JungleLaneClear
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseQ"] != null &&
-                               JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseQ"] != null)
-                            JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Kalista.JungleLaneClearMenu.UseQ"];
 
-                public static int MinManaForQ
-                {
-                    get
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.MinManaForQ"] != null)
-                            return
-                                JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.MinManaForQ"].Cast<Slider>()
-                                    .CurrentValue;
+                public static int MinManaForQ => MenuManager.MenuValues["Plugins.Kalista.JungleLaneClearMenu.MinManaForQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Kalista.JungleLaneClearMenu.MinManaForQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.MinManaForQ"] != null)
-                            JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.MinManaForQ"].Cast<Slider>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinMinionsForQ => MenuManager.MenuValues["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForQ", true];
 
-                public static int MinMinionsForQ
-                {
-                    get
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForQ"] != null)
-                            return
-                                JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForQ"].Cast<Slider>()
-                                    .CurrentValue;
+                public static bool UseE => MenuManager.MenuValues["Plugins.Kalista.JungleLaneClearMenu.UseE"];
 
-                        Logger.Error("Couldn't get Plugins.Kalista.JungleLaneClearMenu.MinMinionsForQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForQ"] != null)
-                            JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForQ"].Cast<Slider>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEOnUnkillableMinions => MenuManager.MenuValues["Plugins.Kalista.JungleLaneClearMenu.UseEForUnkillable"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseE"] != null &&
-                               JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseE"] != null)
-                            JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaForE => MenuManager.MenuValues["Plugins.Kalista.JungleLaneClearMenu.MinManaForE", true];
 
-                public static bool UseEOnUnkillableMinions
-                {
-                    get
-                    {
-                        return JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseEForUnkillable"] != null &&
-                               JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseEForUnkillable"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseEForUnkillable"] != null)
-                            JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseEForUnkillable"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinMinionsForE => MenuManager.MenuValues["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForE", true];
 
-                public static int MinManaForE
-                {
-                    get
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.MinManaForE"] != null)
-                            return
-                                JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.MinManaForE"].Cast<Slider>()
-                                    .CurrentValue;
+                public static bool UseEToStealBuffs => MenuManager.MenuValues["Plugins.Kalista.JungleLaneClearMenu.UseEToStealBuffs"];
 
-                        Logger.Error("Couldn't get Plugins.Kalista.JungleLaneClearMenu.MinManaForE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.MinManaForE"] != null)
-                            JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.MinManaForE"].Cast<Slider>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinMinionsForE
-                {
-                    get
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForE"] != null)
-                            return
-                                JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForE"].Cast<Slider>()
-                                    .CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Kalista.JungleLaneClearMenu.MinMinionsForE menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForE"] != null)
-                            JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.MinMinionsForE"].Cast<Slider>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool UseEToStealBuffs
-                {
-                    get
-                    {
-                        return JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseEToStealBuffs"] != null &&
-                               JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseEToStealBuffs"]
-                                   .Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseEToStealBuffs"] != null)
-                            JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseEToStealBuffs"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool UseEToStealDragon
-                {
-                    get
-                    {
-                        return JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseEToStealDragon"] != null &&
-                               JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseEToStealDragon"]
-                                   .Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (JungleLaneClearMenu?["Plugins.Kalista.JungleLaneClearMenu.UseEToStealDragon"] != null)
-                            JungleLaneClearMenu["Plugins.Kalista.JungleLaneClearMenu.UseEToStealDragon"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEToStealDragon => MenuManager.MenuValues["Plugins.Kalista.JungleLaneClearMenu.UseEToStealDragon"];
             }
 
             internal static class Flee
             {
-                public static bool JumpWithQ
-                {
-                    get
-                    {
-                        return FleeMenu?["Plugins.Kalista.FleeMenu.Jump"] != null &&
-                               FleeMenu["Plugins.Kalista.FleeMenu.Jump"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (FleeMenu?["Plugins.Kalista.FleeMenu.Jump"] != null)
-                            FleeMenu["Plugins.Kalista.FleeMenu.Jump"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool JumpWithQ => MenuManager.MenuValues["Plugins.Kalista.FleeMenu.Jump"];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Kalista.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.Kalista.DrawingsMenu.DrawQ"];
 
-                public static bool DrawE
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawE"] != null &&
-                               DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawE"] != null)
-                            DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawE => MenuManager.MenuValues["Plugins.Kalista.DrawingsMenu.DrawE"];
 
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawR"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.Kalista.DrawingsMenu.DrawR"];
 
-                public static bool DrawDamageIndicator
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawDamageIndicator"] != null &&
-                               DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DrawDamageIndicator"] != null)
-                            DrawingsMenu["Plugins.Kalista.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>()
-                                .CurrentValue =
-                                value;
-                    }
-                }
+                public static bool DrawDamageIndicator => MenuManager.MenuValues["Plugins.Kalista.DrawingsMenu.DrawDamageIndicator"];
 
-                public static int DamageIndicatorMode
-                {
-                    get
-                    {
-                        if (DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DamageIndicatorMode"] != null)
-                            return
-                                DrawingsMenu["Plugins.Kalista.DrawingsMenu.DamageIndicatorMode"].Cast<ComboBox>()
-                                    .CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Kalista.DrawingsMenu.DamageIndicatorMode menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Kalista.DrawingsMenu.DamageIndicatorMode"] != null)
-                            DrawingsMenu["Plugins.Kalista.DrawingsMenu.DamageIndicatorMode"].Cast<ComboBox>()
-                                .CurrentValue =
-                                value;
-                    }
-                }
+                public static int DamageIndicatorMode => MenuManager.MenuValues["Plugins.Kalista.DrawingsMenu.DamageIndicatorMode", true];
             }
 
             internal static class Misc
             {
-                public static bool SaveAlly
+                public static bool SaveAlly => MenuManager.MenuValues["Plugins.Kalista.MiscMenu.SaveAlly"];
+
+                public static bool BlitzCombo => MenuManager.MenuValues["Plugins.Kalista.MiscMenu.BlitzCombo"];
+
+                public static bool BlitzComboKillable => MenuManager.MenuValues["Plugins.Kalista.MiscMenu.BlitzComboKillable"];
+
+                public static int ReduceEDmg => MenuManager.MenuValues["Plugins.Kalista.MiscMenu.ReduceEDmg", true];
+            }
+        }
+
+        protected static class Damage
+        {
+            private static readonly int[] EDamage = { 0, 20, 30, 40, 50, 60 };
+            private const float EDamageMod = 0.6f;
+            private static readonly int[] EDamagePerSpear = { 0, 10, 14, 19, 25, 32 };
+            private static readonly float[] EDamagePerSpearMod = { 0, 0.2f, 0.225f, 0.25f, 0.275f, 0.3f };
+
+            private static readonly Dictionary<int, Tuple<Dictionary<float, float>, int>> ComboDamages =
+                new Dictionary<int, Tuple<Dictionary<float, float>, int>>();
+            private static readonly Dictionary<int, Tuple<Dictionary<float, float>, int>> EDamagesStacks =
+                new Dictionary<int, Tuple<Dictionary<float, float>, int>>();
+            private static readonly Dictionary<int, Dictionary<float, float>> EDamages =
+                new Dictionary<int, Dictionary<float, float>>();
+            private static readonly Dictionary<int, Dictionary<float, bool>> IsKillable =
+                new Dictionary<int, Dictionary<float, bool>>();
+
+            public static float GetComboDamage(AIHeroClient enemy, int stacks)
+            {
+                if (ComboDamages.ContainsKey(enemy.NetworkId) && !ComboDamages.Any(x => x.Key == enemy.NetworkId && x.Value.Item2 == stacks && x.Value.Item1.Any(k => Game.Time * 1000 - k.Key > 200)))
+                    return ComboDamages[enemy.NetworkId].Item1.Values.FirstOrDefault();
+
+                float damage = 0;
+
+                if (Q.IsReady())
+                    damage += Player.Instance.GetSpellDamage(enemy, SpellSlot.Q);
+
+                if (Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing] != null && Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing].ToItem().IsReady())
+                    damage += Player.Instance.GetItemDamage(enemy, ItemId.Blade_of_the_Ruined_King);
+
+                if (Activator.Activator.Items[ItemsEnum.Cutlass] != null && Activator.Activator.Items[ItemsEnum.Cutlass].ToItem().IsReady())
+                    damage += Player.Instance.GetItemDamage(enemy, ItemId.Bilgewater_Cutlass);
+
+                if (Activator.Activator.Items[ItemsEnum.Gunblade] != null && Activator.Activator.Items[ItemsEnum.Gunblade].ToItem().IsReady())
+                    damage += Player.Instance.GetItemDamage(enemy, ItemId.Hextech_Gunblade);
+
+                if (E.IsReady())
+                    damage += GetRendDamageOnTarget(enemy, stacks);
+
+                damage += Player.Instance.GetAutoAttackDamage(enemy, true) * stacks;
+
+                ComboDamages[enemy.NetworkId] = new Tuple<Dictionary<float, float>, int>(new Dictionary<float, float> { { Game.Time * 1000, damage } }, stacks);
+
+                return damage;
+            }
+
+            public static bool CanCastEOnUnit(Obj_AI_Base target)
+            {
+                if (target == null || !target.IsValidTarget(E.Range) || GetRendBuff(target) == null ||
+                    !E.IsReady() || GetRendBuff(target).Count < 1)
+                    return false;
+
+                if (target.GetType() != typeof(AIHeroClient))
+                    return true;
+
+                var heroClient = (AIHeroClient)target;
+
+                return !heroClient.HasUndyingBuffA() && !heroClient.HasSpellShield();
+            }
+
+            public static bool IsTargetKillableByRend(Obj_AI_Base target)
+            {
+                if (target == null || !target.IsValidTarget(E.Range) || GetRendBuff(target) == null ||
+                    !E.IsReady() || GetRendBuff(target).Count < 1)
+                    return false;
+
+                if (IsKillable.ContainsKey(target.NetworkId) && !IsKillable.Any(x => x.Key == target.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
+                    return IsKillable[target.NetworkId].Values.FirstOrDefault();
+
+                if (target.GetType() != typeof(AIHeroClient))
                 {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Kalista.MiscMenu.SaveAlly"] != null &&
-                               MiscMenu["Plugins.Kalista.MiscMenu.SaveAlly"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Kalista.MiscMenu.SaveAlly"] != null)
-                            MiscMenu["Plugins.Kalista.MiscMenu.SaveAlly"].Cast<CheckBox>().CurrentValue = value;
-                    }
+                    IsKillable[target.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, GetRendDamageOnTarget(target) > target.TotalHealthWithShields() } };
+                    return GetRendDamageOnTarget(target) > target.TotalHealthWithShields();
                 }
 
-                public static bool BlitzCombo
+                var heroClient = (AIHeroClient)target;
+
+                if (heroClient.HasUndyingBuffA() || heroClient.HasSpellShield())
                 {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Kalista.MiscMenu.BlitzCombo"] != null &&
-                               MiscMenu["Plugins.Kalista.MiscMenu.BlitzCombo"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Kalista.MiscMenu.BlitzCombo"] != null)
-                            MiscMenu["Plugins.Kalista.MiscMenu.BlitzCombo"].Cast<CheckBox>().CurrentValue = value;
-                    }
+                    IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, false } };
+                    return false;
                 }
 
-                public static bool BlitzComboKillable
+                if (heroClient.ChampionName != "Blitzcrank")
                 {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Kalista.MiscMenu.BlitzComboKillable"] != null &&
-                               MiscMenu["Plugins.Kalista.MiscMenu.BlitzComboKillable"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Kalista.MiscMenu.BlitzComboKillable"] != null)
-                            MiscMenu["Plugins.Kalista.MiscMenu.BlitzComboKillable"].Cast<CheckBox>().CurrentValue = value;
-                    }
+                    IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, GetRendDamageOnTarget(heroClient) >= heroClient.TotalHealthWithShields() } };
+                    return GetRendDamageOnTarget(heroClient) >= heroClient.TotalHealthWithShields();
+                }
+                if (!heroClient.HasBuff("BlitzcrankManaBarrierCD") && !heroClient.HasBuff("ManaBarrier"))
+                {
+                    IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields() + heroClient.Mana / 2 } };
+                    return GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields() + heroClient.Mana / 2;
                 }
 
-                public static int ReduceEDmg
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Kalista.MiscMenu.ReduceEDmg"] != null)
-                            return MiscMenu["Plugins.Kalista.MiscMenu.ReduceEDmg"].Cast<Slider>().CurrentValue;
+                IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields() } };
 
-                        Logger.Error("Couldn't get Plugins.Kalista.MiscMenu.ReduceEDmg menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Kalista.MiscMenu.ReduceEDmg"] != null)
-                            MiscMenu["Plugins.Kalista.MiscMenu.ReduceEDmg"].Cast<Slider>().CurrentValue = value;
-                    }
+                return GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields();
+            }
+
+            public static float GetRendDamageOnTarget(Obj_AI_Base target)
+            {
+                if (!CanCastEOnUnit(target))
+                    return 0f;
+
+                if (EDamages.ContainsKey(target.NetworkId) && !EDamages.Any(x => x.Key == target.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
+                    return EDamages[target.NetworkId].Values.FirstOrDefault();
+
+                var damageReduction = 100 - Settings.Misc.ReduceEDmg;
+                var damage = EDamage[E.Level] + Player.Instance.TotalAttackDamage * EDamageMod +
+                             (GetRendBuff(target).Count > 1
+                                 ? (EDamagePerSpear[E.Level] +
+                                    Player.Instance.TotalAttackDamage * EDamagePerSpearMod[E.Level]) *
+                                   (GetRendBuff(target).Count - 1)
+                                 : 0);
+
+                var finalDamage = Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
+                    damage * damageReduction / 100);
+
+                EDamages[target.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, finalDamage } };
+
+                return finalDamage;
+            }
+
+            public static float GetRendDamageOnTarget(Obj_AI_Base target, int stacks)
+            {
+                if (target == null || stacks < 1)
+                    return 0f;
+
+                if (EDamagesStacks.ContainsKey(target.NetworkId) && !EDamagesStacks.Any(x => x.Key == target.NetworkId && x.Value.Item2 == stacks && x.Value.Item1.Any(k => Game.Time * 1000 - k.Key > 200)))
+                    return EDamagesStacks[target.NetworkId].Item1.Values.FirstOrDefault();
+
+                var damageReduction = 100 - Settings.Misc.ReduceEDmg;
+
+                var damage = EDamage[E.Level] + Player.Instance.TotalAttackDamage * EDamageMod +
+                             (stacks > 1
+                                 ? (EDamagePerSpear[E.Level] +
+                                    Player.Instance.TotalAttackDamage * EDamagePerSpearMod[E.Level]) *
+                                   (stacks - 1)
+                                 : 0);
+                var finalDamage = Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
+                    damage * damageReduction / 100);
+
+                ComboDamages[target.NetworkId] = new Tuple<Dictionary<float, float>, int>(new Dictionary<float, float> { { Game.Time * 1000, finalDamage } }, stacks);
+
+                return finalDamage;
+            }
+
+            public static BuffInstance GetRendBuff(Obj_AI_Base target)
+            {
+                return
+                    target.Buffs.Find(
+                        b => b.Caster.IsMe && b.IsValid && b.DisplayName.ToLowerInvariant() == "kalistaexpungemarker");
+            }
+
+            public static bool HasRendBuff(Obj_AI_Base target)
+            {
+                return GetRendBuff(target) != null;
+            }
+        }
+
+        protected static class WallJumper
+        {
+            private static readonly Dictionary<Vector3, Vector3> WallJumpSpots = new Dictionary<Vector3, Vector3>
+            {
+                {
+                    new Vector3(4674.075f, 5862.176f, 51.39587f), new Vector3(4964.955f, 5410.113f, 50.27698f)
+                },
+                {
+                    new Vector3(4776.036f, 5681.148f, 50.2323f), new Vector3(4450.556f, 6258.124f, 51.30017f)
+                },
+                {
+                    new Vector3(4205.026f, 6230.98f, 52.04443f), new Vector3(3390.128f, 7107.43f, 51.62903f)
+                },
+                {
+                    new Vector3(4058.4f, 6407.077f, 52.46643f), new Vector3(4344.324f, 6137.956f, 52.11548f)
+                },
+                {
+                    new Vector3(3648.005f, 6740.299f, 52.45801f), new Vector3(3432.113f, 7171.313f, 51.7063f)
+                },
+                {
+                    new Vector3(3361.615f, 7455.041f, 51.89197f), new Vector3(3363.352f, 8117.096f, 51.78662f)
+                },
+                {
+                    new Vector3(3321.974f, 7708.548f, 52.18164f), new Vector3(3353.69f, 7095.598f, 51.64148f)
+                },
+                {
+                    new Vector3(3017.809f, 6767.353f, 51.46631f), new Vector3(2547.598f, 6734.157f, 55.98999f)
+                },
+                {
+                    new Vector3(2799.904f, 6726.203f, 56.13196f), new Vector3(3233.671f, 6737.399f, 51.71729f) //
+                },
+                {
+                    new Vector3(3019.342f, 6154.791f, 57.04688f), new Vector3(3353.769f, 6354.227f, 52.30249f)
+                },
+                {
+                    new Vector3(3183.354f, 6284.209f, 52.05823f), new Vector3(2811.656f, 6101.958f, 57.04346f)
+                },
+                {
+                    new Vector3(5985.822f, 5483.679f, 51.78357f), new Vector3(6224.729f, 5154.694f, 48.52795f)
+                },
+                {
+                    new Vector3(6088.231f, 5311.382f, 48.66809f), new Vector3(5644.362f, 5734.164f, 51.55969f)
+                },
+                {
+                    new Vector3(5958.93f, 4905.675f, 48.56433f), new Vector3(6064.395f, 4395.197f, 48.854f)
+                },
+                {
+                    new Vector3(6003.119f, 4699.23f, 48.53394f), new Vector3(5836.034f, 5264.244f, 51.49707f) //
+                },
+                {
+                    new Vector3(2073.425f, 9449.21f, 52.81799f), new Vector3(2324.867f, 9086.609f, 51.77649f)
+                },
+                {
+                    new Vector3(2192.551f, 9277.479f, 51.77612f), new Vector3(1784.083f, 9769.506f, 52.83789f)
+                },
+                {
+                    new Vector3(2596.218f, 9475.452f, 53.19934f), new Vector3(3001.343f, 9483.234f, 50.86426f)
+                },
+                {
+                    new Vector3(2782.156f, 9524.927f, 51.70544f), new Vector3(2372.439f, 9541.388f, 54.12097f)
+                },
+                {
+                    new Vector3(3260.017f, 9570.996f, 50.75f), new Vector3(3686.57f, 9676.949f, -67.49133f)
+                },
+                {
+                    new Vector3(3830.311f, 9291.035f, -39.20325f), new Vector3(4330.704f, 9366.914f, -65.57581f)
+                },
+                {
+                    new Vector3(4049.929f, 9337.727f, -67.83044f), new Vector3(3548.787f, 9153.723f, 42.43506f)
+                },
+                {
+                    new Vector3(3463.348f, 9573.761f, -11.46021f), new Vector3(3027.57f, 9511.312f, 50.88171f) //
+                },
+                {
+                    new Vector3(4678.605f, 8930.429f, -68.85168f), new Vector3(4657.199f, 8345.509f, 42.93982f)
+                },
+                {
+                    new Vector3(4669.956f, 8709.591f, -26.17603f), new Vector3(4670.273f, 9154.957f, -67.51306f)
+                },
+                {
+                    new Vector3(4964.398f, 9784.654f, -70.81885f), new Vector3(5107.994f, 10348.38f, -71.24084f)
+                },
+                {
+                    new Vector3(4349.712f, 10221.11f, -71.2406f), new Vector3(4543.807f, 10568.52f, -71.24072f)
+                },
+                {
+                    new Vector3(4990.49f, 10008.76f, -71.2406f), new Vector3(4911.171f, 9536.953f, -67.45691f)
+                },
+                {
+                    new Vector3(4478.381f, 10413.06f, -71.24072f), new Vector3(4133.447f, 10008.29f, -71.24048f)
+                },
+                {
+                    new Vector3(5450.241f, 10682.51f, -71.2406f), new Vector3(6056.064f, 10726.44f, 55.04712f)
+                },
+                {
+                    new Vector3(5756.578f, 10627.04f, 55.50256f), new Vector3(5091.194f, 10523.42f, -71.2406f)
+                },
+                {
+                    new Vector3(4654.404f, 12054.92f, 56.48206f), new Vector3(4866.387f, 12496.41f, 56.47717f)
+                },
+                {
+                    new Vector3(4808.343f, 12232.11f, 56.47681f), new Vector3(4536.632f, 11772.7f, 56.84839f)
+                },
+                {
+                    new Vector3(6597.816f, 11970.13f, 56.47681f), new Vector3(6654.76f, 11584.67f, 53.84241f)
+                },
+                {
+                    new Vector3(5037.089f, 12122.35f, 56.47681f), new Vector3(4845.982f, 11712.43f, 56.83057f)
+                },
+                {
+                    new Vector3(4921.988f, 11921.41f, 56.63684f), new Vector3(5131.101f, 12412.9f, 56.42578f)
+                },
+                {
+                    new Vector3(6562.792f, 11729.48f, 53.84436f), new Vector3(6524.585f, 12614.06f, 55.2002f)
+                },
+                {
+                    new Vector3(8112.829f, 9822.483f, 50.63965f), new Vector3(8879.749f, 9838.395f, 50.32629f)
+                },
+                {
+                    new Vector3(8348.689f, 9854.147f, 50.38232f), new Vector3(7733.365f, 9923.805f, 51.47546f)
+                },
+                {
+                    new Vector3(8876.396f, 9477.259f, 51.44019f), new Vector3(8683.688f, 9867.419f, 50.38428f)
+                },
+                {
+                    new Vector3(8768.142f, 9647.292f, 50.38757f), new Vector3(8950.688f, 9282.373f, 52.81299f)
+                },
+                {
+                    new Vector3(7237.933f, 8535.534f, 53.06848f), new Vector3(6911.81f, 8232.869f, -64.66357f)
+                },
+                {
+                    new Vector3(7062.687f, 8373.167f, -70.64819f), new Vector3(7469.869f, 8734.628f, 52.87256f)
+                },
+                {
+                    new Vector3(6873.494f, 8916.587f, 52.87219f), new Vector3(6505.242f, 8619.341f, -71.24048f)
+                },
+                {
+                    new Vector3(6658.066f, 8833.806f, -71.24719f), new Vector3(6997.431f, 9236.629f, 52.93079f)
+                },
+                {
+                    new Vector3(6516.605f, 9115.799f, 5.47644f), new Vector3(6472.492f, 8783.131f, -71.24048f)
+                },
+                {
+                    new Vector3(6486.219f, 8932.186f, -50.38245f), new Vector3(6593.634f, 9636.98f, 53.25244f)
+                },
+                {
+                    new Vector3(10191.71f, 9087.334f, 49.85303f), new Vector3(9929.119f, 9643.738f, 51.92957f)
+                },
+                {
+                    new Vector3(10079.68f, 9291.497f, 51.9646f), new Vector3(10357.46f, 8853.28f, 53.68933f)
+                },
+                {
+                    new Vector3(10656.18f, 8731.279f, 62.88135f), new Vector3(11305.75f, 7722.244f, 52.21777f)
+                },
+                {
+                    new Vector3(10798.26f, 8547.337f, 63.08923f), new Vector3(10297.43f, 9050.915f, 49.49707f)
+                },
+                {
+                    new Vector3(11239.86f, 8183.693f, 60.09253f), new Vector3(11422.37f, 7669.299f, 52.21594f)
+                },
+                {
+                    new Vector3(11316.68f, 7953.193f, 52.21985f), new Vector3(10576.1f, 8966.911f, 56.98792f)
+                },
+                {
+                    new Vector3(11792.18f, 8036.237f, 53.35071f), new Vector3(12238.76f, 8009.057f, 52.45483f)
+                },
+                {
+                    new Vector3(12035.42f, 8022.847f, 52.50647f), new Vector3(11344.4f, 8019.567f, 52.20801f)
+                },
+                {
+                    new Vector3(11615.39f, 8731.227f, 64.79346f), new Vector3(12007.9f, 9157.172f, 51.31812f)
+                },
+                {
+                    new Vector3(11761.23f, 8902.433f, 50.30737f), new Vector3(11371.68f, 8622.363f, 62.18396f)
+                },
+                {
+                    new Vector3(11461.58f, 7220.586f, 51.72644f), new Vector3(11435.65f, 7900.254f, 52.22717f)
+                },
+                {
+                    new Vector3(11345.33f, 7475.27f, 52.20227f), new Vector3(11332.8f, 6884.023f, 51.71301f)
+                },
+                {
+                    new Vector3(10943.87f, 7498.245f, 52.20349f), new Vector3(10985.02f, 6940.704f, 51.7229f)
+                },
+                {
+                    new Vector3(10989.51f, 7276.3f, 51.72388f), new Vector3(11001.48f, 7824.464f, 52.20337f)
+                },
+                {
+                    new Vector3(12685.75f, 5630.602f, 51.64124f), new Vector3(12987.24f, 5297.553f, 51.72949f)
+                },
+                {
+                    new Vector3(12805.22f, 5476.07f, 52.39209f), new Vector3(12423.69f, 5878.115f, 57.12878f)
+                },
+                {
+                    new Vector3(12271.95f, 5267.301f, 51.72949f), new Vector3(11785.53f, 5273.65f, 53.09851f)
+                },
+                {
+                    new Vector3(12023.61f, 5546.923f, 54.08569f), new Vector3(12576f, 5489.254f, 51.9386f)
+                },
+                {
+                    new Vector3(12270.39f, 5542.233f, 52.21411f), new Vector3(11741.91f, 5622.261f, 52.41943f)
+                },
+                {
+                    new Vector3(12044.07f, 4595.935f, 51.72961f), new Vector3(11388.58f, 4303.719f, -71.2406f)
+                },
+                {
+                    new Vector3(11657.52f, 4744.356f, -71.24072f), new Vector3(12110.17f, 5006.434f, 52.04895f)
+                },
+                {
+                    new Vector3(11888.61f, 4827.719f, 51.75354f), new Vector3(11382.68f, 4625.833f, -71.24048f)
+                },
+                {
+                    new Vector3(11367.42f, 5515.814f, 9.731201f), new Vector3(11784.17f, 5372.018f, 54.12024f)
+                },
+                {
+                    new Vector3(11552.44f, 5440.104f, 54.07751f), new Vector3(11100.15f, 5604.056f, -28.15002f)
+                },
+                {
+                    new Vector3(10078.97f, 2709.129f, 49.2229f), new Vector3(9992.279f, 3197.125f, 51.94043f)
+                },
+                {
+                    new Vector3(10078.25f, 2985.698f, 50.72534f), new Vector3(10024.98f, 2478.564f, 49.22253f)
+                },
+                {
+                    new Vector3(8300.578f, 2927.003f, 51.12988f), new Vector3(8174.804f, 3346.193f, 51.64172f)
+                },
+                {
+                    new Vector3(8233.854f, 3175.692f, 51.64331f), new Vector3(8382.541f, 2395.067f, 51.10413f)
+                },
+                {
+                    new Vector3(9052.554f, 4364.01f, 52.74133f), new Vector3(9483.579f, 4424.337f, -71.2406f)
+                },
+                {
+                    new Vector3(9264.467f, 4418.867f, -71.24072f), new Vector3(8749.148f, 4352.381f, 53.22034f)
+                },
+                {
+                    new Vector3(4776.829f, 3261.627f, 50.87463f), new Vector3(4359.231f, 3119.195f, 95.74817f)
+                }
+            };
+
+            public static bool Jumping { get; private set; }
+            public static Vector3 JumpingSpot { get; private set; }
+            public static Vector3 OrbwalkingSpot { get; private set; }
+            public static float StartTime { get; private set; }
+
+            public static void Init()
+            {
+                Game.OnTick += OnTick;
+            }
+
+            private static void OnTick(EventArgs args)
+            {
+                if (!Jumping || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee))
+                {
+                    return;
+                }
+
+                if (!Q.IsReady() || StartTime + 1000 < Game.Time*1000 || !Settings.Flee.JumpWithQ)
+                {
+                    Orbwalker.OverrideOrbwalkPosition = () => Game.CursorPos;
+                    Jumping = false;
+                    JumpingSpot = Vector3.Zero;
+                    OrbwalkingSpot = Vector3.Zero;
+                }
+
+                if (Player.Instance.ServerPosition.Distance(OrbwalkingSpot) <
+                    (OrbwalkingSpot == new Vector3(9253.057f, 4442.405f, -71.24084f)
+                        ? 160
+                        : Player.Instance.BoundingRadius) ||
+                    (Player.Instance.Path.LastOrDefault().Distance(Player.Instance) < 10 &&
+                     Player.Instance.ServerPosition.Distance(OrbwalkingSpot) < 200))
+                {
+                    Player.ForceIssueOrder(GameObjectOrder.Stop, Player.Instance.ServerPosition, true);
+                    Q.Cast(Player.Instance.Position.Extend(JumpingSpot, 400).To3D());
+                    Player.ForceIssueOrder(GameObjectOrder.MoveTo, JumpingSpot, true);
+                    Orbwalker.OverrideOrbwalkPosition = () => Game.CursorPos;
+
+                    Jumping = false;
+                    JumpingSpot = Vector3.Zero;
+                    OrbwalkingSpot = Vector3.Zero;
+                }
+            }
+
+            public static void DrawSpots()
+            {
+                foreach (
+                    var spot in
+                        WallJumpSpots.Where(
+                            id =>
+                                id.Key.Distance(Player.Instance.Position) < 500 ||
+                                id.Value.Distance(Player.Instance.Position) < 500))
+                {
+                    Circle.Draw(SharpDX.Color.LimeGreen, Player.Instance.BoundingRadius, spot.Key);
+                }
+            }
+
+            public static void TryToJump()
+            {
+                if (!Q.IsReady() || Jumping || !Settings.Flee.JumpWithQ)
+                    return;
+
+                var pos = WallJumpSpots.OrderBy(x => x.Key.Distance(Player.Instance.ServerPosition)).FirstOrDefault();
+                var oPos = pos.Value;
+
+                if (Player.Instance.ServerPosition.Distance(pos.Key) <
+                    (pos.Key == new Vector3(9264.467f, 4418.867f, -71.24072f) ? 150 : 75))
+                {
+                    Orbwalker.OverrideOrbwalkPosition =
+                        () =>
+                            pos.Key == new Vector3(9264.467f, 4418.867f, -71.24072f)
+                                ? new Vector3(9247.006f, 4413.333f, -54.87134f)
+                                : pos.Key;
+                    OrbwalkingSpot = pos.Key;
+                    JumpingSpot = oPos;
+                    Jumping = true;
+                    StartTime = Game.Time*1000;
                 }
             }
         }

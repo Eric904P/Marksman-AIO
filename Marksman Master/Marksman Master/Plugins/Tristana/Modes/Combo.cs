@@ -26,7 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;

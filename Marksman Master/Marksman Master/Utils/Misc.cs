@@ -39,6 +39,8 @@ namespace Marksman_Master.Utils
 {
     internal static class Misc
     {
+        private const bool Debug = false;
+
         /// <summary>
         /// Last message tick
         /// </summary>
@@ -67,6 +69,15 @@ namespace Marksman_Master.Utils
             "Tristana", "Vayne",  "Vi", "Zyra"
         };
 
+        /// <summary>
+        /// Prints info message
+        /// </summary>
+        /// <param name="message">The message string</param>
+        public static void PrintDebugMessage(string message)
+        {
+            if(Debug)
+                Console.WriteLine($"[DEBUG] {message}");
+        }
 
         /// <summary>
         /// Prints info message

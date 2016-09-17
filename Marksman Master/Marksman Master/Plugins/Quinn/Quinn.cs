@@ -37,7 +37,6 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Quinn
@@ -49,11 +48,11 @@ namespace Marksman_Master.Plugins.Quinn
         protected static Spell.Targeted E { get; }
         protected static Spell.Active R { get; }
 
-        protected static Menu ComboMenu { get; set; }
-        protected static Menu HarassMenu { get; set; }
-        protected static Menu LaneClearMenu { get; set; }
-        protected static Menu DrawingsMenu { get; set; }
-        protected static Menu MiscMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
 
         private static ColorPicker[] ColorPicker { get; }
 
@@ -355,335 +354,55 @@ namespace Marksman_Master.Plugins.Quinn
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Quinn.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Quinn.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Quinn.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Quinn.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Quinn.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Quinn.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Quinn.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Quinn.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Quinn.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Quinn.ComboMenu.UseW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Quinn.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Quinn.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Quinn.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Quinn.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Quinn.ComboMenu.UseE"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Quinn.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Quinn.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Quinn.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Quinn.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Quinn.HarassMenu.UseQ"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Quinn.HarassMenu.MinManaQ"] != null)
-                            return HarassMenu["Plugins.Quinn.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Quinn.HarassMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Quinn.HarassMenu.MinManaQ"] != null)
-                            HarassMenu["Plugins.Quinn.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Quinn.HarassMenu.MinManaQ", true];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Quinn.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Quinn.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Quinn.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Quinn.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Quinn.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Quinn.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Quinn.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Quinn.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Quinn.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Quinn.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Quinn.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Quinn.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Quinn.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static int MinMinionsKilledForQ => MenuManager.MenuValues["Plugins.Quinn.LaneClearMenu.MinMinionsKilledForQ", true];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Quinn.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Quinn.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Quinn.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Quinn.LaneClearMenu.UseQInJungleClear"];
 
-                public static int MinMinionsKilledForQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.MinMinionsKilledForQ"] != null)
-                            return
-                                LaneClearMenu["Plugins.Quinn.LaneClearMenu.MinMinionsKilledForQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Quinn.LaneClearMenu.MinMinionsKilledForQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.MinMinionsKilledForQ"] != null)
-                            LaneClearMenu["Plugins.Quinn.LaneClearMenu.MinMinionsKilledForQ"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
-
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Quinn.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Quinn.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Quinn.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Quinn.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Quinn.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Quinn.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Quinn.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Quinn.LaneClearMenu.MinManaQ", true];
             }
 
             internal static class Misc
             {
-                public static bool EnableKillsteal
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Quinn.MiscMenu.EnableKillsteal"] != null &&
-                               MiscMenu["Plugins.Quinn.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Quinn.MiscMenu.EnableKillsteal"] != null)
-                            MiscMenu["Plugins.Quinn.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.Quinn.MiscMenu.EnableKillsteal"];
 
-                public static bool EAgainstGapclosers
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Quinn.MiscMenu.EAgainstGapclosers"] != null &&
-                               MiscMenu["Plugins.Quinn.MiscMenu.EAgainstGapclosers"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Quinn.MiscMenu.EAgainstGapclosers"] != null)
-                            MiscMenu["Plugins.Quinn.MiscMenu.EAgainstGapclosers"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EAgainstGapclosers => MenuManager.MenuValues["Plugins.Quinn.MiscMenu.EAgainstGapclosers"];
 
-                public static bool EAgainstInterruptible
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Quinn.MiscMenu.EAgainstInterruptible"] != null &&
-                               MiscMenu["Plugins.Quinn.MiscMenu.EAgainstInterruptible"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Quinn.MiscMenu.EAgainstInterruptible"] != null)
-                            MiscMenu["Plugins.Quinn.MiscMenu.EAgainstInterruptible"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EAgainstInterruptible => MenuManager.MenuValues["Plugins.Quinn.MiscMenu.EAgainstInterruptible"];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Quinn.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Quinn.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Quinn.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Quinn.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Quinn.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Quinn.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.Quinn.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Quinn.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.Quinn.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.Quinn.DrawingsMenu.DrawQ"];
 
-                public static bool DrawE
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Quinn.DrawingsMenu.DrawE"] != null &&
-                               DrawingsMenu["Plugins.Quinn.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Quinn.DrawingsMenu.DrawE"] != null)
-                            DrawingsMenu["Plugins.Quinn.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawE => MenuManager.MenuValues["Plugins.Quinn.DrawingsMenu.DrawE"];
 
-                public static bool DrawDamageIndicator
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Quinn.DrawingsMenu.DrawDamageIndicator"] != null &&
-                               DrawingsMenu["Plugins.Quinn.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Quinn.DrawingsMenu.DrawDamageIndicator"] != null)
-                            DrawingsMenu["Plugins.Quinn.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawDamageIndicator => MenuManager.MenuValues["Plugins.Quinn.DrawingsMenu.DrawDamageIndicator"];
             }
         }
     }

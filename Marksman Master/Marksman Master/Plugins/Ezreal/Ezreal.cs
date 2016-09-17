@@ -35,7 +35,6 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.PermaShow.Values;
 using Marksman_Master.Utils;
 
@@ -48,11 +47,11 @@ namespace Marksman_Master.Plugins.Ezreal
         protected static Spell.Skillshot E { get; }
         protected static Spell.Skillshot R { get; }
 
-        protected static Menu ComboMenu { get; set; }
-        protected static Menu HarassMenu { get; set; }
-        protected static Menu LaneClearMenu { get; set; }
-        protected static Menu DrawingsMenu { get; set; }
-        protected static Menu MiscMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
 
         private static ColorPicker[] ColorPicker { get; }
         
@@ -72,7 +71,6 @@ namespace Marksman_Master.Plugins.Ezreal
         protected static int GetPassiveBuffAmount
             => HasPassiveBuff ? Player.Instance.Buffs.Find(
                         b => b.IsActive && b.Name.ToLowerInvariant() == "ezrealrisingspellforce").Count : 0;
-
 
         private static readonly Dictionary<int, Dictionary<float, float>> Damages =
             new Dictionary<int, Dictionary<float, float>>();
@@ -415,462 +413,73 @@ namespace Marksman_Master.Plugins.Ezreal
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ezreal.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Ezreal.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ezreal.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Ezreal.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseQ"];
 
-                public static bool UseQOnImmobile
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ezreal.ComboMenu.UseQOnImmobile"] != null &&
-                               ComboMenu["Plugins.Ezreal.ComboMenu.UseQOnImmobile"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ezreal.ComboMenu.UseQOnImmobile"] != null)
-                            ComboMenu["Plugins.Ezreal.ComboMenu.UseQOnImmobile"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQOnImmobile => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseQOnImmobile"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ezreal.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Ezreal.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ezreal.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Ezreal.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ezreal.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Ezreal.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ezreal.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Ezreal.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseE"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ezreal.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Ezreal.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ezreal.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Ezreal.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static int RMinEnemiesHit
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Ezreal.ComboMenu.RMinEnemiesHit"] != null)
-                            return ComboMenu["Plugins.Ezreal.ComboMenu.RMinEnemiesHit"].Cast<Slider>().CurrentValue;
+                public static bool UseR => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseR"];
 
-                        Logger.Error("Couldn't get Plugins.Ezreal.ComboMenu.RMinEnemiesHit menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ezreal.ComboMenu.RMinEnemiesHit"] != null)
-                            ComboMenu["Plugins.Ezreal.ComboMenu.RMinEnemiesHit"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int RMinEnemiesHit => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.RMinEnemiesHit", true];
 
-                public static bool RKeybind
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Ezreal.ComboMenu.RKeybind"] != null &&
-                               ComboMenu["Plugins.Ezreal.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Ezreal.ComboMenu.RKeybind"] != null)
-                            ComboMenu["Plugins.Ezreal.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool RKeybind => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.RKeybind"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Ezreal.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Ezreal.HarassMenu.UseQ"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Ezreal.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Ezreal.HarassMenu.UseQ"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Ezreal.HarassMenu.UseQ"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Ezreal.HarassMenu.MinManaQ"] != null)
-                            return HarassMenu["Plugins.Ezreal.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Ezreal.HarassMenu.MinManaQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Ezreal.HarassMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Ezreal.HarassMenu.MinManaQ"] != null)
-                            HarassMenu["Plugins.Ezreal.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool IsAutoHarassEnabledFor(AIHeroClient unit) => MenuManager.MenuValues["Plugins.Ezreal.HarassMenu.UseQ." + unit.Hero];
 
-                public static bool IsAutoHarassEnabledFor(AIHeroClient unit)
-                {
-                    return HarassMenu?["Plugins.Ezreal.HarassMenu.UseQ." + unit.Hero] != null &&
-                           HarassMenu["Plugins.Ezreal.HarassMenu.UseQ." + unit.Hero].Cast<CheckBox>()
-                               .CurrentValue;
-                }
-
-                public static bool IsAutoHarassEnabledFor(string championName)
-                {
-                    return HarassMenu?["Plugins.Ezreal.HarassMenu.UseQ." + championName] != null &&
-                           HarassMenu["Plugins.Ezreal.HarassMenu.UseQ." + championName].Cast<CheckBox>()
-                               .CurrentValue;
-                }
+                public static bool IsAutoHarassEnabledFor(string championName) => MenuManager.MenuValues["Plugins.Ezreal.HarassMenu.UseQ." + championName];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Ezreal.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Ezreal.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Ezreal.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Ezreal.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Ezreal.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Ezreal.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Ezreal.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Ezreal.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Ezreal.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Ezreal.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Ezreal.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Ezreal.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Ezreal.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Ezreal.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Ezreal.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Ezreal.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.MinManaQ", true];
             }
 
             internal static class Misc
             {
-                public static bool EnableKillsteal
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Ezreal.MiscMenu.EnableKillsteal"] != null &&
-                               MiscMenu["Plugins.Ezreal.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.EnableKillsteal"] != null)
-                            MiscMenu["Plugins.Ezreal.MiscMenu.EnableKillsteal"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.EnableKillsteal"];
 
-                public static bool KeepPassiveStacks
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Ezreal.MiscMenu.KeepPassiveStacks"] != null &&
-                               MiscMenu["Plugins.Ezreal.MiscMenu.KeepPassiveStacks"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.KeepPassiveStacks"] != null)
-                            MiscMenu["Plugins.Ezreal.MiscMenu.KeepPassiveStacks"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool KeepPassiveStacks => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.KeepPassiveStacks"];
 
-                public static bool EAntiMelee
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Ezreal.MiscMenu.EAntiMelee"] != null &&
-                               MiscMenu["Plugins.Ezreal.MiscMenu.EAntiMelee"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.EAntiMelee"] != null)
-                            MiscMenu["Plugins.Ezreal.MiscMenu.EAntiMelee"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EAntiMelee => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.EAntiMelee"];
 
-                public static bool EnableTearStacker
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Ezreal.MiscMenu.EnableTearStacker"] != null &&
-                               MiscMenu["Plugins.Ezreal.MiscMenu.EnableTearStacker"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.EnableTearStacker"] != null)
-                            MiscMenu["Plugins.Ezreal.MiscMenu.EnableTearStacker"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableTearStacker => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.EnableTearStacker"];
 
-                public static bool StackOnlyInFountain
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"] != null &&
-                               MiscMenu["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"] != null)
-                            MiscMenu["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool StackOnlyInFountain => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"];
 
-                public static int MinimalManaPercentTearStacker
-                {
-                    get
-                    {
-                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker"] != null)
-                            return MiscMenu["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker"] != null)
-                            MiscMenu["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinimalManaPercentTearStacker => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker", true];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Ezreal.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.Ezreal.DrawingsMenu.DrawQ"];
 
-                public static bool DrawW
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawW"] != null &&
-                               DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawW"] != null)
-                            DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawW => MenuManager.MenuValues["Plugins.Ezreal.DrawingsMenu.DrawW"];
 
-                public static bool DrawE
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawE"] != null &&
-                               DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawE"] != null)
-                            DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawE"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawE => MenuManager.MenuValues["Plugins.Ezreal.DrawingsMenu.DrawE"];
                 
-                public static bool DrawDamageIndicator
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawDamageIndicator"] != null &&
-                               DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Ezreal.DrawingsMenu.DrawDamageIndicator"] != null)
-                            DrawingsMenu["Plugins.Ezreal.DrawingsMenu.DrawDamageIndicator"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawDamageIndicator => MenuManager.MenuValues["Plugins.Ezreal.DrawingsMenu.DrawDamageIndicator"];
             }
         }
     }

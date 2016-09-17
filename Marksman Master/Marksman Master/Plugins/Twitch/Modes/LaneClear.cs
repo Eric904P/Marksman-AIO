@@ -26,7 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -49,13 +49,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
 
             if (W.IsReady() && Settings.LaneClear.UseW && Player.Instance.ManaPercent >= Settings.LaneClear.WMinMana)
             {
-                var c = EntityManager.MinionsAndMonsters.GetCircularFarmLocation(laneMinions, 200, 950,
-                    250, 1400);
-
-                if (c.HitNumber > 2)
-                {
-                    W.Cast(c.CastPosition);
-                }
+                W.CastOnBestFarmPosition();
             }
 
             if (E.IsReady() && Settings.LaneClear.UseE && Player.Instance.ManaPercent >= Settings.LaneClear.EMinMana)
@@ -70,7 +64,6 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                 {
                     E.Cast();
                 }
-
             }
         }
     }

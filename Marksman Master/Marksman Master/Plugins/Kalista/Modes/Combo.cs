@@ -55,7 +55,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             {
                 var enemiesWithRendBuff =
                     EntityManager.Heroes.Enemies.Count(
-                        unit => unit.IsValid && unit.IsValidTarget(E.Range) && unit.HasRendBuff());
+                        unit => unit.IsValid && unit.IsValidTarget(E.Range) && Damage.HasRendBuff(unit));
 
                 if(enemiesWithRendBuff == 0)
                     return;
@@ -64,11 +64,11 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 {
                     var count =
                         EntityManager.MinionsAndMonsters.CombinedAttackable.Count(
-                            unit => unit.IsValid && unit.IsValidTarget(E.Range) && unit.IsTargetKillableByRend() && Prediction.Health.GetPrediction(unit, 300) > 10);
+                            unit => unit.IsValid && unit.IsValidTarget(E.Range) && Damage.IsTargetKillableByRend(unit) && Prediction.Health.GetPrediction(unit, 300) > 10);
 
                     if (count >= Settings.Combo.UseEToSlowMinMinions)
                     {
-                        Console.WriteLine("[DEBUG] Casting E to slow.");
+                        Misc.PrintDebugMessage("Casting E to slow.");
                         E.Cast();
                     }
                 }
@@ -76,15 +76,15 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 if (Settings.Combo.UseEBeforeEnemyLeavesRange && enemiesWithRendBuff == 1)
                 {
                     var enemyUnit =
-                        EntityManager.Heroes.Enemies.Find(unit => !unit.IsDead && unit.IsValid && unit.IsValidTarget(E.Range) && unit.HasRendBuff());
+                        EntityManager.Heroes.Enemies.Find(unit => !unit.IsDead && unit.IsValid && unit.IsValidTarget(E.Range) && Damage.HasRendBuff(unit));
 
-                    if (enemyUnit != null && enemyUnit.CanCastEOnUnit() && enemyUnit.Distance(Player.Instance) > E.Range - 100)
+                    if (enemyUnit != null && Damage.CanCastEOnUnit(enemyUnit) && enemyUnit.Distance(Player.Instance) > E.Range - 100)
                     {
-                        var percentDamage = enemyUnit.GetRendDamageOnTarget()/enemyUnit.TotalHealthWithShields()*100;
+                        var percentDamage = Damage.GetRendDamageOnTarget(enemyUnit) /enemyUnit.TotalHealthWithShields()*100;
                         if (percentDamage >= Settings.Combo.MinDamagePercToUseEBeforeEnemyLeavesRange)
                         {
                             E.Cast();
-                            Console.WriteLine("[DEBUG] Casting E cause it will deal "+percentDamage+" percent of enemy hp.");
+                            Misc.PrintDebugMessage($"Casting E cause it will deal {percentDamage} percent of enemy hp.");
                         }
                     }
                 }
@@ -92,11 +92,11 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 if (Settings.Combo.UseEBeforeDeath && Player.Instance.HealthPercent < 5 && IncomingDamage.GetIncomingDamage(Player.Instance) > Player.Instance.Health)
                 {
                     E.Cast();
-                    Console.WriteLine("[DEBUG] Casting E before death.");
+                    Misc.PrintDebugMessage("Casting E before death.");
                 }
             }
 
-            if (!Q.IsReady() || !Settings.Combo.UseQ || ((Player.Instance.Mana - (50 + 5 * (Q.Level - 1))) < 45))
+            if (!Q.IsReady() || !Settings.Combo.UseQ || (Player.Instance.Mana - (50 + 5 * (Q.Level - 1)) < 45))
                 return;
 
             var possibleTargets =

@@ -37,28 +37,27 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Sivir
 {
     internal class Sivir : ChampionPlugin
     {
-        public static Spell.Skillshot Q { get; }
-        public static Spell.Active W { get; }
-        public static Spell.Active E { get; }
-        public static Spell.Active R { get; }
+        protected static Spell.Skillshot Q { get; }
+        protected static Spell.Active W { get; }
+        protected static Spell.Active E { get; }
+        protected static Spell.Active R { get; }
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu HarassMenu { get; set; }
-        private static Menu LaneClearMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
-        private static Menu SpellBlockerMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
+        internal static Menu SpellBlockerMenu { get; set; }
 
         private static readonly ColorPicker[] ColorPicker;
         private static bool _changingRangeScan;
 
-        public static bool IsPostAttack { get; private set; }
+        protected static bool IsPostAttack { get; private set; }
 
         static Sivir()
         {
@@ -240,323 +239,50 @@ namespace Marksman_Master.Plugins.Sivir
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Sivir.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Sivir.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Sivir.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Sivir.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Sivir.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Sivir.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Sivir.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Sivir.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Sivir.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Sivir.ComboMenu.UseW"];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Sivir.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Sivir.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Sivir.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Sivir.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Sivir.HarassMenu.UseQ"];
 
-                public static bool AutoHarass
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Sivir.HarassMenu.AutoHarass"] != null &&
-                               HarassMenu["Plugins.Sivir.HarassMenu.AutoHarass"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Sivir.HarassMenu.AutoHarass"] != null)
-                            HarassMenu["Plugins.Sivir.HarassMenu.AutoHarass"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool AutoHarass => MenuManager.MenuValues["Plugins.Sivir.HarassMenu.AutoHarass"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Sivir.HarassMenu.MinManaQ"] != null)
-                            return HarassMenu["Plugins.Sivir.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Sivir.HarassMenu.MinManaQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Sivir.HarassMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Sivir.HarassMenu.MinManaQ"] != null)
-                            HarassMenu["Plugins.Sivir.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Sivir.HarassMenu.UseW"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Sivir.HarassMenu.UseW"] != null &&
-                               HarassMenu["Plugins.Sivir.HarassMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Sivir.HarassMenu.UseW"] != null)
-                            HarassMenu["Plugins.Sivir.HarassMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int MinManaW
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Sivir.HarassMenu.MinManaW"] != null)
-                            return HarassMenu["Plugins.Sivir.HarassMenu.MinManaW"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Sivir.HarassMenu.MinManaW menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Sivir.HarassMenu.MinManaW"] != null)
-                            HarassMenu["Plugins.Sivir.HarassMenu.MinManaW"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaW => MenuManager.MenuValues["Plugins.Sivir.HarassMenu.MinManaW", true];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Sivir.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Sivir.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Sivir.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Sivir.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Sivir.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Sivir.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Sivir.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Sivir.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Sivir.LaneClearMenu.AllowedEnemies", true];
 
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Sivir.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Sivir.LaneClearMenu.UseQInLaneClear"];
 
-                        Logger.Error("Couldn't get Plugins.Sivir.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Sivir.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Sivir.LaneClearMenu.UseQInJungleClear"];
 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Sivir.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Sivir.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Sivir.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Sivir.LaneClearMenu.MinManaQ", true];
 
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Sivir.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Sivir.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Sivir.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseWInLaneClear => MenuManager.MenuValues["Plugins.Sivir.LaneClearMenu.UseWInLaneClear"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Sivir.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static bool UseWInJungleClear => MenuManager.MenuValues["Plugins.Sivir.LaneClearMenu.UseWInJungleClear"];
 
-                        Logger.Error("Couldn't get Plugins.Sivir.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Sivir.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static bool UseWInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Sivir.LaneClearMenu.UseWInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Sivir.LaneClearMenu.UseWInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.UseWInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Sivir.LaneClearMenu.UseWInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static bool UseWInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Sivir.LaneClearMenu.UseWInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Sivir.LaneClearMenu.UseWInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.UseWInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Sivir.LaneClearMenu.UseWInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int WMinMana
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.MinManaW"] != null)
-                            return LaneClearMenu["Plugins.Sivir.LaneClearMenu.MinManaW"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Sivir.LaneClearMenu.MinManaW menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Sivir.LaneClearMenu.MinManaW"] != null)
-                            LaneClearMenu["Plugins.Sivir.LaneClearMenu.MinManaW"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-            }
-
-            internal static class Misc
-            {
-
+                public static int WMinMana => MenuManager.MenuValues["Plugins.Sivir.LaneClearMenu.MinManaW", true];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Sivir.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Sivir.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Sivir.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Sivir.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Sivir.DrawingsMenu.DrawSpellRangesWhenReady"];
                 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Sivir.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.Sivir.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Sivir.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.Sivir.DrawingsMenu.DrawQ"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.Sivir.DrawingsMenu.DrawQ"];
             }
         }
 
@@ -644,6 +370,7 @@ namespace Marksman_Master.Plugins.Sivir
                 new BlockableSpellData(Champion.Malphite, "[Q] Seismic Shard", SpellSlot.Q),
                 new BlockableSpellData(Champion.Malzahar, "[R] Malefic Visions", SpellSlot.E),
                 new BlockableSpellData(Champion.Maokai, "[W] Twisted Advance", SpellSlot.W),
+                new BlockableSpellData(Champion.MasterYi, "[Q] Alpha Strike", SpellSlot.Q),
                 new BlockableSpellData(Champion.MissFortune, "[Q] Double Up", SpellSlot.Q),
                 new BlockableSpellData(Champion.Mordekaiser, "[R] Children of the Grave", SpellSlot.R),
                 new BlockableSpellData(Champion.Morgana, "[R] Soul Shackles", SpellSlot.R),
@@ -768,12 +495,9 @@ namespace Marksman_Master.Plugins.Sivir
             }
 
             public static bool IsEnabledFor(AIHeroClient unit, SpellSlot slot)
-            {
-                return SpellBlockerMenu?["Plugins.Sivir.SpellBlockerMenu.Enabled"] != null && SpellBlockerMenu["Plugins.Sivir.SpellBlockerMenu.Enabled"].Cast<CheckBox>().CurrentValue && SpellBlockerMenu?["Plugins.Sivir.SpellBlockerMenu.Enabled." + unit.ChampionName + "." + slot] != null &&
-                       SpellBlockerMenu["Plugins.Sivir.SpellBlockerMenu.Enabled." + unit.ChampionName + "." + slot].Cast<CheckBox>()
-                           .CurrentValue;
-            }
-
+                => MenuManager.MenuValues["Plugins.Sivir.SpellBlockerMenu.Enabled"] &&
+                   MenuManager.MenuValues["Plugins.Sivir.SpellBlockerMenu.Enabled." + unit.ChampionName + "." + slot];
+            
             private static void Obj_AI_Base_OnBasicAttack(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
             {
                 var enemy = sender as AIHeroClient;

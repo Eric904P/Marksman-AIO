@@ -48,11 +48,11 @@ namespace Marksman_Master.Plugins.Jinx
         protected static Spell.Skillshot E { get; }
         protected static Spell.Skillshot R { get; }
 
-        protected static Menu ComboMenu { get; set; }
-        protected static Menu HarassMenu { get; set; }
-        protected static Menu LaneClearMenu { get; set; }
-        protected static Menu DrawingsMenu { get; set; }
-        protected static Menu MiscMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu LaneClearMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
+        internal static Menu MiscMenu { get; set; }
 
         private static readonly ColorPicker[] ColorPicker;
 
@@ -363,434 +363,69 @@ namespace Marksman_Master.Plugins.Jinx
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Jinx.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.Jinx.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.Jinx.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Jinx.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.Jinx.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.Jinx.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Jinx.ComboMenu.UseQ"];
 
-                public static int WMinDistanceToTarget
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.WMinDistanceToTarget"] != null)
-                            return ComboMenu["Plugins.Jinx.ComboMenu.WMinDistanceToTarget"].Cast<Slider>().CurrentValue;
+                public static bool UseW => MenuManager.MenuValues["Plugins.Jinx.ComboMenu.UseW"];
 
-                        Logger.Error("Couldn't get Plugins.Jinx.ComboMenu.WMinDistanceToTarget menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.WMinDistanceToTarget"] != null)
-                            ComboMenu["Plugins.Jinx.ComboMenu.WMinDistanceToTarget"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int WMinDistanceToTarget => MenuManager.MenuValues["Plugins.Jinx.ComboMenu.WMinDistanceToTarget", true];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Jinx.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.Jinx.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.Jinx.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.Jinx.ComboMenu.UseE"];
 
-                public static bool AutoE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Jinx.ComboMenu.AutoE"] != null &&
-                               ComboMenu["Plugins.Jinx.ComboMenu.AutoE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.AutoE"] != null)
-                            ComboMenu["Plugins.Jinx.ComboMenu.AutoE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool AutoE => MenuManager.MenuValues["Plugins.Jinx.ComboMenu.AutoE"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Jinx.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.Jinx.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.Jinx.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.Jinx.ComboMenu.UseR"];
 
-                public static bool RKeybind
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.Jinx.ComboMenu.RKeybind"] != null &&
-                               ComboMenu["Plugins.Jinx.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.RKeybind"] != null)
-                            ComboMenu["Plugins.Jinx.ComboMenu.RKeybind"].Cast<KeyBind>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-                public static int RRangeKeybind
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.RRangeKeybind"] != null)
-                            return ComboMenu["Plugins.Jinx.ComboMenu.RRangeKeybind"].Cast<Slider>().CurrentValue;
+                public static bool RKeybind => MenuManager.MenuValues["Plugins.Jinx.ComboMenu.RKeybind"];
 
-                        Logger.Error("Couldn't get Plugins.Jinx.ComboMenu.RRangeKeybind menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.Jinx.ComboMenu.RRangeKeybind"] != null)
-                            ComboMenu["Plugins.Jinx.ComboMenu.RRangeKeybind"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
+                public static int RRangeKeybind => MenuManager.MenuValues["Plugins.Jinx.ComboMenu.RRangeKeybind", true];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Jinx.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.Jinx.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Jinx.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.Jinx.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.UseQ"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Jinx.HarassMenu.MinManaQ"] != null)
-                            return HarassMenu["Plugins.Jinx.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.MinManaQ", true];
 
-                        Logger.Error("Couldn't get Plugins.Jinx.HarassMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Jinx.HarassMenu.MinManaQ"] != null)
-                            HarassMenu["Plugins.Jinx.HarassMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static bool UseW
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.Jinx.HarassMenu.UseW"] != null &&
-                               HarassMenu["Plugins.Jinx.HarassMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Jinx.HarassMenu.UseW"] != null)
-                            HarassMenu["Plugins.Jinx.HarassMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.UseW"];
                 
-                public static int MinManaW
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.Jinx.HarassMenu.MinManaW"] != null)
-                            return HarassMenu["Plugins.Jinx.HarassMenu.MinManaW"].Cast<Slider>().CurrentValue;
+                public static int MinManaW => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.MinManaW", true];
 
-                        Logger.Error("Couldn't get Plugins.Jinx.HarassMenu.MinManaW menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.Jinx.HarassMenu.MinManaW"] != null)
-                            HarassMenu["Plugins.Jinx.HarassMenu.MinManaW"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static bool IsWHarassEnabledFor(AIHeroClient unit) => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.UseW." + unit.Hero];
 
-                public static bool IsWHarassEnabledFor(AIHeroClient unit)
-                {
-                    return HarassMenu?["Plugins.Jinx.HarassMenu.UseW." + unit.Hero] != null &&
-                           HarassMenu["Plugins.Jinx.HarassMenu.UseW." + unit.Hero].Cast<CheckBox>()
-                               .CurrentValue;
-                }
-
-                public static bool IsWHarassEnabledFor(string championName)
-                {
-                    return HarassMenu?["Plugins.Jinx.HarassMenu.UseW." + championName] != null &&
-                           HarassMenu["Plugins.Jinx.HarassMenu.UseW." + championName].Cast<CheckBox>()
-                               .CurrentValue;
-                }
+                public static bool IsWHarassEnabledFor(string championName) => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.UseW." + championName];
             }
 
             internal static class LaneClear
             {
-                public static bool EnableIfNoEnemies
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Jinx.LaneClearMenu.EnableLCIfNoEn"] != null &&
-                               LaneClearMenu["Plugins.Jinx.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Jinx.LaneClearMenu.EnableLCIfNoEn"] != null)
-                            LaneClearMenu["Plugins.Jinx.LaneClearMenu.EnableLCIfNoEn"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.EnableLCIfNoEn"];
 
-                public static int ScanRange
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Jinx.LaneClearMenu.ScanRange"] != null)
-                            return LaneClearMenu["Plugins.Jinx.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue;
+                public static int ScanRange => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.ScanRange", true];
 
-                        Logger.Error("Couldn't get Plugins.Jinx.LaneClearMenu.ScanRange menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Jinx.LaneClearMenu.ScanRange"] != null)
-                            LaneClearMenu["Plugins.Jinx.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int AllowedEnemies
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Jinx.LaneClearMenu.AllowedEnemies"] != null)
-                            return
-                                LaneClearMenu["Plugins.Jinx.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Jinx.LaneClearMenu.AllowedEnemies menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Jinx.LaneClearMenu.AllowedEnemies"] != null)
-                            LaneClearMenu["Plugins.Jinx.LaneClearMenu.AllowedEnemies"].Cast<Slider>().CurrentValue =
-                                value;
-                    }
-                }
+                public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.AllowedEnemies", true];
                 
-                public static bool UseQInLaneClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Jinx.LaneClearMenu.UseQInLaneClear"] != null &&
-                               LaneClearMenu["Plugins.Jinx.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Jinx.LaneClearMenu.UseQInLaneClear"] != null)
-                            LaneClearMenu["Plugins.Jinx.LaneClearMenu.UseQInLaneClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.UseQInLaneClear"];
                 
-                public static bool UseQInJungleClear
-                {
-                    get
-                    {
-                        return LaneClearMenu?["Plugins.Jinx.LaneClearMenu.UseQInJungleClear"] != null &&
-                               LaneClearMenu["Plugins.Jinx.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Jinx.LaneClearMenu.UseQInJungleClear"] != null)
-                            LaneClearMenu["Plugins.Jinx.LaneClearMenu.UseQInJungleClear"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.UseQInJungleClear"];
 
-                public static int MinManaQ
-                {
-                    get
-                    {
-                        if (LaneClearMenu?["Plugins.Jinx.LaneClearMenu.MinManaQ"] != null)
-                            return LaneClearMenu["Plugins.Jinx.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.Jinx.LaneClearMenu.MinManaQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (LaneClearMenu?["Plugins.Jinx.LaneClearMenu.MinManaQ"] != null)
-                            LaneClearMenu["Plugins.Jinx.LaneClearMenu.MinManaQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaQ => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.MinManaQ", true];
             }
 
             internal static class Misc
             {
-                public static bool EnableInterrupter
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Jinx.MiscMenu.EnableInterrupter"] != null &&
-                               MiscMenu["Plugins.Jinx.MiscMenu.EnableInterrupter"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Jinx.MiscMenu.EnableInterrupter"] != null)
-                            MiscMenu["Plugins.Jinx.MiscMenu.EnableInterrupter"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableInterrupter => MenuManager.MenuValues["Plugins.Jinx.MiscMenu.EnableInterrupter"];
 
-                public static bool EnableAntiGapcloser
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Jinx.MiscMenu.EnableAntiGapcloser"] != null &&
-                               MiscMenu["Plugins.Jinx.MiscMenu.EnableAntiGapcloser"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Jinx.MiscMenu.EnableAntiGapcloser"] != null)
-                            MiscMenu["Plugins.Jinx.MiscMenu.EnableAntiGapcloser"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool EnableAntiGapcloser => MenuManager.MenuValues["Plugins.Jinx.MiscMenu.EnableAntiGapcloser"];
 
-                public static bool WKillsteal
-                {
-                    get
-                    {
-                        return MiscMenu?["Plugins.Jinx.MiscMenu.WKillsteal"] != null &&
-                               MiscMenu["Plugins.Jinx.MiscMenu.WKillsteal"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (MiscMenu?["Plugins.Jinx.MiscMenu.WKillsteal"] != null)
-                            MiscMenu["Plugins.Jinx.MiscMenu.WKillsteal"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool WKillsteal => MenuManager.MenuValues["Plugins.Jinx.MiscMenu.WKillsteal"];
             }
 
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Jinx.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.Jinx.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Jinx.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.Jinx.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Jinx.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawRocketsRange
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Jinx.DrawingsMenu.DrawRocketsRange"] != null &&
-                               DrawingsMenu["Plugins.Jinx.DrawingsMenu.DrawRocketsRange"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Jinx.DrawingsMenu.DrawRocketsRange"] != null)
-                            DrawingsMenu["Plugins.Jinx.DrawingsMenu.DrawRocketsRange"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawRocketsRange => MenuManager.MenuValues["Plugins.Jinx.DrawingsMenu.DrawRocketsRange"];
 
-                public static bool DrawW
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.Jinx.DrawingsMenu.DrawW"] != null &&
-                               DrawingsMenu["Plugins.Jinx.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.Jinx.DrawingsMenu.DrawW"] != null)
-                            DrawingsMenu["Plugins.Jinx.DrawingsMenu.DrawW"].Cast<CheckBox>().CurrentValue = value;
-                    }
-                }
+                public static bool DrawW => MenuManager.MenuValues["Plugins.Jinx.DrawingsMenu.DrawW"];
             }
         }
 
@@ -812,8 +447,7 @@ namespace Marksman_Master.Plugins.Jinx
                     RBonusAdDamageMod,
                     RBonusAdDamageMod*10);
                 var percentDamage = (target.MaxHealth - target.Health)*RMissingHealthBonusDamage[R.Level];
-
-
+                
                 return Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
                     (float) (baseDamage + percentDamage + Player.Instance.FlatPhysicalDamageMod*bonusAd));
             }

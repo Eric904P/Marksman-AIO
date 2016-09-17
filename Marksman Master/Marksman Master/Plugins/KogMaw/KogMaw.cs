@@ -35,7 +35,6 @@ using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using SharpDX;
 
@@ -43,37 +42,39 @@ namespace Marksman_Master.Plugins.KogMaw
 {
     internal class KogMaw : ChampionPlugin
     {
-        public static Spell.Skillshot Q { get; }
-        public static Spell.Active W { get; }
-        public static Spell.Skillshot E { get; }
-        public static Spell.Skillshot R { get; }
+        protected static Spell.Skillshot Q { get; }
+        protected static Spell.Active W { get; }
+        protected static Spell.Skillshot E { get; }
+        protected static Spell.Skillshot R { get; }
 
-        private static Menu ComboMenu { get; set; }
-        private static Menu HarassMenu { get; set; }
-        private static Menu DrawingsMenu { get; set; }
+        internal static Menu ComboMenu { get; set; }
+        internal static Menu HarassMenu { get; set; }
+        internal static Menu DrawingsMenu { get; set; }
 
         private static readonly ColorPicker[] ColorPicker;
         private static readonly Text Text;
 
-        private static uint[] WRange { get; } = {0, 660, 690, 720, 750, 780};
-        private static uint[] RRange { get; } = {0, 1200, 1500, 1800};
-        public static int[] EMana { get; } = {0, 80, 90, 100, 110, 120};
+        protected static uint[] WRange { get; } = {0, 660, 690, 720, 750, 780};
 
-        public static BuffInstance GetKogMawWBuff
+        protected static uint[] RRange { get; } = {0, 1200, 1500, 1800};
+
+        protected static int[] EMana { get; } = {0, 80, 90, 100, 110, 120};
+
+        protected static BuffInstance GetKogMawWBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "kogmawbioarcanebarrage");
 
-        public static bool HasKogMawWBuff
+        protected static bool HasKogMawWBuff
             =>
                 Player.Instance.Buffs.Any(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "kogmawbioarcanebarrage");
 
-        public static BuffInstance GetKogMawRBuff
+        protected static BuffInstance GetKogMawRBuff
             => Player.Instance.Buffs.FirstOrDefault(
                 b => b.IsActive && b.Name.ToLowerInvariant() == "kogmawlivingartillerycost");
-        
-        public static bool HasKogMawRBuff
+
+        protected static bool HasKogMawRBuff
             =>
                 Player.Instance.Buffs.Any(
                     b => b.IsActive && b.Name.ToLowerInvariant() == "kogmawlivingartillerycost");
@@ -338,381 +339,55 @@ namespace Marksman_Master.Plugins.KogMaw
         {
             internal static class Combo
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.KogMaw.ComboMenu.UseQ"] != null &&
-                               ComboMenu["Plugins.KogMaw.ComboMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.UseQ"] != null)
-                            ComboMenu["Plugins.KogMaw.ComboMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.KogMaw.ComboMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.KogMaw.ComboMenu.UseW"] != null &&
-                               ComboMenu["Plugins.KogMaw.ComboMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.UseW"] != null)
-                            ComboMenu["Plugins.KogMaw.ComboMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.KogMaw.ComboMenu.UseW"];
 
-                public static bool UseE
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.KogMaw.ComboMenu.UseE"] != null &&
-                               ComboMenu["Plugins.KogMaw.ComboMenu.UseE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.UseE"] != null)
-                            ComboMenu["Plugins.KogMaw.ComboMenu.UseE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseE => MenuManager.MenuValues["Plugins.KogMaw.ComboMenu.UseE"];
 
-                public static bool UseEVsGapclosers
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.KogMaw.ComboMenu.UseEVsGapclosers"] != null &&
-                               ComboMenu["Plugins.KogMaw.ComboMenu.UseEVsGapclosers"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.UseEVsGapclosers"] != null)
-                            ComboMenu["Plugins.KogMaw.ComboMenu.UseEVsGapclosers"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseEVsGapclosers => MenuManager.MenuValues["Plugins.KogMaw.ComboMenu.UseEVsGapclosers"];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.KogMaw.ComboMenu.UseR"] != null &&
-                               ComboMenu["Plugins.KogMaw.ComboMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.UseR"] != null)
-                            ComboMenu["Plugins.KogMaw.ComboMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseR => MenuManager.MenuValues["Plugins.KogMaw.ComboMenu.UseR"];
 
-                public static bool UseROnlyToKs
-                {
-                    get
-                    {
-                        return ComboMenu?["Plugins.KogMaw.ComboMenu.UseROnlyToKs"] != null &&
-                               ComboMenu["Plugins.KogMaw.ComboMenu.UseROnlyToKs"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.UseROnlyToKs"] != null)
-                            ComboMenu["Plugins.KogMaw.ComboMenu.UseROnlyToKs"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseROnlyToKs => MenuManager.MenuValues["Plugins.KogMaw.ComboMenu.UseROnlyToKs"];
 
+                public static int RHitChancePercent => MenuManager.MenuValues["Plugins.KogMaw.ComboMenu.RHitChancePercent", true];
 
-                public static int RHitChancePercent
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.RHitChancePercent"] != null)
-                            return ComboMenu["Plugins.KogMaw.ComboMenu.RHitChancePercent"].Cast<Slider>().CurrentValue;
+                public static int RAllowedStacks => MenuManager.MenuValues["Plugins.KogMaw.ComboMenu.RAllowedStacks", true];
 
-                        Logger.Error("Couldn't get Plugins.KogMaw.ComboMenu.RHitChancePercent menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.RHitChancePercent"] != null)
-                            ComboMenu["Plugins.KogMaw.ComboMenu.RHitChancePercent"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int RAllowedStacks
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.RAllowedStacks"] != null)
-                            return ComboMenu["Plugins.KogMaw.ComboMenu.RAllowedStacks"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.KogMaw.ComboMenu.RAllowedStacks menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.RAllowedStacks"] != null)
-                            ComboMenu["Plugins.KogMaw.ComboMenu.RAllowedStacks"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static int RMaxHealth
-                {
-                    get
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.RMaxHealth"] != null)
-                            return ComboMenu["Plugins.KogMaw.ComboMenu.RMaxHealth"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.KogMaw.ComboMenu.RMaxHealth menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (ComboMenu?["Plugins.KogMaw.ComboMenu.RMaxHealth"] != null)
-                            ComboMenu["Plugins.KogMaw.ComboMenu.RMaxHealth"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int RMaxHealth => MenuManager.MenuValues["Plugins.KogMaw.ComboMenu.RMaxHealth", true];
             }
 
             internal static class Harass
             {
-                public static bool UseQ
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.KogMaw.HarassMenu.UseQ"] != null &&
-                               HarassMenu["Plugins.KogMaw.HarassMenu.UseQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.KogMaw.HarassMenu.UseQ"] != null)
-                            HarassMenu["Plugins.KogMaw.HarassMenu.UseQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseQ => MenuManager.MenuValues["Plugins.KogMaw.HarassMenu.UseQ"];
 
-                public static bool UseW
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.KogMaw.HarassMenu.UseW"] != null &&
-                               HarassMenu["Plugins.KogMaw.HarassMenu.UseW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.KogMaw.HarassMenu.UseW"] != null)
-                            HarassMenu["Plugins.KogMaw.HarassMenu.UseW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool UseW => MenuManager.MenuValues["Plugins.KogMaw.HarassMenu.UseW"];
 
-                public static int MinManaToUseQ
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.KogMaw.HarassMenu.MinManaToUseQ"] != null)
-                            return HarassMenu["Plugins.KogMaw.HarassMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue;
+                public static int MinManaToUseQ => MenuManager.MenuValues["Plugins.KogMaw.HarassMenu.MinManaToUseQ", true];
 
-                        Logger.Error("Couldn't get Plugins.KogMaw.HarassMenu.MinManaToUseQ menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.KogMaw.HarassMenu.MinManaToUseQ"] != null)
-                            HarassMenu["Plugins.KogMaw.HarassMenu.MinManaToUseQ"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int MinManaToUseW => MenuManager.MenuValues["Plugins.KogMaw.HarassMenu.MinManaToUseW", true];
 
-                public static int MinManaToUseW
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.KogMaw.HarassMenu.MinManaToUseW"] != null)
-                            return HarassMenu["Plugins.KogMaw.HarassMenu.MinManaToUseW"].Cast<Slider>().CurrentValue;
+                public static bool UseR => MenuManager.MenuValues["Plugins.KogMaw.HarassMenu.UseR"];
 
-                        Logger.Error("Couldn't get Plugins.KogMaw.HarassMenu.MinManaToUseW menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.KogMaw.HarassMenu.MinManaToUseW"] != null)
-                            HarassMenu["Plugins.KogMaw.HarassMenu.MinManaToUseW"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
+                public static int RAllowedStacks => MenuManager.MenuValues["Plugins.KogMaw.HarassMenu.RAllowedStacks", true];
 
-                public static bool UseR
-                {
-                    get
-                    {
-                        return HarassMenu?["Plugins.KogMaw.HarassMenu.UseR"] != null &&
-                               HarassMenu["Plugins.KogMaw.HarassMenu.UseR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.KogMaw.HarassMenu.UseR"] != null)
-                            HarassMenu["Plugins.KogMaw.HarassMenu.UseR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
-
-                public static int RAllowedStacks
-                {
-                    get
-                    {
-                        if (HarassMenu?["Plugins.KogMaw.HarassMenu.RAllowedStacks"] != null)
-                            return HarassMenu["Plugins.KogMaw.HarassMenu.RAllowedStacks"].Cast<Slider>().CurrentValue;
-
-                        Logger.Error("Couldn't get Plugins.KogMaw.HarassMenu.RAllowedStacks menu item value.");
-                        return 0;
-                    }
-                    set
-                    {
-                        if (HarassMenu?["Plugins.KogMaw.HarassMenu.RAllowedStacks"] != null)
-                            HarassMenu["Plugins.KogMaw.HarassMenu.RAllowedStacks"].Cast<Slider>().CurrentValue = value;
-                    }
-                }
-
-                public static bool IsHarassEnabledFor(AIHeroClient unit)
-                {
-                    return HarassMenu?["Plugins.KogMaw.HarassMenu.UseR." + unit.Hero] != null &&
-                           HarassMenu["Plugins.KogMaw.HarassMenu.UseR." + unit.Hero].Cast<CheckBox>()
-                               .CurrentValue;
-                }
+                public static bool IsHarassEnabledFor(AIHeroClient unit) => MenuManager.MenuValues["Plugins.KogMaw.HarassMenu.UseR." + unit.Hero];
             }
-
-            internal static class Misc
-            {
-
-            }
-
+    
             internal static class Drawings
             {
-                public static bool DrawSpellRangesWhenReady
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawSpellRangesWhenReady"] != null &&
-                               DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawSpellRangesWhenReady"] != null)
-                            DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawSpellRangesWhenReady"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.KogMaw.DrawingsMenu.DrawSpellRangesWhenReady"];
 
-                public static bool DrawInfos
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawInfos"] != null &&
-                               DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawInfos"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawInfos"] != null)
-                            DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawInfos"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawInfos => MenuManager.MenuValues["Plugins.KogMaw.DrawingsMenu.DrawInfos"];
 
-                public static bool DrawQ
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawQ"] != null &&
-                               DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawQ"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawQ"] != null)
-                            DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawQ"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawQ => MenuManager.MenuValues["Plugins.KogMaw.DrawingsMenu.DrawQ"];
 
-                public static bool DrawW
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawW"] != null &&
-                               DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawW"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawW"] != null)
-                            DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawW"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawW => MenuManager.MenuValues["Plugins.KogMaw.DrawingsMenu.DrawW"];
 
-                public static bool DrawE
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawE"] != null &&
-                               DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawE"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawE"] != null)
-                            DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawE"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawE => MenuManager.MenuValues["Plugins.KogMaw.DrawingsMenu.DrawE"];
 
-                public static bool DrawR
-                {
-                    get
-                    {
-                        return DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawR"] != null &&
-                               DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawR"].Cast<CheckBox>()
-                                   .CurrentValue;
-                    }
-                    set
-                    {
-                        if (DrawingsMenu?["Plugins.KogMaw.DrawingsMenu.DrawR"] != null)
-                            DrawingsMenu["Plugins.KogMaw.DrawingsMenu.DrawR"].Cast<CheckBox>()
-                                .CurrentValue
-                                = value;
-                    }
-                }
+                public static bool DrawR => MenuManager.MenuValues["Plugins.KogMaw.DrawingsMenu.DrawR"];
             }
         }
 

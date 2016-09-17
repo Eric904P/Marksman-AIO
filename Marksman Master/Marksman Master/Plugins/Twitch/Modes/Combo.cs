@@ -80,7 +80,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                         if (percentDamage >= Settings.Combo.EAt)
                         {
                             E.Cast();
-                            Console.WriteLine("[DEBUG] Casting E cause it will deal " + percentDamage + " percent of enemy hp.");
+                            Misc.PrintDebugMessage($"Casting E cause it will deal {percentDamage} percent of enemy hp.");
                         }
                     }
                 }
