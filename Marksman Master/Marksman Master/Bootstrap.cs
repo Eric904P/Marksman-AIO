@@ -43,6 +43,10 @@ namespace Marksman_Master
 
         public static void Initialize()
         {
+            Misc.PrintDebugMessage("Initializing cache");
+
+            StaticCacheProvider.Initialize();
+
             Misc.PrintDebugMessage("Initializing addon");
 
             var pluginInitialized = InitializeAddon.Initialize();
@@ -56,7 +60,7 @@ namespace Marksman_Master
                     Misc.PrintDebugMessage("Creating Menu");
 
                     MenuManager.CreateMenu();
-
+                    
                     Misc.PrintDebugMessage("Initializing activator");
 
                     Activator.Activator.InitializeActivator();

@@ -26,10 +26,14 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
+
+using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Spells;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Jhin.Modes
@@ -42,27 +46,38 @@ namespace Marksman_Master.Plugins.Jhin.Modes
             {
                 if (W.IsReady() && !IsCastingR)
                 {
-                    if (EntityManager.Heroes.Enemies.Any(
+                    if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         x =>
                             x.IsValidTarget(W.Range) && x.IsHPBarRendered &&
-                            Damage.IsTargetKillableFromW(x)))
+                            Damage.IsTargetKillableFromW(x)).Any())
                     {
-                        foreach (var rPrediction in
-                            EntityManager.Heroes.Enemies.Where(
-                                x => x.IsValidTarget(W.Range) && !x.IsDead && Damage.IsTargetKillableFromW(x))
-                                .Where(target => !target.HasUndyingBuffA() && !target.HasSpellShield())
-                                .Select(target => W.GetPrediction(target))
-                                .Where(rPrediction => rPrediction.HitChancePercent >= 65))
+                        foreach (var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                                x => x.IsValidTargetCached(W.Range) && !x.IsDead && Damage.IsTargetKillableFromW(x) && !x.HasUndyingBuffA() && !x.HasSpellShield()))
                         {
-                            W.Cast(rPrediction.CastPosition);
-                            return;
+                            var wPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                            {
+                                Range = W.Range,
+                                Target = target,
+                                Speed = int.MaxValue,
+                                RangeCheckFrom = Player.Instance.Position,
+                                Delay = 1,
+                                From = Player.Instance.Position,
+                                Radius = W.Width,
+                                Type = SkillShotType.Linear,
+                                CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion }
+                            });
+
+                            if (wPrediction.HitChance >= HitChance.Medium)
+                            {
+                                Player.CastSpell(SpellSlot.W, wPrediction.CastPosition);
+                                return;
+                            }
                         }
                     }
-                    else if (EntityManager.Heroes.Enemies.Count(x => x.IsValidTarget(W.Range) && HasSpottedBuff(x)) < 2)
+                    else if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(W.Range) && HasSpottedBuff(x)).Count() < 2)
                     {
                         foreach (
-                            var target in
-                                EntityManager.Heroes.Enemies.Where(
+                            var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                                     x => !x.IsDead && x.IsUserInvisibleFor(250) && !x.IsZombie && Damage.IsTargetKillableFromW(x)))
                         {
                             var data = target.GetVisibilityTrackerData();
@@ -79,6 +94,39 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                     }
                 }
             }
+            if (E.IsReady() && Settings.Combo.UseE)
+            {
+
+                foreach (
+                    var enemy in
+                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                            x =>
+                                x.IsValidTargetCached(E.Range) && x.Buffs.Any(
+                                    m =>
+                                        m.Name.ToLowerInvariant() == "zhonyasringshield" ||
+                                        m.Name.ToLowerInvariant() == "bardrstasis")))
+                {
+                    E.Cast(enemy.ServerPosition);
+                    break;
+                }
+
+                var ga =
+                    ObjectManager.Get<Obj_GeneralParticleEmitter>()
+                        .Where(
+                            x =>
+                                x.Name == "LifeAura.troy")
+                        .ToList();
+
+                if (ga.Any())
+                {
+                    foreach (var owner in ga.Select(objGeneralParticleEmitter => StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x => x.DistanceCached(objGeneralParticleEmitter) < 20).FirstOrDefault()).Where(owner => owner != null))
+                    {
+                        E.Cast(owner.ServerPosition);
+                        break;
+                    }
+                }
+            }
 
             if (!IsCastingR || !Settings.Combo.UseR || GetCurrentShootsRCount < 1)
                 return;
@@ -87,38 +135,78 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                 (Settings.Combo.RMode != 1 || !Settings.Combo.RKeybind) && Settings.Combo.RMode != 2)
                 return;
             
-            if (EntityManager.Heroes.Enemies.Any(x=> x.IsValidTarget(3700) && IsInsideRRange(x) && x.IsHPBarRendered))
+            if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x=> x.IsValidTargetCached(3700) && IsInsideRRange(x) && x.IsHPBarRendered).Any())
             {
                 if (TargetSelector.SelectedTarget != null)
                 {
-                    var t =
-                        EntityManager.Heroes.Enemies.Find(x => x.NetworkId == TargetSelector.SelectedTarget.NetworkId);
+                    var t = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).ToList().Find(x => x.NetworkId == TargetSelector.SelectedTarget.NetworkId);
 
-                    if (t == null)
-                        return;
-
-                    var rPrediction = R.GetPrediction(t);
-                    if (rPrediction.HitChancePercent >= 60)
+                    if (t != null && IsInsideRRange(t))
                     {
-                        R.Cast(rPrediction.CastPosition);
+                        var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                        {
+                            Range = 3500,
+                            Target = t,
+                            Speed = 5000,
+                            RangeCheckFrom = Player.Instance.Position,
+                            Delay = 0.3f,
+                            From = Player.Instance.Position,
+                            Radius = 60,
+                            Type = SkillShotType.Linear,
+                            CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion }
+                        });
+                        if (rPrediction.HitChance >= HitChance.High)
+                        {
+                            Player.CastSpell(SpellSlot.R, rPrediction.CastPosition);
+                        }
                     }
                 }
                 else
                 {
-                    foreach (
-                        var target in
-                            EntityManager.Heroes.Enemies.Where(
-                                x => x.IsValidTarget(3700) && !x.IsDead && IsInsideRRange(x) && !x.HasUndyingBuffA() && !x.HasSpellShield())
-                                .OrderBy(x => Damage.GetRDamage(x)))
+                    var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x => x.IsValid && !x.IsZombie && !x.IsDead && IsInsideRRange(x) && !x.HasUndyingBuffA() &&
+                            !x.HasSpellShield()
+                            && Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                            {
+                                Range = 4000,
+                                Target = x,
+                                Speed = 5000,
+                                RangeCheckFrom = Player.Instance.Position,
+                                Delay = 0.3f,
+                                From = Player.Instance.Position,
+                                Radius = 60,
+                                Type = SkillShotType.Linear,
+                                CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion }
+                            }).HitChance != HitChance.Collision);
+                    
+                    var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                    if (target != null)
                     {
-                        R.CastMinimumHitchance(target, 65);
-                        return;
+                        var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                        {
+                            Range = 4000,
+                            Target = target,
+                            Speed = 5000,
+                            RangeCheckFrom = Player.Instance.Position,
+                            Delay = 0.3f,
+                            From = Player.Instance.Position,
+                            Radius = 60,
+                            Type = SkillShotType.Linear,
+                            CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion }
+                        });
+                        
+
+                        if (rPrediction.HitChance >= HitChance.High)
+                        {
+                            Player.CastSpell(SpellSlot.R, rPrediction.CastPosition);
+                        }
                     }
                 }
             }
             else if(Settings.Combo.EnableFowPrediction)
             {
-                foreach (var enemy in EntityManager.Heroes.Enemies.Where(x => !x.IsDead && x.IsUserInvisibleFor(250)))
+                foreach (var enemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Where(x => !x.IsDead && x.IsUserInvisibleFor(250)))
                 {
                     var data = enemy.GetVisibilityTrackerData();
                     if (!(Game.Time*1000 - data.LastVisibleGameTime*1000 < 2000) || !(data.LastHealthPercent > 0) ||
