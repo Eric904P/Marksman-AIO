@@ -32,6 +32,7 @@ using System.Drawing;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using EloBuddy.SDK.Constants;
 using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
@@ -67,6 +68,8 @@ namespace Marksman_Master.Plugins.Kalista
         private static float LastECastTime { get; set; }
 
         protected static Cache.Cache Cache { get; }
+        
+        private static CustomCache<int, int> EStacks { get; } 
 
         static Kalista()
         {
@@ -79,6 +82,9 @@ namespace Marksman_Master.Plugins.Kalista
             R = new Spell.Active(SpellSlot.R, 1150);
 
             Cache = StaticCacheProvider.Cache;
+
+            EStacks = Cache.Resolve<CustomCache<int, int>>();
+            EStacks.RefreshRate = 4000;
 
             ColorPicker = new ColorPicker[4];
 
@@ -98,8 +104,24 @@ namespace Marksman_Master.Plugins.Kalista
             Orbwalker.OnUnkillableMinion += Orbwalker_OnUnkillableMinion;
             Game.OnTick += Game_OnTick;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
+            Obj_AI_Base.OnSpellCast += Obj_AI_Base_OnSpellCast;
 
             WallJumper.Init();
+        }
+
+        private static void Obj_AI_Base_OnSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if (!sender.IsMe || !args.IsAutoAttack() || !E.IsReady())
+                return;
+
+            if (EStacks.Exist(args.Target.NetworkId))
+            {
+                EStacks.Add(args.Target.NetworkId, EStacks.Get(args.Target.NetworkId) + 1);
+            }
+            else
+            {
+                EStacks.Add(args.Target.NetworkId, 1);
+            }
         }
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
@@ -119,6 +141,9 @@ namespace Marksman_Master.Plugins.Kalista
         private static void Game_OnTick(EventArgs args)
         {
             if (Player.Instance.IsDead)
+                return;
+
+            if (StaticCacheProvider.GetChampions(CachedEntityType.AllyHero).Count() < 2)
                 return;
 
             if (SouldBoundAlliedHero == null)
@@ -675,7 +700,7 @@ namespace Marksman_Master.Plugins.Kalista
             private static readonly float[] EDamagePerSpearMod = { 0, 0.2f, 0.225f, 0.25f, 0.275f, 0.3f };
             
             private static CustomCache<KeyValuePair<int, int>, float> ComboDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
-            private static CustomCache<int, int> EStacks { get; } = Cache.Resolve<CustomCache<int, int>>();
+          //  private static CustomCache<int, int> EStacks { get; } = Cache.Resolve<CustomCache<int, int>>();
             private static CustomCache<int, bool> IsKillable { get; } = Cache.Resolve<CustomCache<int, bool>>();
             private static CustomCache<KeyValuePair<int, int>, float> EDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
 
@@ -859,25 +884,7 @@ namespace Marksman_Master.Plugins.Kalista
                 {
                     return EStacks.Get(unit.NetworkId);
                 }
-
-                var objects = ObjectManager.Get<GameObject>().Where(x => x != null && x.Name.Contains("Kalista_Base_E_Spear") && x.DistanceCached(unit) < 50).ToList();
-
-                if(!objects.Any())
-                    return 0;
-
-                var stacks = objects.OrderBy(x => x.DistanceCached(unit)).FirstOrDefault();
-
-                if (stacks == null)
-                    return 0;
-
-                var cstacks = objects.Count;
-
-                if (MenuManager.IsCacheEnabled)
-                {
-                    EStacks.Add(unit.NetworkId, cstacks);
-                }
-
-                return cstacks;
+                return 0;
             }
 
             public static BuffInstance GetRendBuff(Obj_AI_Base target)
