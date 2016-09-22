@@ -82,6 +82,14 @@
     <Compile Include="Activator\Items\Botrk.cs" />
     <Compile Include="Activator\Items\HealthPotion.cs" />
     <Compile Include="Activator\Items\Quicksilver.cs" />
+    <Compile Include="Cache\Cache.cs" />
+    <Compile Include="Cache\Interfaces\ICachable.cs" />
+    <Compile Include="Cache\Modules\CachedEntityManager.cs" />
+    <Compile Include="Cache\Modules\CacheModuleBase.cs" />
+    <Compile Include="Cache\Modules\CustomCache.cs" />
+    <Compile Include="Cache\Modules\Distance.cs" />
+    <Compile Include="Cache\Modules\IsInRange.cs" />
+    <Compile Include="Cache\Modules\IsValidTarget.cs" />
     <Compile Include="Extensions\ExtensionBase.cs" />
     <Compile Include="Extensions\SkinHack\SkinHack.cs" />
     <Compile Include="Interfaces\IExtension.cs" />
@@ -277,6 +285,7 @@
     <Compile Include="Utils\Misc.cs" />
     <Compile Include="Utils\ObjAiBaseExtensions.cs" />
     <Compile Include="Utils\SafeSpotFinder.cs" />
+    <Compile Include="Utils\StaticCacheProvider.cs" />
     <Compile Include="Utils\TearStacker.cs" />
   </ItemGroup>
   <ItemGroup>

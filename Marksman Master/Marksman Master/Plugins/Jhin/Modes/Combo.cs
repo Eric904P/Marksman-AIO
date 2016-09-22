@@ -26,10 +26,9 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
@@ -52,32 +51,49 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                 }
             }
 
-            if (W.IsReady() && Settings.Combo.UseW && (Player.Instance.Mana - (50 + (Q.Level - 1)*10) > (R.IsReady() ? 100 : 0)) &&
-                EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(W.Range) && HasSpottedBuff(x)) &&
-                Player.Instance.CountEnemiesInRange(500) < 2)
+            if (W.IsReady() && Settings.Combo.UseW && (Player.Instance.Mana - (50 + (Q.Level - 1)*10) > (R.IsReady() ? 100 : 0)))
             {
-                foreach (var wPrediction in from wPrediction in EntityManager.Heroes.Enemies.Where(
-                    x => x.IsValidTarget(W.Range) && HasSpottedBuff(x) && !x.HasUndyingBuffA())
-                    .OrderBy(x => x.HealthPercent)
-                    .ThenByDescending(x => x.Distance(Player.Instance))
-                    .Select(target => W.GetPrediction(target))
-                    .Where(
-                        wPrediction =>
-                            wPrediction.HitChance >= HitChance.High &&
-                            !wPrediction.GetCollisionObjects<AIHeroClient>().Any())
-                    let count = EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(W.Range))
-                        .Select(enemy => Prediction.Position.PredictUnitPosition(enemy, 1000))
-                        .Count(position => position.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange())
-                    where count < 3
-                    select wPrediction)
+                var enemiesInAaRange = Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange());
+
+                if(enemiesInAaRange > 2)
+                    return;
+
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => x.IsValidTargetCached(W.Range) && HasSpottedBuff(x) && !x.HasUndyingBuffA());
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                if (target != null)
                 {
-                    W.Cast(wPrediction.CastPosition);
-                    break;
+                    var wPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                    {
+                        Range = W.Range,
+                        Target = target,
+                        Speed = int.MaxValue,
+                        RangeCheckFrom = Player.Instance.Position,
+                        Delay = 1,
+                        From = Player.Instance.Position,
+                        Radius = W.Width,
+                        Type = SkillShotType.Linear,
+                        CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion }
+                    });
+
+                    if (wPrediction.HitChance >= HitChance.High)
+                    {
+                        Player.CastSpell(SpellSlot.W, wPrediction.CastPosition);
+                        return;
+                    }
                 }
             }
 
             if (!E.IsReady() || !Settings.Combo.UseE || IsPreAttack)
                 return;
+
+            if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTarget() && x.Distance(Player.Instance.ServerPosition) < 300 && x.IsMelee && x.Path.Last().Distance(Player.Instance) < 400).Any())
+            {
+                E.Cast(Player.Instance.ServerPosition);
+                return;
+            }
 
             var t = E.GetTarget();
 
@@ -92,7 +108,7 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                 }
             }
 
-            foreach (var target in from target in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(E.Range))
+            foreach (var target in from target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(E.Range))
                 let duration = target.GetMovementBlockedDebuffDuration() * 1000
                 where
                     !(duration <= 0)

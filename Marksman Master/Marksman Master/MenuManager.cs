@@ -52,13 +52,24 @@ namespace Marksman_Master
         internal static int InterruptibleSpellsFound { get; private set; }
         internal static int GapcloserScanRange { get; set; } = 1250;
 
+        internal static bool IsCacheEnabled => _cache.CurrentValue;
+
         internal static MenuValues MenuValues { get; set; } = new MenuValues();
 
-        private static readonly List<ExtensionBase> Extensions = new List<ExtensionBase>(); 
+        private static readonly List<ExtensionBase> Extensions = new List<ExtensionBase>();
+
+        private static CheckBox _cache;
 
         internal static void CreateMenu()
         {
             ExtensionsMenu = MainMenu.AddMenu("Marksman AIO : Extensions", "MarksmanAIO.Extensions");
+            _cache = ExtensionsMenu.Add("MenuManager.ExtensionsMenu.EnableCache", new CheckBox("Enable Cache"));
+            _cache.OnValueChange += (sender, args) =>
+            {
+                if (args.NewValue)
+                    StaticCacheProvider.Initialize();
+                else StaticCacheProvider.Dispose();
+            };
 
             foreach (var source in Assembly.GetAssembly(typeof(ExtensionBase)).GetTypes().Where(x=>x.IsSubclassOf(typeof(ExtensionBase)) && x.IsSealed))
             {

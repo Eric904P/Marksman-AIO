@@ -1,6 +1,6 @@
 ﻿#region Licensing
 // ---------------------------------------------------------------------
-// <copyright file="JungleClear.cs" company="EloBuddy">
+// <copyright file="CacheModuleBase.cs" company="EloBuddy">
 // 
 // Marksman Master
 // Copyright (C) 2016 by gero
@@ -26,30 +26,24 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-using Marksman_Master.Utils;
 
-namespace Marksman_Master.Plugins.Vayne.Modes
+namespace Marksman_Master.Cache.Modules
 {
-    internal class JungleClear : Vayne
+    internal abstract class CacheModuleBase
     {
-        public static void Execute()
-        {
-            var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).ToList();
+        /// <summary>
+        /// Module name
+        /// </summary>
+        internal abstract string Name { get; }
 
-            if (!jungleMinions.Any())
-                return;
+        /// <summary>
+        /// Refresh rate in milliseconds
+        /// </summary>
+        internal virtual int RefreshRate { get; set; } = 200;
 
-            if (!IsPostAttack || !Q.IsReady() || !Settings.LaneClear.UseQToJungleClear)
-                return;
-
-            if (!Player.Instance.Position.Extend(Game.CursorPos, 299)
-                .IsInRangeCached(Orbwalker.LastTarget.Position.To2D(), Player.Instance.GetAutoAttackRange()))
-                return;
-
-            Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
-        }
+        /// <summary>
+        /// Load method
+        /// </summary>
+        internal abstract void Load();
     }
 }

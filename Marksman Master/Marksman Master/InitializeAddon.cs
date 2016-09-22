@@ -32,6 +32,7 @@ using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Events;
+using EloBuddy.SDK.Menu;
 using Marksman_Master.Interfaces;
 using Marksman_Master.Utils;
 using SharpDX;
@@ -57,8 +58,16 @@ namespace Marksman_Master
             Game.OnTick += Game_OnTick;
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
+            MainMenu.OnClose += MainMenu_OnClose;
+
+            UpdateTickData();
 
             return true;
+        }
+
+        private static void MainMenu_OnClose(object sender, EventArgs args)
+        {
+            UpdateTickData();
         }
 
         private static Vector3 _flagPos;
@@ -209,6 +218,30 @@ namespace Marksman_Master
             PluginInstance.OnDraw();
         }
 
+        private static int LastTick { get; set; }
+        private static int[] Tick { get; set; } = new int[6];
+        private static int[] Tickreset { get; } = { 3, 4, 5 };
+        private static int Selected { get; set; }
+
+        private static void UpdateTickData()
+        {
+            if (Game.TicksPerSecond < 25)
+            {
+                Tick = new[] { 0, 0, 1, 1, 2, 2 };
+                Selected = 0;
+            }
+            else if (Game.TicksPerSecond < 50 && Game.TicksPerSecond > 25)
+            {
+                Tick = new[] { 0, 1, 2, 3, 4, 4 };
+                Selected = 1;
+            }
+            else if (Game.TicksPerSecond > 50)
+            {
+                Tick = new[] { 0, 1, 2, 3, 4, 5 };
+                Selected = 2;
+            }
+        }
+
         private static void Game_OnTick(EventArgs args)
         {
             if (_flagCreateTick != 0 && _flagCreateTick + 8500 < Game.Time * 1000)
@@ -217,9 +250,12 @@ namespace Marksman_Master
                 _flagPos = Vector3.Zero;
             }
 
-            foreach (var index in InterruptibleSpellsFound.Where(e=>(int)e.Key.GameTime + 9000 <= (int)Game.Time * 1000 || (!e.Value.Spellbook.IsChanneling && !e.Value.Spellbook.IsCharging && !e.Value.Spellbook.IsCastingSpell)).ToList())
+            if (InterruptibleSpellsFound.Count > 0)
             {
-                InterruptibleSpellsFound.Remove(index.Key);
+                foreach (var index in InterruptibleSpellsFound.Where(e => (int)e.Key.GameTime + 9000 <= (int)Game.Time * 1000 || (!e.Value.Spellbook.IsChanneling && !e.Value.Spellbook.IsCharging && !e.Value.Spellbook.IsCastingSpell)).ToList())
+                {
+                    InterruptibleSpellsFound.Remove(index.Key);
+                }
             }
 
             foreach (var interruptibleSpell in InterruptibleSpellsFound)
@@ -229,29 +265,64 @@ namespace Marksman_Master
             
             PluginInstance.PermaActive();
 
-            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+            if (Game.TicksPerSecond <= 6)
             {
-                PluginInstance.ComboMode();
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+                {
+                    PluginInstance.ComboMode();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass))
+                {
+                    PluginInstance.HarassMode();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.JungleClear))
+                {
+                    PluginInstance.JungleClear();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear))
+                {
+                    PluginInstance.LaneClear();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee))
+                {
+                    PluginInstance.Flee();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LastHit))
+                {
+                    PluginInstance.LastHit();
+                }
             }
-            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass))
+            else
             {
-                PluginInstance.HarassMode();
-            }
-            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.JungleClear))
-            {
-                PluginInstance.JungleClear();
-            }
-            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear))
-            {
-                PluginInstance.LaneClear();
-            }
-            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee))
-            {
-                PluginInstance.Flee();
-            }
-            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LastHit))
-            {
-                PluginInstance.LastHit();
+                if (LastTick > Tickreset[Selected])
+                    LastTick = 0;
+
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && LastTick == Tick[0])
+                {
+                    PluginInstance.ComboMode();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass) && LastTick == Tick[1])
+                {
+                    PluginInstance.HarassMode();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.JungleClear) && LastTick == Tick[2])
+                {
+                    PluginInstance.JungleClear();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) && LastTick == Tick[3])
+                {
+                    PluginInstance.LaneClear();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee) && LastTick == Tick[4])
+                {
+                    PluginInstance.Flee();
+                }
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LastHit) && LastTick == Tick[5])
+                {
+                    PluginInstance.LastHit();
+                }
+
+                LastTick++;
             }
         }
     }
