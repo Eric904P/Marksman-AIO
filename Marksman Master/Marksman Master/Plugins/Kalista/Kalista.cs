@@ -41,6 +41,7 @@ using Marksman_Master.Utils;
 using SharpDX;
 using Color = System.Drawing.Color;
 using FontStyle = System.Drawing.FontStyle;
+using Marksman_Master.Cache.Modules;
 
 namespace Marksman_Master.Plugins.Kalista
 {
@@ -65,6 +66,8 @@ namespace Marksman_Master.Plugins.Kalista
 
         private static float LastECastTime { get; set; }
 
+        protected static Cache.Cache Cache { get; }
+
         static Kalista()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 1150, SkillShotType.Linear, 250, 2400, 40)
@@ -74,6 +77,8 @@ namespace Marksman_Master.Plugins.Kalista
             W = new Spell.Active(SpellSlot.W, 5500);
             E = new Spell.Active(SpellSlot.E, 1000);
             R = new Spell.Active(SpellSlot.R, 1150);
+
+            Cache = StaticCacheProvider.Cache;
 
             ColorPicker = new ColorPicker[4];
 
@@ -315,15 +320,15 @@ namespace Marksman_Master.Plugins.Kalista
 
             if (!Settings.Drawings.DrawDamageIndicator)
                 return;
-
+            
             foreach (
                 var source in
                     EntityManager.Heroes.Enemies.Where(
                         x => x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && Damage.HasRendBuff(x)))
             {
                 var hpPosition = source.HPBarPosition;
-                hpPosition.Y = hpPosition.Y + 30; // tracker friendly.
-                var timeLeft = Damage.GetRendBuff(source).EndTime - Game.Time;
+                hpPosition.Y = hpPosition.Y + 30; // tracker friendly. BUG
+                /*var timeLeft = Damage.GetRendBuff(source).EndTime - Game.Time;
                 var endPos = timeLeft*0x3e8/0x25;
 
                 var degree = Misc.GetNumberInRangeFromProcent(timeLeft*1000d/4000d*100d, 3, 110);
@@ -333,7 +338,7 @@ namespace Marksman_Master.Plugins.Kalista
                 Text.Y = (int) hpPosition.Y + 15; // + text size 
                 Text.Color = color;
                 Text.TextValue = timeLeft.ToString("F1");
-                Text.Draw();
+                Text.Draw();*/
 
                 var percentDamage = Math.Min(100,
                     Damage.GetRendDamageOnTarget(source)/source.TotalHealthWithShields()*100);
@@ -345,7 +350,7 @@ namespace Marksman_Master.Plugins.Kalista
                 Text.TextValue = percentDamage.ToString("F1");
                 Text.Draw();
 
-                Drawing.DrawLine(hpPosition.X + endPos, hpPosition.Y, hpPosition.X, hpPosition.Y, 1, color);
+                // Drawing.DrawLine(hpPosition.X + endPos, hpPosition.Y, hpPosition.X, hpPosition.Y, 1, color);BUG
             }
         }
 
@@ -678,6 +683,8 @@ namespace Marksman_Master.Plugins.Kalista
             private static readonly Dictionary<int, Dictionary<float, bool>> IsKillable =
                 new Dictionary<int, Dictionary<float, bool>>();
 
+            private static CustomCache<int, int> EStacks { get; } = Cache.Resolve<CustomCache<int, int>>();
+
             public static float GetComboDamage(AIHeroClient enemy, int stacks)
             {
                 if (ComboDamages.ContainsKey(enemy.NetworkId) && !ComboDamages.Any(x => x.Key == enemy.NetworkId && x.Value.Item2 == stacks && x.Value.Item1.Any(k => Game.Time * 1000 - k.Key > 200)))
@@ -709,8 +716,8 @@ namespace Marksman_Master.Plugins.Kalista
 
             public static bool CanCastEOnUnit(Obj_AI_Base target)
             {
-                if (target == null || !target.IsValidTarget(E.Range) || GetRendBuff(target) == null ||
-                    !E.IsReady() || GetRendBuff(target).Count < 1)
+                if (target == null || !target.IsValidTarget(E.Range) || /*GetRendBuff(target) == null||*/
+                    !E.IsReady()) //|| GetRendBuff(target).Count < 1)BUG
                     return false;
 
                 if (target.GetType() != typeof(AIHeroClient))
@@ -723,8 +730,8 @@ namespace Marksman_Master.Plugins.Kalista
 
             public static bool IsTargetKillableByRend(Obj_AI_Base target)
             {
-                if (target == null || !target.IsValidTarget(E.Range) || GetRendBuff(target) == null ||
-                    !E.IsReady() || GetRendBuff(target).Count < 1)
+                if (target == null || !target.IsValidTarget(E.Range) || /*GetRendBuff(target) == null || */
+                    !E.IsReady()) //|| GetRendBuff(target).Count < 1)BUG
                     return false;
 
                 if (IsKillable.ContainsKey(target.NetworkId) && !IsKillable.Any(x => x.Key == target.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
@@ -770,10 +777,10 @@ namespace Marksman_Master.Plugins.Kalista
 
                 var damageReduction = 100 - Settings.Misc.ReduceEDmg;
                 var damage = EDamage[E.Level] + Player.Instance.TotalAttackDamage * EDamageMod +
-                             (GetRendBuff(target).Count > 1
+                            (CountEStacks(target) > 1 //(GetRendBuff(target).Count > 1 BUG
                                  ? (EDamagePerSpear[E.Level] +
                                     Player.Instance.TotalAttackDamage * EDamagePerSpearMod[E.Level]) *
-                                   (GetRendBuff(target).Count - 1)
+                                  (CountEStacks(target) - 1) //(GetRendBuff(target).Count - 1)BUG
                                  : 0);
 
                 var finalDamage = Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
@@ -808,6 +815,26 @@ namespace Marksman_Master.Plugins.Kalista
                 return finalDamage;
             }
 
+            public static int CountEStacks(Obj_AI_Base unit)
+            {
+                if (MenuManager.IsCacheEnabled && EStacks.Exist(unit.NetworkId))
+                {
+                    return EStacks.Get(unit.NetworkId);
+                }
+
+                var stacks = ObjectManager.Get<GameObject>()
+                        .Where(x => x != null && x.DistanceCached(unit) < 120 && x.Name.Contains("Kalista_Base_E_Spear"))
+                        .OrderBy(x => x.DistanceCached(unit))
+                        .Count();
+
+                if (MenuManager.IsCacheEnabled)
+                {
+                    EStacks.Add(unit.NetworkId, stacks);
+                }
+
+                return stacks;
+            }
+
             public static BuffInstance GetRendBuff(Obj_AI_Base target)
             {
                 return
@@ -817,7 +844,8 @@ namespace Marksman_Master.Plugins.Kalista
 
             public static bool HasRendBuff(Obj_AI_Base target)
             {
-                return GetRendBuff(target) != null;
+                //return GetRendBuff(target) != null;BUG
+                return CountEStacks(target) > 0;
             }
         }
 

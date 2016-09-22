@@ -46,7 +46,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                     EntityManager.MinionsAndMonsters.EnemyMinions.Where(
                         x => x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q)).ToList();
 
-                if (!minions.Any())
+                if (!minions.Any() || Player.Instance.IsDashing())
                     return;
 
                 foreach (var minion in minions.Where(x=> x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q) && Q.GetPrediction(x).HitChance >= HitChance.Medium))

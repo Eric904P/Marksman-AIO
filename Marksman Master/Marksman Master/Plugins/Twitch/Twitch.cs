@@ -191,7 +191,7 @@ namespace Marksman_Master.Plugins.Twitch
                 var hpPosition = source.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 30; // tracker friendly.
                 var timeLeft = GetDeadlyVenomBuff(source).EndTime - Game.Time;
-                var endPos = timeLeft * 0x3e8 / 0x37;
+                var endPos = timeLeft * 0x3e8 / 0x37; BUG
                 
                 var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 6000d * 100d, 3, 110);
                 var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
@@ -587,7 +587,7 @@ namespace Marksman_Master.Plugins.Twitch
 
             public static bool CanCastEOnUnit(Obj_AI_Base target)
             {
-                if (target == null || !target.IsValidTarget(E.Range) || /*GetDeadlyVenomBuff(target) == null ||*/
+                if (target == null || !target.IsValidTarget(E.Range) || /* BUG GetDeadlyVenomBuff(target) == null ||*/
                     !E.IsReady() || CountEStacks(target) < 1)
                     return false;
 
