@@ -64,7 +64,7 @@ namespace Marksman_Master.Plugins.Jhin
         private static CustomCache<int, float> Damages { get; }
         private static CustomCache<int, bool> HasBuff { get; }
 
-        protected static Cache.Cache Cache { get; }
+        protected static Cache.Cache Cache;
 
         public static bool HasSpottedBuff(AIHeroClient unit)
         {

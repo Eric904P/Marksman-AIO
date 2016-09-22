@@ -38,7 +38,6 @@ using EloBuddy.SDK.Rendering;
 using Marksman_Master.Cache.Modules;
 using Marksman_Master.PermaShow.Values;
 using Marksman_Master.Utils;
-using SharpDX;
 using Color = SharpDX.Color;
 using Text = EloBuddy.SDK.Rendering.Text;
 
@@ -100,7 +99,7 @@ namespace Marksman_Master.Plugins.Vayne
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 300, SkillShotType.Linear);
             W = new Spell.Active(SpellSlot.W);
-            E = new Spell.Targeted(SpellSlot.E, 650);
+            E = new Spell.Targeted(SpellSlot.E, 765);
             R = new Spell.Active(SpellSlot.R);
             
             Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;
@@ -129,7 +128,7 @@ namespace Marksman_Master.Plugins.Vayne
             {
                 Core.DelayAction(() =>
                 {
-                    if (Damage.IsKillableFromSilverEAndAuto(enemy) && enemy.TotalHealthWithShields() > IncomingDamage.GetIncomingDamage(enemy))
+                    if (Damage.IsKillableFromSilverEAndAuto(enemy) && enemy.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(enemy) > 0)
                     {
                         Misc.PrintDebugMessage("casting e to ks");
                         E.Cast(enemy);
@@ -168,7 +167,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             var client = target as AIHeroClient;
 
-            if (client != null && client.Health > Player.Instance.GetAutoAttackDamage(client, true)*3)
+            if (client != null && client.Health > Player.Instance.GetAutoAttackDamageCached(client, true)*3)
             {
                 args.Process = false;
             }
@@ -200,7 +199,6 @@ namespace Marksman_Master.Plugins.Vayne
             }
         }
 
-
         public static bool WillEStun(Obj_AI_Base target)
         {
             if (target == null || !IsECastableOnEnemy(target))
@@ -208,9 +206,10 @@ namespace Marksman_Master.Plugins.Vayne
 
             var pushDistance = Settings.Misc.PushDistance;
             var eta = target.DistanceCached(Player.Instance) / 2000;
-            var position = Prediction.Position.PredictUnitPosition(target, 250 + (int)eta * 1000);
+            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 250, 2000, int.MaxValue, Player.Instance.Position, true);
+            var position = prediction.UnitPosition;
 
-            if (!target.CanMove)
+            if (target.GetMovementBlockedDebuffDuration() > eta + 0.25f)
             {
                 for (var i = 25; i < pushDistance + 50; i += 50)
                 {
@@ -221,29 +220,15 @@ namespace Marksman_Master.Plugins.Vayne
                 }
             }
 
+            if (prediction.HitChancePercent < Settings.Misc.EHitchance)
+                return false;
+
             for (var i = pushDistance; i >= 100; i -= 100)
             {
                 var vec = position.Extend(Player.Instance.ServerPosition, -i);
+                var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
 
-                var left = new Vector2[5];
-                var right = new Vector2[5];
-                var var = 18 * i / 100;
-
-                for (var x = 0; x < 5; x++)
-                {
-                    left[x] =
-                        position.Extend(
-                            vec + (position - vec).Normalized().Rotated((float)(Math.PI / 180) * Math.Max(0, var)) *
-                            Math.Abs(i < 200 ? 50 : 45 * x), i);
-                    right[x] =
-                        position.Extend(
-                            vec +
-                            (position - vec).Normalized().Rotated((float)(Math.PI / 180) * -Math.Max(0, var)) *
-                            Math.Abs(i < 200 ? 50 : 45 * x), i);
-                }
-                if (left[0].IsWall() && right[0].IsWall() && left[1].IsWall() && right[1].IsWall() &&
-                    left[2].IsWall() && right[2].IsWall() && left[3].IsWall() && right[3].IsWall() &&
-                    left[4].IsWall() && right[4].IsWall() && vec.IsWall())
+                if (polygon.Points.Count(x => x.IsWall()) >= Settings.Misc.EHitchance)
                 {
                     return true;
                 }
@@ -267,7 +252,6 @@ namespace Marksman_Master.Plugins.Vayne
 
             if (!Settings.Drawings.DrawInfo)
                 return;
-
 
             foreach (
                 var source in
@@ -369,7 +353,8 @@ namespace Marksman_Master.Plugins.Vayne
             MiscMenu.AddLabel("Additional Condemn (E) settings :");
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EAntiRengar", new CheckBox("Enable Anti-Rengar"));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.Eks", new CheckBox("Use E to killsteal"));
-            MiscMenu.Add("Plugins.Vayne.MiscMenu.PushDistance", new Slider("Push distance", 420, 400, 450));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.PushDistance", new Slider("Push distance", 420, 400, 455));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.EHitchance", new Slider("Condemn hitchance : {0}%", 50, 1));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EMode", new ComboBox("E Mode", 1, "Always", "Only in Combo"));
             MiscMenu.AddSeparator(5);
 
@@ -473,6 +458,8 @@ namespace Marksman_Master.Plugins.Vayne
 
                 public static int PushDistance => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.PushDistance", true];
 
+                public static int EHitchance => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.EHitchance", true];
+                
                 /// <summary>
                 /// 0 - Always
                 /// 1 - Only in combo
@@ -497,13 +484,13 @@ namespace Marksman_Master.Plugins.Vayne
         protected static class Damage
         {
             public static CustomCache<int, bool> IsKillableFrom3SilverStacksCache { get; set; } =
-                new Cache.Cache().Resolve<CustomCache<int, bool>>();
+                StaticCacheProvider.Cache.Resolve<CustomCache<int, bool>>();
 
             public static CustomCache<int, float> WDamageCache { get; set; } =
-                new Cache.Cache().Resolve<CustomCache<int, float>>();
+                StaticCacheProvider.Cache.Resolve<CustomCache<int, float>>();
 
             public static CustomCache<int, bool> IsKillableFromSilverEAndAutoCache { get; set; } =
-                new Cache.Cache().Resolve<CustomCache<int, bool>>();
+                StaticCacheProvider.Cache.Resolve<CustomCache<int, bool>>();
 
             public static float[] QBonusDamage { get; } = { 0, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f };
             public static int[] WMinimumDamage { get; } = {0, 40, 60, 80, 100, 120};
@@ -512,15 +499,17 @@ namespace Marksman_Master.Plugins.Vayne
 
             public static bool IsKillableFrom3SilverStacks(Obj_AI_Base unit)
             {
-                if (IsKillableFrom3SilverStacksCache.Exist(unit.NetworkId))
+                if (MenuManager.IsCacheEnabled && IsKillableFrom3SilverStacksCache.Exist(unit.NetworkId))
                 {
                     return IsKillableFrom3SilverStacksCache.Get(unit.NetworkId);
                 }
 
-                IsKillableFrom3SilverStacksCache.Add(unit.NetworkId,
-                    unit.TotalHealthWithShields() <= GetWDamage(unit));
+                var output = unit.TotalHealthWithShields() <= GetWDamage(unit);
 
-                return IsKillableFrom3SilverStacksCache.Get(unit.NetworkId);
+                if (MenuManager.IsCacheEnabled)
+                    IsKillableFrom3SilverStacksCache.Add(unit.NetworkId, output);
+
+                return output;
             }
 
             public static bool IsKillableFromSilverEAndAuto(Obj_AI_Base unit)
@@ -528,30 +517,69 @@ namespace Marksman_Master.Plugins.Vayne
                 if (!IsECastableOnEnemy(unit))
                     return false;
 
-                if (IsKillableFromSilverEAndAutoCache.Exist(unit.NetworkId))
+                if (MenuManager.IsCacheEnabled && IsKillableFromSilverEAndAutoCache.Exist(unit.NetworkId))
                 {
                     return IsKillableFromSilverEAndAutoCache.Get(unit.NetworkId);
                 }
 
+                bool output;
+                
                 var edmg = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical,
                     EDamage[E.Level] + Player.Instance.FlatPhysicalDamageMod / 2);
 
                 if (WillEStun(unit))
                     edmg *= 2;
 
-                var aaDamage = Player.Instance.GetAutoAttackDamage(unit);
+                var aaDamage = Player.Instance.GetAutoAttackDamageCached(unit);
 
                 var damage = GetWDamage(unit) + edmg + aaDamage;
 
-                IsKillableFromSilverEAndAutoCache.Add(unit.NetworkId,
-                    unit.TotalHealthWithShields() <= damage);
+                if (unit.GetType() != typeof(AIHeroClient))
+                {
+                    output = unit.TotalHealthWithShields() <= damage;
 
-                return IsKillableFromSilverEAndAutoCache.Get(unit.NetworkId);
+                    if (MenuManager.IsCacheEnabled)
+                        IsKillableFromSilverEAndAutoCache.Add(unit.NetworkId, output);
+
+                    return output;
+                }
+
+                var enemy = (AIHeroClient)unit;
+
+                if (enemy.HasSpellShield() || enemy.HasUndyingBuffA())
+                    return false;
+
+                if (enemy.ChampionName != "Blitzcrank")
+                {
+                    output = enemy.TotalHealthWithShields() < damage;
+
+                    if (MenuManager.IsCacheEnabled)
+                        IsKillableFromSilverEAndAutoCache.Add(unit.NetworkId, output);
+
+                    return output;
+                }
+
+                if (!enemy.HasBuff("BlitzcrankManaBarrierCD") && !enemy.HasBuff("ManaBarrier"))
+                {
+                    output = enemy.TotalHealthWithShields() + enemy.Mana / 2 < damage;
+
+                    if (MenuManager.IsCacheEnabled)
+                        IsKillableFromSilverEAndAutoCache.Add(unit.NetworkId, output);
+
+                    return output;
+                }
+
+                output = enemy.TotalHealthWithShields() < damage;
+
+                if (MenuManager.IsCacheEnabled)
+                    IsKillableFromSilverEAndAutoCache.Add(unit.NetworkId, output);
+
+                return output;
             }
 
             public static float GetWDamage(Obj_AI_Base unit)
             {
-                if (WDamageCache.Exist(unit.NetworkId))
+                if (MenuManager.IsCacheEnabled && WDamageCache.Exist(unit.NetworkId))
                 {
                     return WDamageCache.Get(unit.NetworkId);
                 }
@@ -561,9 +589,12 @@ namespace Marksman_Master.Plugins.Vayne
                 if (damage > 200 && !(unit is AIHeroClient))
                     damage = 200;
 
-                WDamageCache.Add(unit.NetworkId, Player.Instance.CalculateDamageOnUnit(unit, DamageType.True, damage));
+                damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.True, damage);
 
-                return WDamageCache.Get(unit.NetworkId);
+                if (MenuManager.IsCacheEnabled)
+                    WDamageCache.Add(unit.NetworkId, damage);
+
+                return damage;
             }
         }
     }

@@ -58,8 +58,7 @@ namespace Marksman_Master.Plugins.Twitch
 
         private static readonly ColorPicker[] ColorPicker;
 
-        protected static bool HasDeadlyVenomBuff(Obj_AI_Base unit) => unit.Buffs.Any(
-            b => b.IsActive && b.DisplayName.ToLowerInvariant() == "twitchdeadlyvenom");
+        protected static bool HasDeadlyVenomBuff(Obj_AI_Base unit) => Damage.CountEStacks(unit) > 0;
 
         protected static BuffInstance GetDeadlyVenomBuff(Obj_AI_Base unit) => unit.Buffs.FirstOrDefault(
                     b => b.IsActive && b.DisplayName.ToLowerInvariant() == "twitchdeadlyvenom");
@@ -186,7 +185,7 @@ namespace Marksman_Master.Plugins.Twitch
 
             if (!Settings.Drawings.DrawDamageIndicator)
                 return;
-            
+            /*
             foreach (var source in EntityManager.Heroes.Enemies.Where(x=> x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && HasDeadlyVenomBuff(x)))
             {
                 var hpPosition = source.HPBarPosition;
@@ -212,7 +211,7 @@ namespace Marksman_Master.Plugins.Twitch
                 Text.Draw();
 
                 Drawing.DrawLine(hpPosition.X + endPos, hpPosition.Y, hpPosition.X, hpPosition.Y, 1, color);
-            }
+            }*/
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
@@ -588,7 +587,7 @@ namespace Marksman_Master.Plugins.Twitch
 
             public static bool CanCastEOnUnit(Obj_AI_Base target)
             {
-                if (target == null || !target.IsValidTarget(E.Range) || GetDeadlyVenomBuff(target) == null ||
+                if (target == null || !target.IsValidTarget(E.Range) || /*GetDeadlyVenomBuff(target) == null ||*/
                     !E.IsReady() || CountEStacks(target) < 1)
                     return false;
 

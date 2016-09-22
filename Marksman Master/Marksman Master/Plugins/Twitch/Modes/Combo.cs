@@ -38,7 +38,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
     {
         public static void Execute()
         {
-            if (R.IsReady() && Settings.Combo.UseR && Settings.Combo.RifTargetOutOfRange && !E.IsReady() && Player.Instance.Spellbook.GetSpell(SpellSlot.E).CooldownExpires - Game.Time > 2)
+         /*   if (R.IsReady() && Settings.Combo.UseR && Settings.Combo.RifTargetOutOfRange && !E.IsReady() && Player.Instance.Spellbook.GetSpell(SpellSlot.E).CooldownExpires - Game.Time > 2)
             {
                 var enemy = EntityManager.Heroes.Enemies.FirstOrDefault(x =>
                     !x.IsDead && x.IsValidTarget(850) &&
@@ -53,7 +53,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                     Misc.PrintInfoMessage("Casting R to kill <font color=\"#ff1493\">" + enemy.Hero + "</font>.");
                     R.Cast();
                 }
-            }
+            }*/
 
             if (W.IsReady() && Settings.Combo.UseW)
             {

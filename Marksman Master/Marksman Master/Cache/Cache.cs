@@ -69,7 +69,7 @@ namespace Marksman_Master.Cache
         /// <returns></returns>
         internal T Resolve<T>() where T : ICachable
         {
-            if (typeof (T).GetConstructors().Any(x => x.GetParameters().Length > 0))
+            if (typeof (T).GetConstructors().All(x => x.GetParameters().Length > 0))
             {
                 throw new Exception($"{typeof(T)} does not contain a default constructor.");
             }

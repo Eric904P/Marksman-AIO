@@ -229,7 +229,7 @@ namespace Marksman_Master.Utils
         }
 
 
-        internal static float GetAutoAttackDamageCached(this Obj_AI_Base from, Obj_AI_Base target, bool respectPassives)
+        internal static float GetAutoAttackDamageCached(this Obj_AI_Base from, Obj_AI_Base target, bool respectPassives = false)
         {
             if (!MenuManager.IsCacheEnabled)
                 return from.GetAutoAttackDamage(target, respectPassives);
