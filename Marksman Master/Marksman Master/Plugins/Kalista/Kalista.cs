@@ -123,7 +123,7 @@ namespace Marksman_Master.Plugins.Kalista
 
             if (SouldBoundAlliedHero == null)
             {
-                var entity = EntityManager.Heroes.Allies.Find(
+                var entity = StaticCacheProvider.GetChampions(CachedEntityType.AllyHero).ToList().Find(
                     unit => !unit.IsMe &&
                         unit.Buffs.Any(
                             n =>
@@ -133,7 +133,7 @@ namespace Marksman_Master.Plugins.Kalista
                 if (entity != null)
                 {
                     var allies =
-                        (from aiHeroClient in EntityManager.Heroes.Allies
+                        (from aiHeroClient in StaticCacheProvider.GetChampions(CachedEntityType.AllyHero).ToList()
                             where !aiHeroClient.IsMe
                             select aiHeroClient.Hero.ToString()).ToList();
 
@@ -153,22 +153,22 @@ namespace Marksman_Master.Plugins.Kalista
             }
 
             if (R.IsReady() && Settings.Misc.BlitzCombo &&
-                SouldBoundAlliedHero.Position.Distance(Player.Instance) > Player.Instance.GetAutoAttackRange() &&
-                Player.Instance.CountEnemiesInRange(1500) > 0)
+                SouldBoundAlliedHero.Position.DistanceCached(Player.Instance) > Player.Instance.GetAutoAttackRange() &&
+                Player.Instance.CountEnemiesInRangeCached(1500) > 0)
             {
                 switch (SouldBoundAlliedHero.Hero)
                 {
                     case Champion.Blitzcrank:
                     {
                         var enemy =
-                            EntityManager.Heroes.Enemies.FirstOrDefault(
+                            StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).FirstOrDefault(
                                 x =>
                                     x.Buffs.Any(
                                         buff =>
                                             buff.IsActive && buff.Name.ToLowerInvariant() == "rocketgrab2" &&
                                             buff.Caster.NetworkId == SouldBoundAlliedHero.NetworkId));
 
-                        if (enemy != null && enemy.Distance(Player.Instance) > 500)
+                        if (enemy != null && enemy.DistanceCached(Player.Instance) > 500)
                         {
                             if (Settings.Misc.BlitzComboKillable && enemy.Health < Damage.GetComboDamage(enemy, 8))
                             {
@@ -188,14 +188,14 @@ namespace Marksman_Master.Plugins.Kalista
                     case Champion.TahmKench:
                     {
                         var enemy =
-                            EntityManager.Heroes.Enemies.FirstOrDefault(
+                            StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).FirstOrDefault(
                                 x =>
                                     x.Buffs.Any(
                                         buff =>
                                             buff.IsActive && buff.Name.ToLowerInvariant() == "tahmkenchwdevoured" &&
                                             buff.Caster.NetworkId == SouldBoundAlliedHero.NetworkId));
 
-                        if (enemy != null && enemy.Distance(Player.Instance) > 500)
+                        if (enemy != null && enemy.DistanceCached(Player.Instance) > 500)
                         {
                             if (Settings.Misc.BlitzComboKillable && enemy.Health < Damage.GetComboDamage(enemy, 8))
                             {
@@ -215,14 +215,14 @@ namespace Marksman_Master.Plugins.Kalista
                     case Champion.Skarner:
                     {
                         var enemy =
-                            EntityManager.Heroes.Enemies.FirstOrDefault(
+                            StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).FirstOrDefault(
                                 x =>
                                     x.Buffs.Any(
                                         buff =>
                                             buff.IsActive && buff.Name.ToLowerInvariant() == "skarnerimpale" &&
                                             buff.Caster.NetworkId == SouldBoundAlliedHero.NetworkId));
 
-                        if (enemy != null && enemy.Distance(Player.Instance) > 500)
+                        if (enemy != null && enemy.DistanceCached(Player.Instance) > 500)
                         {
                             if (Settings.Misc.BlitzComboKillable && enemy.Health < Damage.GetComboDamage(enemy, 8))
                             {
@@ -673,22 +673,18 @@ namespace Marksman_Master.Plugins.Kalista
             private const float EDamageMod = 0.6f;
             private static readonly int[] EDamagePerSpear = { 0, 10, 14, 19, 25, 32 };
             private static readonly float[] EDamagePerSpearMod = { 0, 0.2f, 0.225f, 0.25f, 0.275f, 0.3f };
-
-            private static readonly Dictionary<int, Tuple<Dictionary<float, float>, int>> ComboDamages =
-                new Dictionary<int, Tuple<Dictionary<float, float>, int>>();
-            private static readonly Dictionary<int, Tuple<Dictionary<float, float>, int>> EDamagesStacks =
-                new Dictionary<int, Tuple<Dictionary<float, float>, int>>();
-            private static readonly Dictionary<int, Dictionary<float, float>> EDamages =
-                new Dictionary<int, Dictionary<float, float>>();
-            private static readonly Dictionary<int, Dictionary<float, bool>> IsKillable =
-                new Dictionary<int, Dictionary<float, bool>>();
-
+            
+            private static CustomCache<KeyValuePair<int, int>, float> ComboDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
             private static CustomCache<int, int> EStacks { get; } = Cache.Resolve<CustomCache<int, int>>();
+            private static CustomCache<int, bool> IsKillable { get; } = Cache.Resolve<CustomCache<int, bool>>();
+            private static CustomCache<KeyValuePair<int, int>, float> EDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
 
             public static float GetComboDamage(AIHeroClient enemy, int stacks)
             {
-                if (ComboDamages.ContainsKey(enemy.NetworkId) && !ComboDamages.Any(x => x.Key == enemy.NetworkId && x.Value.Item2 == stacks && x.Value.Item1.Any(k => Game.Time * 1000 - k.Key > 200)))
-                    return ComboDamages[enemy.NetworkId].Item1.Values.FirstOrDefault();
+                if (MenuManager.IsCacheEnabled && ComboDamages.Exist(new KeyValuePair<int, int>(enemy.NetworkId, stacks)))
+                {
+                    return ComboDamages.Get(new KeyValuePair<int, int>(enemy.NetworkId, stacks));
+                }
 
                 float damage = 0;
 
@@ -709,7 +705,10 @@ namespace Marksman_Master.Plugins.Kalista
 
                 damage += Player.Instance.GetAutoAttackDamage(enemy, true) * stacks;
 
-                ComboDamages[enemy.NetworkId] = new Tuple<Dictionary<float, float>, int>(new Dictionary<float, float> { { Game.Time * 1000, damage } }, stacks);
+                if (MenuManager.IsCacheEnabled)
+                {
+                    ComboDamages.Add(new KeyValuePair<int, int>(enemy.NetworkId, stacks), damage);
+                }
 
                 return damage;
             }
@@ -730,41 +729,70 @@ namespace Marksman_Master.Plugins.Kalista
 
             public static bool IsTargetKillableByRend(Obj_AI_Base target)
             {
+                if (MenuManager.IsCacheEnabled && IsKillable.Exist(target.NetworkId))
+                {
+                    return IsKillable.Get(target.NetworkId);
+                }
+
                 if (target == null || !target.IsValidTarget(E.Range) || /*GetRendBuff(target) == null || */
                     !E.IsReady()) //|| GetRendBuff(target).Count < 1)BUG
                     return false;
 
-                if (IsKillable.ContainsKey(target.NetworkId) && !IsKillable.Any(x => x.Key == target.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
-                    return IsKillable[target.NetworkId].Values.FirstOrDefault();
+                bool output;
 
                 if (target.GetType() != typeof(AIHeroClient))
                 {
-                    IsKillable[target.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, GetRendDamageOnTarget(target) > target.TotalHealthWithShields() } };
-                    return GetRendDamageOnTarget(target) > target.TotalHealthWithShields();
+                    output = GetRendDamageOnTarget(target) > target.TotalHealthWithShields();
+
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        IsKillable.Add(target.NetworkId, output);
+                    }
+                    return output;
                 }
 
                 var heroClient = (AIHeroClient)target;
 
                 if (heroClient.HasUndyingBuffA() || heroClient.HasSpellShield())
                 {
-                    IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, false } };
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        IsKillable.Add(target.NetworkId, false);
+                    }
+
                     return false;
                 }
 
                 if (heroClient.ChampionName != "Blitzcrank")
                 {
-                    IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, GetRendDamageOnTarget(heroClient) >= heroClient.TotalHealthWithShields() } };
-                    return GetRendDamageOnTarget(heroClient) >= heroClient.TotalHealthWithShields();
+                    output = GetRendDamageOnTarget(heroClient) >= heroClient.TotalHealthWithShields();
+
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        IsKillable.Add(target.NetworkId, output);
+                    }
+
+                    return output;
                 }
                 if (!heroClient.HasBuff("BlitzcrankManaBarrierCD") && !heroClient.HasBuff("ManaBarrier"))
                 {
-                    IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields() + heroClient.Mana / 2 } };
-                    return GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields() + heroClient.Mana / 2;
+                    output = GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields() + heroClient.Mana / 2;
+
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        IsKillable.Add(target.NetworkId, output);
+                    }
+                    return output;
                 }
 
-                IsKillable[heroClient.NetworkId] = new Dictionary<float, bool> { { Game.Time * 1000, GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields() } };
+                output = GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields();
 
-                return GetRendDamageOnTarget(heroClient) > heroClient.TotalHealthWithShields();
+                if (MenuManager.IsCacheEnabled)
+                {
+                    IsKillable.Add(target.NetworkId, output);
+                }
+
+                return output;
             }
 
             public static float GetRendDamageOnTarget(Obj_AI_Base target)
@@ -772,8 +800,10 @@ namespace Marksman_Master.Plugins.Kalista
                 if (!CanCastEOnUnit(target))
                     return 0f;
 
-                if (EDamages.ContainsKey(target.NetworkId) && !EDamages.Any(x => x.Key == target.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
-                    return EDamages[target.NetworkId].Values.FirstOrDefault();
+                if (MenuManager.IsCacheEnabled && EDamages.Exist(new KeyValuePair<int, int>(target.NetworkId, 0)))
+                {
+                    return EDamages.Get(new KeyValuePair<int, int>(target.NetworkId, 0));
+                }
 
                 var damageReduction = 100 - Settings.Misc.ReduceEDmg;
                 var damage = EDamage[E.Level] + Player.Instance.TotalAttackDamage * EDamageMod +
@@ -786,7 +816,10 @@ namespace Marksman_Master.Plugins.Kalista
                 var finalDamage = Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
                     damage * damageReduction / 100);
 
-                EDamages[target.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, finalDamage } };
+                if (MenuManager.IsCacheEnabled)
+                {
+                    EDamages.Add(new KeyValuePair<int, int>(target.NetworkId, 0), finalDamage);
+                }
 
                 return finalDamage;
             }
@@ -796,8 +829,10 @@ namespace Marksman_Master.Plugins.Kalista
                 if (target == null || stacks < 1)
                     return 0f;
 
-                if (EDamagesStacks.ContainsKey(target.NetworkId) && !EDamagesStacks.Any(x => x.Key == target.NetworkId && x.Value.Item2 == stacks && x.Value.Item1.Any(k => Game.Time * 1000 - k.Key > 200)))
-                    return EDamagesStacks[target.NetworkId].Item1.Values.FirstOrDefault();
+                if (MenuManager.IsCacheEnabled && EDamages.Exist(new KeyValuePair<int, int>(target.NetworkId, stacks)))
+                {
+                    return EDamages.Get(new KeyValuePair<int, int>(target.NetworkId, stacks));
+                }
 
                 var damageReduction = 100 - Settings.Misc.ReduceEDmg;
 
@@ -810,7 +845,10 @@ namespace Marksman_Master.Plugins.Kalista
                 var finalDamage = Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
                     damage * damageReduction / 100);
 
-                ComboDamages[target.NetworkId] = new Tuple<Dictionary<float, float>, int>(new Dictionary<float, float> { { Game.Time * 1000, finalDamage } }, stacks);
+                if (MenuManager.IsCacheEnabled)
+                {
+                    EDamages.Add(new KeyValuePair<int, int>(target.NetworkId, stacks), finalDamage);
+                }
 
                 return finalDamage;
             }
@@ -822,17 +860,24 @@ namespace Marksman_Master.Plugins.Kalista
                     return EStacks.Get(unit.NetworkId);
                 }
 
-                var stacks = ObjectManager.Get<GameObject>()
-                        .Where(x => x != null && x.DistanceCached(unit) < 120 && x.Name.Contains("Kalista_Base_E_Spear"))
-                        .OrderBy(x => x.DistanceCached(unit))
-                        .Count();
+                var objects = ObjectManager.Get<GameObject>().Where(x => x != null && x.Name.Contains("Kalista_Base_E_Spear") && x.DistanceCached(unit) < 50).ToList();
+
+                if(!objects.Any())
+                    return 0;
+
+                var stacks = objects.OrderBy(x => x.DistanceCached(unit)).FirstOrDefault();
+
+                if (stacks == null)
+                    return 0;
+
+                var cstacks = objects.Count;
 
                 if (MenuManager.IsCacheEnabled)
                 {
-                    EStacks.Add(unit.NetworkId, stacks);
+                    EStacks.Add(unit.NetworkId, cstacks);
                 }
 
-                return stacks;
+                return cstacks;
             }
 
             public static BuffInstance GetRendBuff(Obj_AI_Base target)

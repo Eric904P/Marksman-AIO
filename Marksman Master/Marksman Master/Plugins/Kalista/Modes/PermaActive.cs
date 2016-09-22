@@ -46,14 +46,14 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
 
             if (target != null && !target.IsDead && Q.IsReady() && Settings.Combo.UseQ && !target.HasSpellShield() &&
-                !target.HasUndyingBuffA() && Player.Instance.GetSpellDamage(target, SpellSlot.Q) >= target.TotalHealthWithShields())
+                !target.HasUndyingBuffA() && Player.Instance.GetSpellDamageCached(target, SpellSlot.Q) >= target.TotalHealthWithShields())
             {
                 Q.Cast(Q.GetPrediction(target).CastPosition);
                 Misc.PrintDebugMessage("Casting Q to ks");
             }
             if (E.IsReady() && Settings.Combo.UseE)
             {
-                if(EntityManager.Heroes.Enemies.Any(unit => unit.IsValid && !unit.IsDead && unit.IsValidTarget(E.Range) && Damage.IsTargetKillableByRend(unit)))
+                if(StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, unit => !unit.IsZombie && unit.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(unit)).Any())
                 {
                     E.Cast();
                     Misc.PrintDebugMessage("Casting E to ks");
@@ -64,7 +64,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             {
                 if (Settings.JungleLaneClear.UseEToStealDragon)
                 {
-                    if(EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).Any(unit => (unit.BaseSkinName.Contains("Baron") || unit.BaseSkinName.Contains("Dragon") || unit.BaseSkinName.Contains("RiftHerald")) && Damage.IsTargetKillableByRend(unit)))
+                    if (StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(E.Range)).Any(unit => (unit.BaseSkinName.Contains("Baron") || unit.BaseSkinName.Contains("Dragon") || unit.BaseSkinName.Contains("RiftHerald")) && Damage.IsTargetKillableByRend(unit)))
                     {
                         Misc.PrintDebugMessage("Casting E to ks baron");
                         E.Cast();
@@ -73,7 +73,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
 
                 if (Settings.JungleLaneClear.UseEToStealBuffs)
                 {
-                    if (EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).Any(unit => unit.IsValidTarget(E.Range) && (unit.BaseSkinName.Contains("Blue") || unit.BaseSkinName.Contains("Red")) && !unit.BaseSkinName.Contains("Mini") && Damage.IsTargetKillableByRend(unit)))
+                    if (StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(E.Range)).Any(unit => (unit.BaseSkinName.Contains("Blue") || unit.BaseSkinName.Contains("Red")) && !unit.BaseSkinName.Contains("Mini") && Damage.IsTargetKillableByRend(unit)))
                     {
                         Misc.PrintDebugMessage($"Casting E to ks blue [{Game.Time}]");
                         E.Cast();

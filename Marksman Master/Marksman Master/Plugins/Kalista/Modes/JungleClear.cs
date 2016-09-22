@@ -31,6 +31,7 @@ using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Events;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Kalista.Modes
 {
@@ -38,13 +39,13 @@ namespace Marksman_Master.Plugins.Kalista.Modes
     {
         public static void Execute()
         {
-            if (!EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Q.Range).Any())
+            if (!StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Q.Range)).Any())
                 return;
 
             if (Q.IsReady() && Settings.JungleLaneClear.UseQ && !Player.Instance.IsDashing() && Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForQ)
             {
                 var minions =
-                    EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Q.Range).ToList();
+                    StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Q.Range)).ToList();
 
                 if (!minions.Any())
                     return;
@@ -61,7 +62,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                     minions.Any(
                         minion =>
                             allowedMonsters.Contains(minion.BaseSkinName) &&
-                            minion.Health > Player.Instance.GetAutoAttackDamage(minion)*2))
+                            minion.Health > Player.Instance.GetAutoAttackDamageCached(minion)*2))
                 {
                     Q.Cast(minions.FirstOrDefault(minion => allowedMonsters.Contains(minion.BaseSkinName)));
                 }
@@ -70,7 +71,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             if (E.IsReady() && Settings.JungleLaneClear.UseE &&
                 Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForE)
             {
-                var minions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).Where(Damage.IsTargetKillableByRend);
+                var minions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(x));
 
                 if (minions.Count() >= Settings.JungleLaneClear.MinMinionsForE)
                 {

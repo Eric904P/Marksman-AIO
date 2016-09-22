@@ -45,17 +45,23 @@ namespace Marksman_Master.Plugins.Kalista.Modes
 
                 if (target != null && !Player.Instance.IsInAutoAttackRange(target))
                 {
-                    Orbwalker.ForcedTarget =
-                        EntityManager.MinionsAndMonsters.CombinedAttackable.FirstOrDefault(
-                            unit => Player.Instance.IsInRange(unit, Player.Instance.GetAutoAttackRange()));
+                    var minion =
+                        StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
+                            unit => Player.Instance.IsInRangeCached(unit, Player.Instance.GetAutoAttackRange()))
+                            .FirstOrDefault();
+
+                    if (minion != null)
+                    {
+                        Orbwalker.ForcedTarget = minion;
+                    }
                 }
             }
-
+            
             if (E.IsReady() && Settings.Combo.UseE)
             {
                 var enemiesWithRendBuff =
-                    EntityManager.Heroes.Enemies.Count(
-                        unit => unit.IsValid && unit.IsValidTarget(E.Range) && Damage.HasRendBuff(unit));
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        unit => unit.IsValid && unit.IsValidTargetCached(E.Range) && Damage.HasRendBuff(unit)).Count();
 
                 if(enemiesWithRendBuff == 0)
                     return;
@@ -63,8 +69,8 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 if (Settings.Combo.UseEToSlow)
                 {
                     var count =
-                        EntityManager.MinionsAndMonsters.CombinedAttackable.Count(
-                            unit => unit.IsValid && unit.IsValidTarget(E.Range) && Damage.IsTargetKillableByRend(unit) && Prediction.Health.GetPrediction(unit, 300) > 10);
+                        StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
+                            unit => unit.IsValid && unit.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(unit) && Prediction.Health.GetPrediction(unit, 250) > 10).Count();
 
                     if (count >= Settings.Combo.UseEToSlowMinMinions)
                     {
@@ -75,12 +81,12 @@ namespace Marksman_Master.Plugins.Kalista.Modes
 
                 if (Settings.Combo.UseEBeforeEnemyLeavesRange && enemiesWithRendBuff == 1)
                 {
-                    var enemyUnit =
-                        EntityManager.Heroes.Enemies.Find(unit => !unit.IsDead && unit.IsValid && unit.IsValidTarget(E.Range) && Damage.HasRendBuff(unit));
+                    var enemyUnit = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).ToList().Find(unit => !unit.IsDead && unit.IsValid && unit.IsValidTargetCached(E.Range) && Damage.HasRendBuff(unit));
 
-                    if (enemyUnit != null && Damage.CanCastEOnUnit(enemyUnit) && enemyUnit.Distance(Player.Instance) > E.Range - 100)
+                    if (enemyUnit != null && Damage.CanCastEOnUnit(enemyUnit) && enemyUnit.DistanceCached(Player.Instance) > E.Range - 100)
                     {
                         var percentDamage = Damage.GetRendDamageOnTarget(enemyUnit) /enemyUnit.TotalHealthWithShields()*100;
+
                         if (percentDamage >= Settings.Combo.MinDamagePercToUseEBeforeEnemyLeavesRange)
                         {
                             E.Cast();
@@ -100,12 +106,11 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 return;
 
             var possibleTargets =
-                EntityManager.Heroes.Enemies.Where(
-                    x => x.IsValidTarget(Q.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA());
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(Q.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA());
 
             var hero = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-            if (hero == null)
+            if (hero == null || Player.Instance.IsDashing())
                 return;
 
             Q.CastMinimumHitchance(hero, 60);

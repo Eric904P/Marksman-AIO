@@ -59,17 +59,14 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             if (!E.IsReady() || !Settings.Harass.UseE || !(Player.Instance.ManaPercent >= Settings.Harass.MinManaForE))
                 return;
 
-            var enemy =
-                EntityManager.Heroes.Enemies.FirstOrDefault(x => x.IsValidTarget(E.Range) && Damage.HasRendBuff(x) &&
-                                                                 Damage.GetRendBuff(x).Count > Settings.Harass.MinStacksForE);
+            var enemy = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(E.Range) && Damage.HasRendBuff(x) &&
+                                                                 Damage.CountEStacks(x) > Settings.Harass.MinStacksForE);
 
             if (enemy == null)
                 return;
-
-
+            
             if (Settings.Harass.UseEIfManaWillBeRestored &&
-                EntityManager.MinionsAndMonsters.CombinedAttackable.Count(
-                    x => x.IsValidTarget(E.Range) && Damage.IsTargetKillableByRend(x)) >= 2)
+                StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions, x => x.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(x)).Count() >= 2)
             {
                 E.Cast();
             }
