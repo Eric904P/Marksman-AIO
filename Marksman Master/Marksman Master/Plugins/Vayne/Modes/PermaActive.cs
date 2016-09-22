@@ -29,7 +29,6 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
-using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Vayne.Modes
 {
@@ -45,7 +44,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
             if (target == null)
                 return;
 
-            var enemies = Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 300);
+            var enemies = Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 300);
 
             if (WillEStun(target))
             {
@@ -55,11 +54,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
             if (enemies <= 1)
                 return;
 
-            foreach (
-                var enemy in
-                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                        x => x.IsValidTargetCached(E.Range) && WillEStun(x))
-                        .OrderByDescending(TargetSelector.GetPriority))
+            foreach (var enemy in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(E.Range) && WillEStun(x)).OrderByDescending(TargetSelector.GetPriority))
             {
                 E.Cast(enemy);
                 return;

@@ -29,7 +29,6 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
-using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Jhin.Modes
 {
@@ -42,7 +41,8 @@ namespace Marksman_Master.Plugins.Jhin.Modes
 
         public static void Execute()
         {
-            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTargetCached(Q.Range)).ToList();
+            var laneMinions =
+                EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy, Player.Instance.Position, Q.Range).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
@@ -52,8 +52,8 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                 foreach (var minion in laneMinions.Where(x => x.Health < Damage.GetQDamage(x)))
                 {
                     var count = 0;
-                    var kminion = laneMinions.Where(x => x.NetworkId != minion.NetworkId && x.DistanceCached(minion) < 400)
-                            .OrderBy(x => x.DistanceCached(minion));
+                    var kminion = laneMinions.Where(x => x.NetworkId != minion.NetworkId && x.Distance(minion) < 400)
+                            .OrderBy(x => x.Distance(minion));
 
                     if (kminion.Any())
                     {
@@ -64,8 +64,8 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                         {
                             count++;
                             var lminion =
-                                kminion.Where(x => x.NetworkId != kMinion.NetworkId && x.NetworkId != minion.NetworkId && x.DistanceCached(kMinion) < 400)
-                                    .OrderBy(x => x.DistanceCached(kMinion));
+                                kminion.Where(x => x.NetworkId != kMinion.NetworkId && x.NetworkId != minion.NetworkId && x.Distance(kMinion) < 400)
+                                    .OrderBy(x => x.Distance(kMinion));
 
                             if (lminion.Any())
                             {
@@ -75,8 +75,8 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                                 {
                                     count++;
                                     var nminion =
-                                        lminion.Where(x => x.NetworkId != kMinion.NetworkId && x.NetworkId != minion.NetworkId && x.NetworkId != lMinion.NetworkId && x.DistanceCached(lMinion) < 400)
-                                            .OrderBy(x => x.DistanceCached(lMinion));
+                                        lminion.Where(x => x.NetworkId != kMinion.NetworkId && x.NetworkId != minion.NetworkId && x.NetworkId != lMinion.NetworkId && x.Distance(lMinion) < 400)
+                                            .OrderBy(x => x.Distance(lMinion));
                                     if (nminion.Any())
                                     {
                                         var nMinion = nminion.First();

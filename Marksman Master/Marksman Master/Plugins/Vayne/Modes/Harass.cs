@@ -43,7 +43,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
             if (IsPostAttack && Q.IsReady() && Settings.Harass.UseQ &&
                 Player.Instance.ManaPercent >= Settings.Harass.MinManaToUseQ)
             {
-                var enemies = Player.Instance.CountEnemiesInRangeCached(1300);
+                var enemies = Player.Instance.CountEnemiesInRange(1300);
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 300, DamageType.Physical);
                 var position = Vector3.Zero;
 

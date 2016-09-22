@@ -79,17 +79,6 @@ namespace Marksman_Master.Utils
                 Console.WriteLine($"[DEBUG] {message}");
         }
 
-
-        /// <summary>
-        /// Prints info message
-        /// </summary>
-        /// <param name="message">The message</param>
-        public static void PrintDebugMessage(object message)
-        {
-            if (Debug)
-                Console.WriteLine($"[DEBUG] {message}");
-        }
-
         /// <summary>
         /// Prints info message
         /// </summary>

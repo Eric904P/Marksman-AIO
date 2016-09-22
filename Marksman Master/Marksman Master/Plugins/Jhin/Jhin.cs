@@ -27,6 +27,7 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -35,7 +36,6 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
-using Marksman_Master.Cache.Modules;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Jhin
@@ -61,26 +61,44 @@ namespace Marksman_Master.Plugins.Jhin
 
         protected static float LastLaneClear;
 
-        private static CustomCache<int, float> Damages { get; }
-        private static CustomCache<int, bool> HasBuff { get; }
+        private static readonly Dictionary<int, Dictionary<float, float>> Damages =
+            new Dictionary<int, Dictionary<float, float>>();
 
-        protected static Cache.Cache Cache { get; }
+        private static readonly Dictionary<int, Dictionary<float, bool>> SpottedBuff =
+            new Dictionary<int, Dictionary<float, bool>>();
 
         public static bool HasSpottedBuff(AIHeroClient unit)
         {
-            if (MenuManager.IsCacheEnabled && HasBuff.Exist(unit.NetworkId))
+            if (SpottedBuff.ContainsKey(unit.NetworkId) &&
+                (Game.Time*1000 - SpottedBuff[unit.NetworkId].Select(x => x.Key).First() < 100))
             {
-                return HasBuff[unit.NetworkId];
-            }
-            
-            var hasBuff = ObjectManager.Get<Obj_GeneralParticleEmitter>().Any(x => x.DistanceCached(unit) < 10 && string.Equals(x.Name, "Jhin_Base_E_passive_mark.troy", StringComparison.InvariantCultureIgnoreCase));
-
-            if (MenuManager.IsCacheEnabled)
-            {
-                HasBuff.Add(unit.NetworkId, hasBuff);
+                return SpottedBuff[unit.NetworkId].FirstOrDefault().Value;
             }
 
-            return hasBuff;
+            var buff = unit.Buffs.Any(
+                b => b.IsActive && b.Name.ToLowerInvariant() == "jhinespotteddebuff");
+
+            if (!SpottedBuff.ContainsKey(unit.NetworkId))
+            {
+
+                SpottedBuff.Add(unit.NetworkId, new Dictionary<float, bool>
+                {
+                    {
+                        Game.Time*1000, buff
+                    }
+                });
+            }
+            else
+            {
+                SpottedBuff[unit.NetworkId]  = new Dictionary<float, bool>
+                {
+                    {
+                        Game.Time*1000, buff
+                    }
+                };
+            }
+
+            return buff;
         }
 
         public static BuffInstance GetSpottedBuff(AIHeroClient unit)
@@ -119,21 +137,13 @@ namespace Marksman_Master.Plugins.Jhin
             Q = new Spell.Targeted(SpellSlot.Q, 600);
             W = new Spell.Skillshot(SpellSlot.W, 2500, SkillShotType.Linear, 1000, null, 40)
             {
-                AllowedCollisionCount = -1
+                AllowedCollisionCount = 0
             };
             E = new Spell.Skillshot(SpellSlot.E, 750, SkillShotType.Circular, 750, null, 120);
             R = new Spell.Skillshot(SpellSlot.R, 3500, SkillShotType.Linear, 300, 5000, 80)
             {
-                AllowedCollisionCount = -1
+                AllowedCollisionCount = 0
             };
-
-            Cache = StaticCacheProvider.Cache;
-
-            Damages = Cache.Resolve<CustomCache<int, float>>();
-            Damages.RefreshRate = 1000;
-            
-            HasBuff = Cache.Resolve<CustomCache<int, bool>>();
-            HasBuff.RefreshRate = 200;
 
             ColorPicker = new ColorPicker[5];
 
@@ -168,7 +178,7 @@ namespace Marksman_Master.Plugins.Jhin
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
-            if (args.Slot == SpellSlot.E && (Game.Time * 1000 - _lastETime < 3000 && _lastEPosition.DistanceCached(args.EndPosition) < 300))
+            if (args.Slot == SpellSlot.E && (Game.Time * 1000 - _lastETime < 3000 && _lastEPosition.Distance(args.EndPosition) < 300))
             {
                 args.Process = false;
             } else if (args.Slot == SpellSlot.E)
@@ -236,42 +246,42 @@ namespace Marksman_Master.Plugins.Jhin
             if (enemy == null)
                 return 0;
 
-            if (MenuManager.IsCacheEnabled && Damages.Exist(unit.NetworkId))
-            {
-                return Damages.Get(unit.NetworkId);
-            }
+            if (Damages.ContainsKey(unit.NetworkId) &&
+                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200))) //
+                return Damages[unit.NetworkId].Values.FirstOrDefault();
             
-            var damage = 0f;
-
+            var damge = 0f;
             if (!IsCastingR)
             {
 
-                if (R.IsReady() && unit.IsValidTargetCached(R.Range))
-                    damage += GetCurrentShootsRCount == 1
+                if (R.IsReady() && unit.IsValidTarget(R.Range))
+                    damge += GetCurrentShootsRCount == 1
                         ? Damage.GetRDamage(unit, true)
                         : Damage.GetRDamage(unit)*(GetCurrentShootsRCount - 1) + Damage.GetRDamage(unit, true);
                 if (Q.IsReady() && unit.IsValidTarget(Q.Range))
-                    damage += Damage.GetQDamage(unit);
+                    damge += Damage.GetQDamage(unit);
                 if (W.IsReady() && unit.IsValidTarget(W.Range))
-                    damage += Damage.GetWDamage(unit);
+                    damge += Damage.GetWDamage(unit);
             }
             else
             {
                 if (IsInsideRRange(unit))
-                    damage += GetCurrentShootsRCount == 1 ? Damage.GetRDamage(unit, true) : Damage.GetRDamage(unit);
+                    damge += GetCurrentShootsRCount == 1 ? Damage.GetRDamage(unit, true) : Damage.GetRDamage(unit);
             }
 
-            if (unit.IsValidTargetCached(Player.Instance.GetAutoAttackRange()))
+            if (unit.IsValidTarget(Player.Instance.GetAutoAttackRange()))
             {
-                damage += HasAttackBuff ? Damage.Get4ThShootDamage(unit) : Player.Instance.GetAutoAttackDamage(unit);
+                damge += HasAttackBuff ? Damage.Get4ThShootDamage(unit) : Player.Instance.GetAutoAttackDamage(unit);
             }
-
-            if (MenuManager.IsCacheEnabled)
+            if (!Damages.ContainsKey(unit.NetworkId))
             {
-                Damages.Add(unit.NetworkId, damage);
+                Damages.Add(unit.NetworkId, new Dictionary<float, float> {{Game.Time*1000, damge}});
             }
-            
-            return damage;
+            else
+            {
+                Damages[unit.NetworkId] = new Dictionary<float, float> {{Game.Time*1000, damge}};
+            }
+            return damge;
         }
 
         protected override void OnDraw()
@@ -305,7 +315,7 @@ namespace Marksman_Master.Plugins.Jhin
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if(W.IsReady() && Settings.Misc.WAntiGapcloser && args.End.DistanceCached(Player.Instance) < 350)
+            if(W.IsReady() && Settings.Misc.WAntiGapcloser && args.End.Distance(Player.Instance) < 350)
             {
                 if (args.Delay == 0)
                 {
@@ -319,7 +329,7 @@ namespace Marksman_Master.Plugins.Jhin
                 }
             }
 
-            if (E.IsReady() && Settings.Misc.EAntiGapcloser && Player.Instance.Mana - 50 > 100 && args.End.DistanceCached(Player.Instance) < 350)
+            if (E.IsReady() && Settings.Misc.EAntiGapcloser && Player.Instance.Mana - 50 > 100 && args.End.Distance(Player.Instance) < 350)
             {
                 if (args.Delay == 0)
                 {
@@ -666,24 +676,10 @@ namespace Marksman_Master.Plugins.Jhin
 
             private static float _lastScanTick;
             private static float _lastAttackDamage;
-            
-            private static CustomCache<int, float> QDamages { get; } = Cache.Resolve<CustomCache<int, float>>();
-            private static CustomCache<int, float> WDamages { get; } = Cache.Resolve<CustomCache<int, float>>();
-            private static CustomCache<int, float> RDamages { get; } = Cache.Resolve<CustomCache<int, float>>();
-            private static CustomCache<int, float> CritDamage { get; } = Cache.Resolve<CustomCache<int, float>>();
-            private static CustomCache<int, bool> IsKillable { get; } = Cache.Resolve<CustomCache<int, bool>>();
-
-            
+            private static readonly Dictionary<int, Dictionary<float, float>> QDamages = new Dictionary<int, Dictionary<float, float>>(); 
 
             public static float GetRDamage(Obj_AI_Base unit, bool isFourthShoot = false)
             {
-                if (!isFourthShoot && MenuManager.IsCacheEnabled && RDamages.Exist(unit.NetworkId))
-                {
-                    RDamages.RefreshRate = 1000;
-
-                    return RDamages.Get(unit.NetworkId);
-                }
-
                 var missingHealthAdditionalDamagePercent = 1 + ( 100 - unit.HealthPercent ) * 0.025f;
                 var minimumDamage = RMinimumDamage[R.Level] + GetRealAttackDamage() * RMinimumDamageTotalAdMod;
                 var maximumDamage = RMaximumDamage[R.Level] + GetRealAttackDamage() * RMaximumDamageTotalAdMod;
@@ -697,15 +693,7 @@ namespace Marksman_Master.Plugins.Jhin
                 {
                     damage = Math.Min(minimumDamage * missingHealthAdditionalDamagePercent, maximumDamage) * (Player.Instance.HasItem(ItemId.Infinity_Edge) ? 2.5f : 2f) * (1 + Player.Instance.FlatCritChanceMod);
                 }
-
-                var finalDamage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, damage);
-
-                if (!isFourthShoot && MenuManager.IsCacheEnabled)
-                {
-                    RDamages.Add(unit.NetworkId, finalDamage);
-                }
-
-                return finalDamage;
+                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, damage);
             }
 
             public static float GetRealAttackDamage()
@@ -757,13 +745,6 @@ namespace Marksman_Master.Plugins.Jhin
 
             public static float Get4ThShootDamage(Obj_AI_Base unit)
             {
-                if (MenuManager.IsCacheEnabled && CritDamage.Exist(unit.NetworkId))
-                {
-                    CritDamage.RefreshRate = 1000;
-
-                    return CritDamage.Get(unit.NetworkId);
-                }
-
                 var bonusDamage = 0f;
                 if (Player.Instance.Level < 6)
                     bonusDamage = 0.15f;
@@ -774,111 +755,75 @@ namespace Marksman_Master.Plugins.Jhin
 
                 var damage = GetRealAttackDamage() * 1.75f + (unit.MaxHealth - unit.Health) * bonusDamage;
 
-                var finalDamage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical,
-                    Player.Instance.HasItem(ItemId.Infinity_Edge) ? damage*1.5f : damage, false, true);
-
-                if (MenuManager.IsCacheEnabled)
-                    CritDamage.Add(unit.NetworkId, finalDamage);
-
-                return finalDamage;
+                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, Player.Instance.HasItem(ItemId.Infinity_Edge) ? damage * 1.5f : damage, false, true);
             }
 
             public static float GetQDamage(Obj_AI_Base unit)
             {
-                if (MenuManager.IsCacheEnabled && QDamages.Exist(unit.NetworkId))
+                if (QDamages.ContainsKey(unit.NetworkId) &&
+                    Game.Time*1000 - QDamages[unit.NetworkId].Select(x => x.Key).First() < 250)
                 {
-                    QDamages.RefreshRate = 1000;
-
-                    return QDamages.Get(unit.NetworkId);
+                    return QDamages[unit.NetworkId].Select(x => x.Value).First();
                 }
 
                 var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical,
                     QDamage[Q.Level] + GetRealAttackDamage() * QDamageTotalAdMod[Q.Level] +
                     Player.Instance.FlatMagicDamageMod * QDamageBonusApMod, false, true);
 
-                if (MenuManager.IsCacheEnabled)
-                    QDamages.Add(unit.NetworkId, damage);
-
+                if (!QDamages.ContainsKey(unit.NetworkId))
+                {
+                    QDamages.Add(unit.NetworkId, new Dictionary<float, float>
+                    {
+                        {
+                            Game.Time*1000, damage
+                        }
+                    });
+                }
+                else
+                {
+                    QDamages[unit.NetworkId] = new Dictionary<float, float>
+                    {
+                        {
+                            Game.Time*1000, damage
+                        }
+                    };
+                }
                 return damage;
             }
 
             public static float GetWDamage(Obj_AI_Base unit)
             {
-                if (MenuManager.IsCacheEnabled && WDamages.Exist(unit.NetworkId))
-                {
-                    WDamages.RefreshRate = 1000;
-
-                    return WDamages.Get(unit.NetworkId);
-                }
-
                 var damage = WDamageOnChampions[W.Level] +
                              GetRealAttackDamage() * WDamageOnChampionsTotalAdMod;
 
-                if (unit.GetType() != typeof(AIHeroClient))
+                if (!(unit is AIHeroClient))
                 {
                     damage *= 0.75f;
                 }
-
-                var finalDamage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, damage, false, true);
-
-                if (MenuManager.IsCacheEnabled)
-                    WDamages.Add(unit.NetworkId, damage);
-
-                return finalDamage;
+                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, damage, false, true);
             }
 
             public static bool IsTargetKillableFromW(Obj_AI_Base unit)
             {
-                if (MenuManager.IsCacheEnabled && IsKillable.Exist(unit.NetworkId))
+                if (!(unit is AIHeroClient))
                 {
-                    IsKillable.RefreshRate = 100;
-
-                    return IsKillable.Get(unit.NetworkId);
+                    return unit.TotalHealthWithShields() <= GetWDamage(unit);
                 }
 
-                bool output;
-
-                if (unit.GetType() != typeof(AIHeroClient))
-                {
-                    output = unit.TotalHealthWithShields() <= GetWDamage(unit);
-
-                    if(MenuManager.IsCacheEnabled)
-                        IsKillable.Add(unit.NetworkId, output);
-
-                    return output;
-                }
-
-                var enemy = (AIHeroClient) unit;
+                var enemy = (AIHeroClient)unit;
 
                 if (enemy.HasSpellShield() || enemy.HasUndyingBuffA())
                     return false;
 
                 if (enemy.ChampionName != "Blitzcrank")
-                {
-                    output = enemy.TotalHealthWithShields() < GetWDamage(enemy);
-
-                    if (MenuManager.IsCacheEnabled)
-                        IsKillable.Add(unit.NetworkId, output);
-
-                    return output;
-                }
+                    return enemy.TotalHealthWithShields(true) < GetWDamage(enemy);
 
                 if (!enemy.HasBuff("BlitzcrankManaBarrierCD") && !enemy.HasBuff("ManaBarrier"))
                 {
-                    output = enemy.TotalHealthWithShields() + enemy.Mana/2 < GetWDamage(enemy);
-
-                    if (MenuManager.IsCacheEnabled)
-                        IsKillable.Add(unit.NetworkId, output);
-
-                    return output;
+                    return enemy.TotalHealthWithShields(true) + enemy.Mana / 2 < GetWDamage(enemy);
                 }
 
-                output = enemy.TotalHealthWithShields() < GetWDamage(enemy);
-
-                if (MenuManager.IsCacheEnabled)
-                    IsKillable.Add(unit.NetworkId, output);
-
-                return output;
+                return enemy.TotalHealthWithShields(true) < GetWDamage(enemy);
             }
         }
     }

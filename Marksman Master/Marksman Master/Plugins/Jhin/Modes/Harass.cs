@@ -49,7 +49,7 @@ namespace Marksman_Master.Plugins.Jhin.Modes
             }
 
             if (!W.IsReady() || !Settings.Harass.UseW || !(Player.Instance.ManaPercent >= Settings.Harass.MinManaW) ||
-                Player.Instance.CountEnemiesInRangeCached(500) >= 2)
+                Player.Instance.CountEnemiesInRange(500) >= 2)
                 return;
             
             var enemy = TargetSelector.GetTarget(W.Range, DamageType.Physical);
@@ -58,8 +58,8 @@ namespace Marksman_Master.Plugins.Jhin.Modes
                 return;
 
             var count =
-                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                    x => Prediction.Position.PredictUnitPosition(x, 1000).DistanceCached(Player.Instance) < 400).Count();
+                EntityManager.Heroes.Enemies.Count(
+                    x => Prediction.Position.PredictUnitPosition(x, 1000).Distance(Player.Instance) < 400);
             if (count >= 2)
                 return;
 

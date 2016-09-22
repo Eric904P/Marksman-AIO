@@ -29,7 +29,6 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
-using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Vayne.Modes
 {
@@ -37,7 +36,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
     {
         public static void Execute()
         {
-            var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).ToList();
+            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, E.Range).ToList();
 
             if (!jungleMinions.Any())
                 return;
@@ -46,7 +45,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 return;
 
             if (!Player.Instance.Position.Extend(Game.CursorPos, 299)
-                .IsInRangeCached(Orbwalker.LastTarget.Position.To2D(), Player.Instance.GetAutoAttackRange()))
+                .IsInRange(Orbwalker.LastTarget, Player.Instance.GetAutoAttackRange()))
                 return;
 
             Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());

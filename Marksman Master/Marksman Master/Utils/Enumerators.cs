@@ -30,19 +30,6 @@ using System;
 
 namespace Marksman_Master.Utils
 {
-    public enum CachedEntityType
-    {
-        EnemyHero = 0,
-        AllHeroes,
-        AllyHero,
-        EnemyMinion,
-        AllyMinion,
-        CombinedMinions,
-        CombinedAttackableMinions,
-        Minions,
-        Monsters
-    }
-
     public enum ItemType
     {
         Defensive,
