@@ -32,7 +32,6 @@ using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Events;
-using EloBuddy.SDK.Menu;
 using Marksman_Master.Interfaces;
 using Marksman_Master.Utils;
 using SharpDX;
@@ -43,7 +42,8 @@ namespace Marksman_Master
     {
         internal static IHeroAddon PluginInstance { get; private set; }
 
-        private static readonly Dictionary<InterrupterEventArgs, AIHeroClient> InterruptibleSpellsFound = new Dictionary<InterrupterEventArgs, AIHeroClient>(); 
+        private static readonly Dictionary<InterrupterEventArgs, AIHeroClient> InterruptibleSpellsFound =
+            new Dictionary<InterrupterEventArgs, AIHeroClient>();
 
         public static bool Initialize()
         {
@@ -51,23 +51,16 @@ namespace Marksman_Master
 
             if (PluginInstance == null)
             {
-                Misc.PrintInfoMessage("<b><font color=\"#5ED43D\">" + Player.Instance.ChampionName + "</font></b> is not yet supported.");
+                Misc.PrintInfoMessage("<b><font color=\"#5ED43D\">" + Player.Instance.ChampionName +
+                                      "</font></b> is not yet supported.");
                 return false;
             }
-            
+
             Game.OnTick += Game_OnTick;
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
-            MainMenu.OnClose += MainMenu_OnClose;
-
-            UpdateTickData();
 
             return true;
-        }
-
-        private static void MainMenu_OnClose(object sender, EventArgs args)
-        {
-            UpdateTickData();
         }
 
         private static Vector3 _flagPos;
@@ -87,21 +80,38 @@ namespace Marksman_Master
 
             if (MenuManager.InterruptibleSpellsFound > 0 && menu["MenuManager.InterrupterMenu.Enabled"])
             {
-                if (Utils.Interrupter.InterruptibleList.Exists(e => e.ChampionName == enemy.ChampionName) && ((menu["MenuManager.InterrupterMenu.OnlyInCombo"] && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) || !menu["MenuManager.InterrupterMenu.OnlyInCombo"]))
+                if (Utils.Interrupter.InterruptibleList.Exists(e => e.ChampionName == enemy.ChampionName) &&
+                    ((menu["MenuManager.InterrupterMenu.OnlyInCombo"] &&
+                      Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) ||
+                     !menu["MenuManager.InterrupterMenu.OnlyInCombo"]))
                 {
                     foreach (var interruptibleSpell in 
-                            Utils.Interrupter.InterruptibleList.Where(x => x.ChampionName == enemy.ChampionName && x.SpellSlot == args.Slot))
+                        Utils.Interrupter.InterruptibleList.Where(
+                            x => x.ChampionName == enemy.ChampionName && x.SpellSlot == args.Slot))
                     {
-                        var hp = menu["MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot + ".Hp", true];
-                        var enemies =menu["MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot +".Enemies", true];
+                        var hp =
+                            menu[
+                                "MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot +
+                                ".Hp", true];
+                        var enemies =
+                            menu[
+                                "MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot +
+                                ".Enemies", true];
 
-                        if (menu["MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot +".Enabled"] &&
+                        if (
+                            menu[
+                                "MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot +
+                                ".Enabled"] &&
                             Player.Instance.HealthPercent <= hp &&
                             Player.Instance.CountEnemiesInRange(MenuManager.GapcloserScanRange) <= enemies)
                         {
-                            InterruptibleSpellsFound.Add(new InterrupterEventArgs(args.Target, args.Slot, interruptibleSpell.DangerLevel, interruptibleSpell.SpellName, args.Start, args.End,
-                                menu["MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot + ".Delay",true],
-                                enemies, hp, Game.Time * 1000), enemy);
+                            InterruptibleSpellsFound.Add(
+                                new InterrupterEventArgs(args.Target, args.Slot, interruptibleSpell.DangerLevel,
+                                    interruptibleSpell.SpellName, args.Start, args.End,
+                                    menu[
+                                        "MenuManager.InterrupterMenu." + enemy.ChampionName + "." +
+                                        interruptibleSpell.SpellSlot + ".Delay", true],
+                                    enemies, hp, Game.Time*1000), enemy);
                         }
                     }
                 }
@@ -111,22 +121,27 @@ namespace Marksman_Master
                 return;
 
             if (!menu["MenuManager.GapcloserMenu.Enabled"] ||
-                (menu["MenuManager.GapcloserMenu.OnlyInCombo"] && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) || !Gapcloser.GapCloserList.Exists(e => e.ChampName == enemy.ChampionName))
+                (menu["MenuManager.GapcloserMenu.OnlyInCombo"] &&
+                 !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) ||
+                !Gapcloser.GapCloserList.Exists(e => e.ChampName == enemy.ChampionName))
                 return;
 
             if (enemy.Hero == Champion.JarvanIV &&
-                               args.SData.Name.ToLower() == "jarvanivdemacianstandard" &&
-                               args.End.Distance(Player.Instance.Position) < 1000)
+                args.SData.Name.ToLower() == "jarvanivdemacianstandard" &&
+                args.End.Distance(Player.Instance.Position) < 1000)
             {
                 _flagPos.X = args.End.X;
                 _flagPos.Y = args.End.Y;
                 _flagPos.Z = NavMesh.GetHeightForPosition(args.End.X, args.End.Y);
-                _flagCreateTick = (int)Game.Time * 1000;
+                _flagCreateTick = (int) Game.Time*1000;
             }
 
             foreach (
                 var gapcloser in
-                    Gapcloser.GapCloserList.Where(x => x.ChampName == enemy.ChampionName && string.Equals(x.SpellName, args.SData.Name, StringComparison.InvariantCultureIgnoreCase)))
+                    Gapcloser.GapCloserList.Where(
+                        x =>
+                            x.ChampName == enemy.ChampionName &&
+                            string.Equals(x.SpellName, args.SData.Name, StringComparison.InvariantCultureIgnoreCase)))
             {
                 var hp =
                     menu["MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot + ".Hp", true];
@@ -149,9 +164,10 @@ namespace Marksman_Master
                                     "MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot +
                                     ".Delay",
                                     true], enemies, hp, Game.Time*1000));
-                    } else if (enemy.Hero == Champion.JarvanIV &&
-                               args.SData.Name.ToLower() == "jarvanivdragonstrike" &&
-                               args.End.Distance(Player.Instance.Position) < 1000)
+                    }
+                    else if (enemy.Hero == Champion.JarvanIV &&
+                             args.SData.Name.ToLower() == "jarvanivdragonstrike" &&
+                             args.End.Distance(Player.Instance.Position) < 1000)
                     {
                         var flagpolygon = new Geometry.Polygon.Circle(_flagPos, 150);
                         var playerpolygon = new Geometry.Polygon.Circle(Player.Instance.Position, 150);
@@ -167,8 +183,8 @@ namespace Marksman_Master
                                         args.Target == null ? GapcloserTypes.Skillshot : GapcloserTypes.Targeted,
                                         args.Start, args.End,
                                         menu["MenuManager.GapcloserMenu." + enemy.ChampionName + "." +
-                                            gapcloser.SpellSlot +
-                                            ".Delay",
+                                             gapcloser.SpellSlot +
+                                             ".Delay",
                                             true], enemies, hp, Game.Time*1000));
                                 break;
                             }
@@ -191,7 +207,8 @@ namespace Marksman_Master
 
         public static void LoadPlugin()
         {
-            var typeName = "Marksman_Master.Plugins." + Player.Instance.ChampionName + "." + Player.Instance.ChampionName;
+            var typeName = "Marksman_Master.Plugins." + Player.Instance.ChampionName + "." +
+                           Player.Instance.ChampionName;
 
             var type = Type.GetType(typeName);
 
@@ -202,7 +219,9 @@ namespace Marksman_Master
 
             var colorFileContent = FileHandler.ReadDataFile(FileHandler.ColorFileName);
 
-            Bootstrap.SavedColorPickerData = colorFileContent != null ? colorFileContent.ToObject<Dictionary<string, ColorBGRA>>() : new Dictionary<string, ColorBGRA>();
+            Bootstrap.SavedColorPickerData = colorFileContent != null
+                ? colorFileContent.ToObject<Dictionary<string, ColorBGRA>>()
+                : new Dictionary<string, ColorBGRA>();
 
             //var constructorInfo = type.GetConstructor(new Type[] {});
 
@@ -210,7 +229,7 @@ namespace Marksman_Master
 
             Misc.PrintDebugMessage("Creating plugins instance");
 
-            PluginInstance = (IHeroAddon)System.Activator.CreateInstance(type);
+            PluginInstance = (IHeroAddon) System.Activator.CreateInstance(type);
         }
 
         private static void Drawing_OnDraw(EventArgs args)
@@ -218,33 +237,9 @@ namespace Marksman_Master
             PluginInstance.OnDraw();
         }
 
-        private static int LastTick { get; set; }
-        private static int[] Tick { get; set; } = new int[6];
-        private static int[] Tickreset { get; } = { 3, 4, 5 };
-        private static int Selected { get; set; }
-
-        private static void UpdateTickData()
-        {
-            if (Game.TicksPerSecond < 25)
-            {
-                Tick = new[] { 0, 0, 1, 1, 2, 2 };
-                Selected = 0;
-            }
-            else if (Game.TicksPerSecond < 50 && Game.TicksPerSecond > 25)
-            {
-                Tick = new[] { 0, 1, 2, 3, 4, 4 };
-                Selected = 1;
-            }
-            else if (Game.TicksPerSecond > 50)
-            {
-                Tick = new[] { 0, 1, 2, 3, 4, 5 };
-                Selected = 2;
-            }
-        }
-
         private static void Game_OnTick(EventArgs args)
         {
-            if (_flagCreateTick != 0 && _flagCreateTick + 8500 < Game.Time * 1000)
+            if (_flagCreateTick != 0 && _flagCreateTick + 8500 < Game.Time*1000)
             {
                 _flagCreateTick = 0;
                 _flagPos = Vector3.Zero;
@@ -252,7 +247,13 @@ namespace Marksman_Master
 
             if (InterruptibleSpellsFound.Count > 0)
             {
-                foreach (var index in InterruptibleSpellsFound.Where(e => (int)e.Key.GameTime + 9000 <= (int)Game.Time * 1000 || (!e.Value.Spellbook.IsChanneling && !e.Value.Spellbook.IsCharging && !e.Value.Spellbook.IsCastingSpell)).ToList())
+                foreach (
+                    var index in
+                        InterruptibleSpellsFound.Where(
+                            e =>
+                                (int) e.Key.GameTime + 9000 <= (int) Game.Time*1000 ||
+                                (!e.Value.Spellbook.IsChanneling && !e.Value.Spellbook.IsCharging &&
+                                 !e.Value.Spellbook.IsCastingSpell)).ToList())
                 {
                     InterruptibleSpellsFound.Remove(index.Key);
                 }
@@ -262,67 +263,32 @@ namespace Marksman_Master
             {
                 PluginInstance.OnInterruptible(interruptibleSpell.Value, interruptibleSpell.Key);
             }
-            
+
             PluginInstance.PermaActive();
 
-            if (Game.TicksPerSecond <= 6)
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
             {
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
-                {
-                    PluginInstance.ComboMode();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass))
-                {
-                    PluginInstance.HarassMode();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.JungleClear))
-                {
-                    PluginInstance.JungleClear();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear))
-                {
-                    PluginInstance.LaneClear();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee))
-                {
-                    PluginInstance.Flee();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LastHit))
-                {
-                    PluginInstance.LastHit();
-                }
+                PluginInstance.ComboMode();
             }
-            else
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass))
             {
-                if (LastTick > Tickreset[Selected])
-                    LastTick = 0;
-
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && LastTick == Tick[0])
-                {
-                    PluginInstance.ComboMode();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass) && LastTick == Tick[1])
-                {
-                    PluginInstance.HarassMode();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.JungleClear) && LastTick == Tick[2])
-                {
-                    PluginInstance.JungleClear();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) && LastTick == Tick[3])
-                {
-                    PluginInstance.LaneClear();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee) && LastTick == Tick[4])
-                {
-                    PluginInstance.Flee();
-                }
-                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LastHit) && LastTick == Tick[5])
-                {
-                    PluginInstance.LastHit();
-                }
-
-                LastTick++;
+                PluginInstance.HarassMode();
+            }
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.JungleClear))
+            {
+                PluginInstance.JungleClear();
+            }
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear))
+            {
+                PluginInstance.LaneClear();
+            }
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee))
+            {
+                PluginInstance.Flee();
+            }
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LastHit))
+            {
+                PluginInstance.LastHit();
             }
         }
     }

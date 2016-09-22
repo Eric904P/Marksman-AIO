@@ -672,9 +672,7 @@ namespace Marksman_Master.Plugins.Jhin
             private static CustomCache<int, float> RDamages { get; } = Cache.Resolve<CustomCache<int, float>>();
             private static CustomCache<int, float> CritDamage { get; } = Cache.Resolve<CustomCache<int, float>>();
             private static CustomCache<int, bool> IsKillable { get; } = Cache.Resolve<CustomCache<int, bool>>();
-
             
-
             public static float GetRDamage(Obj_AI_Base unit, bool isFourthShoot = false)
             {
                 if (!isFourthShoot && MenuManager.IsCacheEnabled && RDamages.Exist(unit.NetworkId))
