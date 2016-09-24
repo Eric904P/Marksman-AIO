@@ -41,27 +41,30 @@ namespace Marksman_Master.Plugins.Ashe.Modes
     {
         public static void Execute()
         {
-            if (R.IsReady() && Settings.Combo.UseR && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(Settings.Combo.RMaximumRange) && x.HealthPercent < 50 && !x.HasSpellShield() && !x.HasUndyingBuffA()))
+            if (R.IsReady() && Settings.Combo.UseR && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(Settings.Combo.RMaximumRange) && x.HealthPercent < 50 && !x.HasSpellShield() && !x.HasUndyingBuffA()).Any())
             {
-                foreach (var target in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(Settings.Combo.RMaximumRange)).OrderBy(TargetSelector.GetPriority))
+                foreach (var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(Settings.Combo.RMaximumRange)).OrderBy(TargetSelector.GetPriority))
                 {
                     var incomingDamage = IncomingDamage.GetIncomingDamage(target);
 
-                    var damage = incomingDamage + Player.Instance.GetSpellDamage(target, SpellSlot.R)-10;
+                    if (incomingDamage > target.TotalHealthWithShields())
+                        return;
+
+                    var damage = incomingDamage + Player.Instance.GetSpellDamageCached(target, SpellSlot.R)-10;
 
                     if (target.Hero == Champion.Blitzcrank && !target.HasBuff("BlitzcrankManaBarrierCD") && !target.HasBuff("ManaBarrier"))
                     {
                         damage -= target.Mana / 2;
                     }
 
-                    if(target.TotalHealthWithShields(true) < Player.Instance.GetAutoAttackDamage(target, true)*2 && Player.Instance.IsInAutoAttackRange(target))
+                    if(target.TotalHealthWithShields(true) < Player.Instance.GetAutoAttackDamageCached(target, true)*2 && Player.Instance.IsInAutoAttackRange(target))
                         continue;
 
                     if (target.TotalHealthWithShields(true) < damage)
                     {
                         var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                         {
-                            CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
+                            CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
                             Delay = 500,
                             From = Player.Instance.Position,
                             Radius = 120,
@@ -84,7 +87,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
 
             if (W.IsReady() && Settings.Combo.UseW)
             {
-                foreach (var source in EntityManager.Heroes.Enemies.Where(x=>x.IsValidTarget(W.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() && x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.W)))
+                foreach (var source in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>x.IsValidTargetCached(W.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() && x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.W)))
                 {
                     var wPrediction = GetWPrediction(source);
 

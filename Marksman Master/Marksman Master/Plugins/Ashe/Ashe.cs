@@ -36,6 +36,7 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
 using EloBuddy.SDK.Spells;
+using Marksman_Master.Cache.Modules;
 using Marksman_Master.Utils;
 using SharpDX;
 using Color = System.Drawing.Color;
@@ -61,6 +62,8 @@ namespace Marksman_Master.Plugins.Ashe
         protected static bool IsPreAttack { get; private set; }
         protected static bool IsAfterAttack { get; private set; }
 
+        private static CustomCache<int, PredictionResult> CachedWPrediction { get; set; }
+
         static Ashe()
         {
             Q = new Spell.Active(SpellSlot.Q);
@@ -78,6 +81,9 @@ namespace Marksman_Master.Plugins.Ashe
             {
                 AllowedCollisionCount = 0
             };
+
+            CachedWPrediction = StaticCacheProvider.Cache.Resolve<CustomCache<int, PredictionResult>>();
+            CachedWPrediction.RefreshRate = 500;
 
             ColorPicker = new ColorPicker[2];
 
@@ -107,12 +113,12 @@ namespace Marksman_Master.Plugins.Ashe
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
         {
             if (!R.IsReady() || (args.DangerLevel != DangerLevel.Medium && args.DangerLevel != DangerLevel.High) ||
-                !(Player.Instance.Mana > 200) || !sender.IsValidTarget(Settings.Misc.MaxInterrupterRange))
+                !(Player.Instance.Mana > 200) || !sender.IsValidTargetCached(Settings.Misc.MaxInterrupterRange))
                 return;
 
             var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
-                CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
+                CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
                 Delay = 250,
                 From = Player.Instance.Position,
                 Radius = 120,
@@ -132,7 +138,7 @@ namespace Marksman_Master.Plugins.Ashe
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (R.IsReady() && args.End.Distance(Player.Instance.Position) < 400)
+            if (R.IsReady() && args.End.DistanceCached(Player.Instance.Position) < 400)
             {
                 R.CastMinimumHitchance(sender, 65);
             }
@@ -140,6 +146,11 @@ namespace Marksman_Master.Plugins.Ashe
 
         public static PredictionResult GetWPrediction(Obj_AI_Base unit)
         {
+            if (MenuManager.IsCacheEnabled && CachedWPrediction.Exist(unit.NetworkId))
+            {
+                return CachedWPrediction.Get(unit.NetworkId);
+            }
+
             var poly = new Geometry.Polygon.Sector(Player.Instance.Position, Game.CursorPos,
                 (float) (Math.PI/180*40), 950, 9).Points.ToArray();
 
@@ -150,6 +161,11 @@ namespace Marksman_Master.Plugins.Ashe
 
                 if (!qPred.CollisionObjects.Any() && qPred.HitChance >= HitChance.High)
                 {
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        CachedWPrediction.Add(unit.NetworkId, qPred);
+                    }
+
                     return qPred;
                 }
             }

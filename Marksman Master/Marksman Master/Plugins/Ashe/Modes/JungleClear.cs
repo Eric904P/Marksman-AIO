@@ -30,6 +30,7 @@ using System;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Ashe.Modes
 {
@@ -37,7 +38,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
     {
         public static void Execute()
         {
-            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+            var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).ToList();
 
             if (!jungleMinions.Any())
                 return;
@@ -60,7 +61,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                     jungleMinions.FirstOrDefault(
                         x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase));
 
-                if (minion != null && minion.Health > Player.Instance.GetAutoAttackDamage(minion, true) * 2)
+                if (minion != null && minion.Health > Player.Instance.GetAutoAttackDamageCached(minion, true) * 2)
                 {
                     var pred = W.GetPrediction(minion);
                     W.Cast(pred.CastPosition);

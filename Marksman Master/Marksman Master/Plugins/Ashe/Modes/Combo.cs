@@ -42,8 +42,8 @@ namespace Marksman_Master.Plugins.Ashe.Modes
         public static void Execute()
         {
             if (Q.IsReady() && Settings.Combo.UseQ &&
-                EntityManager.Heroes.Enemies.Any(
-                    x => x.IsValidTarget(Player.Instance.GetAutoAttackRange() - 50) && !IsPreAttack))
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, 
+                    x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange() - 50) && !IsPreAttack).Any())
             {
                 Q.Cast();
             }
@@ -51,10 +51,10 @@ namespace Marksman_Master.Plugins.Ashe.Modes
             if (W.IsReady() && Settings.Combo.UseW && Player.Instance.Mana - 50 > 100)
             {
                 var possibleTargets =
-                    EntityManager.Heroes.Enemies.Where(
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         x =>
                         {
-                            if (!x.IsValidTarget(W.Range))
+                            if (!x.IsValidTargetCached(W.Range))
                                 return false;
 
                             var wPred = GetWPrediction(x);
@@ -84,11 +84,11 @@ namespace Marksman_Master.Plugins.Ashe.Modes
 
             if (E.IsReady() && Settings.Combo.UseE)
             {
-                foreach (var source in EntityManager.Heroes.Enemies.Where(x=> !x.IsDead && !x.IsZombie && x.IsValid && x.IsUserInvisibleFor(500)))
+                foreach (var source in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x=> !x.IsDead && !x.IsZombie && x.IsValid && x.IsUserInvisibleFor(500)))
                 {
                     var data = source.GetVisibilityTrackerData();
 
-                    if (data.LastHealthPercent < 25 && data.LastPosition.Distance(Player.Instance) < 3000)
+                    if (data.LastHealthPercent < 25 && data.LastPosition.DistanceCached(Player.Instance) < 3000)
                     {
                         E.Cast(data.LastPath);
                     }
@@ -99,27 +99,27 @@ namespace Marksman_Master.Plugins.Ashe.Modes
             {
                 var target = TargetSelector.GetTarget(Settings.Combo.RMaximumRange, DamageType.Physical);
 
-                if (target != null && !target.IsUnderTurret() && !target.HasSpellShield() && !target.HasUndyingBuffA() && target.Distance(Player.Instance) > Settings.Combo.RMinimumRange)
+                if (target != null && !target.IsUnderTurret() && !target.HasSpellShield() && !target.HasUndyingBuffA() && target.DistanceCached(Player.Instance) > Settings.Combo.RMinimumRange)
                 {
-                    if (target.TotalHealthWithShields(true) < Player.Instance.GetAutoAttackDamage(target, true) * 2 && Player.Instance.IsInAutoAttackRange(target))
+                    if (target.TotalHealthWithShields(true) < Player.Instance.GetAutoAttackDamageCached(target, true) * 2 && Player.Instance.IsInAutoAttackRange(target))
                         return;
 
                     var damage = 0f;
                     var wPred = GetWPrediction(target);
 
-                    if (Player.Instance.Mana > 200 && target.IsValidTarget(W.Range))
+                    if (Player.Instance.Mana > 200 && target.IsValidTargetCached(W.Range))
                     {
-                        damage = Player.Instance.GetSpellDamage(target, SpellSlot.R) +
-                                 (wPred != null && wPred.HitChance >= HitChance.Medium ? Player.Instance.GetSpellDamage(target, SpellSlot.W) : 0) +
-                                 Player.Instance.GetAutoAttackDamage(target)*2.5f;
+                        damage = Player.Instance.GetSpellDamageCached(target, SpellSlot.R) +
+                                 (wPred != null && wPred.HitChance >= HitChance.Medium ? Player.Instance.GetSpellDamageCached(target, SpellSlot.W) : 0) +
+                                 Player.Instance.GetAutoAttackDamageCached(target, true)*2.5f;
                     }
-                    else if (Player.Instance.Mana > 150 && target.IsValidTarget(W.Range))
-                        damage = Player.Instance.GetSpellDamage(target, SpellSlot.R) +
-                                 Player.Instance.GetAutoAttackDamage(target)*2.5f;
+                    else if (Player.Instance.Mana > 150 && target.IsValidTargetCached(W.Range))
+                        damage = Player.Instance.GetSpellDamageCached(target, SpellSlot.R) +
+                                 Player.Instance.GetAutoAttackDamageCached(target, true)*2.5f;
 
                    var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {
-                        CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
+                        CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
                         Delay = 500,
                         From = Player.Instance.Position,
                         Radius = 120,

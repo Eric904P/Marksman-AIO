@@ -127,7 +127,7 @@ namespace Marksman_Master.Utils
 
                         if (dictionary.ContainsKey(uniqueId))
                         {
-                            Console.WriteLine("dic contains key");
+                            Misc.PrintDebugMessage("dic contains key");
                             dictionary[uniqueId] = color;
                         }
                         else

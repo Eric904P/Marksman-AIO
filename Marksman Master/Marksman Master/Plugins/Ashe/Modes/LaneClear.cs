@@ -30,6 +30,8 @@ using System;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
+using SharpDX;
 
 namespace Marksman_Master.Plugins.Ashe.Modes
 {
@@ -37,50 +39,34 @@ namespace Marksman_Master.Plugins.Ashe.Modes
     {
         public static bool CanILaneClear()
         {
-            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
+            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRangeCached(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
         }
 
         public static void Execute()
         {
             var laneMinions =
-                EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy, Player.Instance.Position,
-                    W.Range).ToList();
+                StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTargetCached(W.Range))
+                    .ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
 
-            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ && IsPreAttack && laneMinions.Count > 3)
+            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear &&
+                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ && IsPreAttack && laneMinions.Count > 3)
             {
                 Q.Cast();
             }
 
-            if (W.IsReady() && Settings.LaneClear.UseWInLaneClear && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaW && laneMinions.Count > 3)
+            if (!W.IsReady() || !Settings.LaneClear.UseWInLaneClear ||
+                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaW) || laneMinions.Count <= 3)
+                return;
+
+            var bestPos = W.GetBestLinearCastPosition(laneMinions);
+
+            if (bestPos.CastPosition != Vector3.Zero)
             {
-                foreach (var objAiMinion in laneMinions)
-                {
-                    var poly = new Geometry.Polygon.Sector(Player.Instance.Position, Game.CursorPos,
-                        (float) (Math.PI/180*40), 950, 9).Points.ToArray();
-
-                    for (var i = 1; i < 10; i++)
-                    {
-                        var qPred = Prediction.Position.PredictLinearMissile(objAiMinion, 1100, 20, 25, 1200, 0,
-                            Player.Instance.Position.Extend(poly[i], 20).To3D());
-
-                        if (qPred.CollisionObjects.Any())
-                        {
-                            var xd = EntityManager.MinionsAndMonsters.GetLineFarmLocation(
-                                qPred.GetCollisionObjects<Obj_AI_Minion>(), 120, 1200);
-
-                            if (xd.HitNumber <= 2)
-                                continue;
-
-                            W.Cast(xd.CastPosition);
-                            break;
-                        }
-                    }
-                }
+                W.Cast(bestPos.CastPosition);
             }
-
         }
     }
 }
