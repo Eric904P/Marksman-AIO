@@ -106,12 +106,7 @@ namespace Marksman_Master.Activator
             "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
             "SRU_Dragon_Water", "SRU_Baron"
         };
-
-       // //private static readonly Tuple<Champion, SpellSlot> DangerousSpells =  new Tuple<Champion, SpellSlot>
-     //   {
-      //      {Champion.Aatrox, SpellSlot.Q}
-     //   }; 
-
+        
         public static void InitializeActivator() //TODO EXHAUST LOGICS such as zed ult etc
         {
             LoadSummoners();
@@ -195,7 +190,7 @@ namespace Marksman_Master.Activator
 
             if (Summoners.Any(x => x.Value?.Item1 == Summoner.Ignite) &&
                 MenuManager.MenuValues["Activator.SummonersMenu.UseIgnite"] &&
-                EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(620)))
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.IsValidTargetCached(620)))
             {
                 var ignite =
                     Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Ignite).Key);
@@ -204,9 +199,9 @@ namespace Marksman_Master.Activator
                 {
                     foreach (
                         var target in
-                            EntityManager.Heroes.Enemies.Where(
+                            StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, 
                                 x =>
-                                    x.IsValidTarget(620) &&
+                                    x.IsValidTargetCached(620) &&
                                     Player.Instance.GetSummonerSpellDamage(x, DamageLibrary.SummonerSpells.Ignite) >
                                     x.TotalHealthWithShields() && !x.HasUndyingBuffA()))
                     {
@@ -231,7 +226,7 @@ namespace Marksman_Master.Activator
 
                 if (smite.IsReady)
                 {
-                    if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(520)) &&
+                    if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.IsValidTargetCached(520)) &&
                         MenuManager.MenuValues["Activator.SummonersMenu.UseSmiteInCombo"] && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                     {
                         if(Summoners.Any(x => (x.Value != null && x.Value.Item1.HasFlag(Summoner.ChillingSmite)) || (x.Value != null && x.Value.Item1.HasFlag(Summoner.ChallengingSmite))))
@@ -244,18 +239,19 @@ namespace Marksman_Master.Activator
                             }
                         }
                     }
-                    if (EntityManager.MinionsAndMonsters.CombinedAttackable.Any(x => x.IsValidTarget(520)))
+                    
+                    if (StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions).Any(x => x.IsValidTargetCached(520)))
                     {
-                        var bigMonster =
-                            EntityManager.MinionsAndMonsters.CombinedAttackable.FirstOrDefault(
+                        var bigMonster = StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions)
+                            .FirstOrDefault(
                                 x => BigMonstersNames.Any(m => m.Contains(x.BaseSkinName)));
 
-                        var buff =
-                            EntityManager.MinionsAndMonsters.CombinedAttackable.FirstOrDefault(
+                        var buff = StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions)
+                            .FirstOrDefault(
                                 x => BuffsNames.Any(m => m.Contains(x.BaseSkinName)));
 
-                        var epicMonster =
-                            EntityManager.MinionsAndMonsters.CombinedAttackable.FirstOrDefault(
+                        var epicMonster = StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions)
+                            .FirstOrDefault(
                                 x => EpicMonstersNames.Any(m => m.Contains(x.BaseSkinName)));
 
                         if (bigMonster != null && MenuManager.MenuValues["Activator.SummonersMenu.SmiteBigMonsters"] && 
@@ -361,7 +357,7 @@ namespace Marksman_Master.Activator
                     MenuManager.MenuValues["Activator.PotionsAndElixirsMenu." + Items[enumValues].ItemName])
                 {
                     if (Player.Instance.IsRecalling() ||
-                        Player.Instance.Position.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 250) == 0)
+                        Player.Instance.Position.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 250) == 0)
                         continue;
 
                     if (!MenuManager.MenuValues["Activator.PotionsAndElixirsMenu.OnlyIfTakingDamage"] &&
@@ -391,7 +387,7 @@ namespace Marksman_Master.Activator
                     MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".MyMinHP", true] ||
                     (int) target.HealthPercent >
                     MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".TargetsMinHP", true] ||
-                    Player.Instance.Position.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 250) <
+                    Player.Instance.Position.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 250) <
                     MenuManager.MenuValues["Activator.ItemsMenu." + Items[enumValues].ItemName + ".IfEnemiesNear", true])
                     continue;
 
@@ -441,7 +437,7 @@ namespace Marksman_Master.Activator
                         (int) target.HealthPercent <=
                         MenuManager.MenuValues[
                             "Activator.ItemsMenu." + Items[enumValues].ItemName + ".TargetsMinHP", true] &&
-                        Player.Instance.Position.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 250) >=
+                        Player.Instance.Position.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 250) >=
                         MenuManager.MenuValues[
                             "Activator.ItemsMenu." + Items[enumValues].ItemName + ".IfEnemiesNear", true]
                     where Items[enumValues].ToItem().IsReady() && Items[enumValues].Range > 0 &&

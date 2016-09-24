@@ -32,7 +32,6 @@ using System.Drawing;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
-using EloBuddy.SDK.Constants;
 using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
@@ -69,8 +68,6 @@ namespace Marksman_Master.Plugins.Kalista
 
         protected static Cache.Cache Cache { get; }
         
-        private static CustomCache<int, int> EStacks { get; } 
-
         static Kalista()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 1150, SkillShotType.Linear, 250, 2400, 40)
@@ -82,10 +79,7 @@ namespace Marksman_Master.Plugins.Kalista
             R = new Spell.Active(SpellSlot.R, 1150);
 
             Cache = StaticCacheProvider.Cache;
-
-            EStacks = Cache.Resolve<CustomCache<int, int>>();
-            EStacks.RefreshRate = 4000;
-
+            
             ColorPicker = new ColorPicker[4];
 
             ColorPicker[0] = new ColorPicker("KalistaQ", new ColorBGRA(243, 109, 160, 255));
@@ -104,24 +98,8 @@ namespace Marksman_Master.Plugins.Kalista
             Orbwalker.OnUnkillableMinion += Orbwalker_OnUnkillableMinion;
             Game.OnTick += Game_OnTick;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
-            Obj_AI_Base.OnSpellCast += Obj_AI_Base_OnSpellCast;
 
             WallJumper.Init();
-        }
-
-        private static void Obj_AI_Base_OnSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
-        {
-            if (!sender.IsMe || !args.IsAutoAttack() || !E.IsReady())
-                return;
-
-            if (EStacks.Exist(args.Target.NetworkId))
-            {
-                EStacks.Add(args.Target.NetworkId, EStacks.Get(args.Target.NetworkId) + 1);
-            }
-            else
-            {
-                EStacks.Add(args.Target.NetworkId, 1);
-            }
         }
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
@@ -347,24 +325,27 @@ namespace Marksman_Master.Plugins.Kalista
                 return;
             
             foreach (
-                var source in
-                    EntityManager.Heroes.Enemies.Where(
-                        x => x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && Damage.HasRendBuff(x)))
+                var source in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && Damage.HasRendBuff(x)))
             {
                 var hpPosition = source.HPBarPosition;
-                hpPosition.Y = hpPosition.Y + 30; // tracker friendly. BUG
-                /*var timeLeft = Damage.GetRendBuff(source).EndTime - Game.Time;
-                var endPos = timeLeft*0x3e8/0x25;
+                hpPosition.Y = hpPosition.Y + 30; // tracker friendly.
 
-                var degree = Misc.GetNumberInRangeFromProcent(timeLeft*1000d/4000d*100d, 3, 110);
-                var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
+                if (Damage.GetRendBuff(source) != null)
+                {
+                    var timeLeft = Damage.GetRendBuff(source).EndTime - Game.Time;
+                    var endPos = timeLeft * 0x3e8 / 0x25;
 
-                Text.X = (int) (hpPosition.X + endPos);
-                Text.Y = (int) hpPosition.Y + 15; // + text size 
-                Text.Color = color;
-                Text.TextValue = timeLeft.ToString("F1");
-                Text.Draw();*/
+                    var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 4000d * 100d, 3, 110);
+                    var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
 
+                    Text.X = (int)(hpPosition.X + endPos);
+                    Text.Y = (int)hpPosition.Y + 15; // + text size 
+                    Text.Color = color;
+                    Text.TextValue = timeLeft.ToString("F1");
+                    Text.Draw();
+                    
+                    Drawing.DrawLine(hpPosition.X + endPos, hpPosition.Y, hpPosition.X, hpPosition.Y, 1, color);
+                }
                 var percentDamage = Math.Min(100,
                     Damage.GetRendDamageOnTarget(source)/source.TotalHealthWithShields()*100);
 
@@ -374,8 +355,6 @@ namespace Marksman_Master.Plugins.Kalista
                     new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
                 Text.TextValue = percentDamage.ToString("F1");
                 Text.Draw();
-
-                // Drawing.DrawLine(hpPosition.X + endPos, hpPosition.Y, hpPosition.X, hpPosition.Y, 1, color);BUG
             }
         }
 
@@ -700,7 +679,7 @@ namespace Marksman_Master.Plugins.Kalista
             private static readonly float[] EDamagePerSpearMod = { 0, 0.2f, 0.225f, 0.25f, 0.275f, 0.3f };
             
             private static CustomCache<KeyValuePair<int, int>, float> ComboDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
-          //  private static CustomCache<int, int> EStacks { get; } = Cache.Resolve<CustomCache<int, int>>();
+            private static CustomCache<int, int> EStacks { get; } = Cache.Resolve<CustomCache<int, int>>();
             private static CustomCache<int, bool> IsKillable { get; } = Cache.Resolve<CustomCache<int, bool>>();
             private static CustomCache<KeyValuePair<int, int>, float> EDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
 
@@ -740,7 +719,7 @@ namespace Marksman_Master.Plugins.Kalista
 
             public static bool CanCastEOnUnit(Obj_AI_Base target)
             {
-                if (target == null || !target.IsValidTarget(E.Range) || /*GetRendBuff(target) == null||*/
+                if (target == null || !target.IsValidTarget(E.Range) || CountEStacks(target) < 1 ||
                     !E.IsReady()) //|| GetRendBuff(target).Count < 1)BUG
                     return false;
 
@@ -884,7 +863,17 @@ namespace Marksman_Master.Plugins.Kalista
                 {
                     return EStacks.Get(unit.NetworkId);
                 }
-                return 0;
+
+                var buff = GetRendBuff(unit);
+
+                var stacks = buff?.Count ?? 0;
+
+                if (MenuManager.IsCacheEnabled)
+                {
+                    EStacks.Add(unit.NetworkId, stacks);
+                }
+
+                return stacks;
             }
 
             public static BuffInstance GetRendBuff(Obj_AI_Base target)

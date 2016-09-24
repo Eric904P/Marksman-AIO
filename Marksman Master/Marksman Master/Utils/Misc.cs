@@ -184,7 +184,7 @@ namespace Marksman_Master.Utils
 
             try
             {
-                for (var i = 0; i < start.Distance(end); i += step)
+                for (var i = 0; i < start.DistanceCached(end); i += step)
                 {
                     if (start.Extend(end, i).IsWall())
                     {
@@ -201,7 +201,7 @@ namespace Marksman_Master.Utils
 
         public static Vector2 CutVectorNearWall(this Vector2 from, int range, int step = 25)
         {
-            var distance = Player.Instance.Position.Distance(from);
+            var distance = Player.Instance.Position.DistanceCached(from);
 
             var x = from.Shorten(Player.Instance.Position.To2D(), distance);
 
@@ -223,7 +223,7 @@ namespace Marksman_Master.Utils
 
         public static Vector3 CutVectorNearWall(this Vector3 from, int range, int step = 25)
         {
-            var distance = Player.Instance.Position.Distance(from);
+            var distance = Player.Instance.Position.DistanceCached(from);
 
             var x = from.To2D().Shorten(Player.Instance.Position.To2D(), distance);
 
@@ -252,7 +252,7 @@ namespace Marksman_Master.Utils
             {
                 for (var j = i + 1; j < array.Length; j++)
                 {
-                    if (!(array[i].Distance(point) > array[j].Distance(point)))
+                    if (!(array[i].DistanceCached(point) > array[j].DistanceCached(point)))
                         continue;
 
                     var temporary = array[i];
@@ -273,7 +273,7 @@ namespace Marksman_Master.Utils
             {
                 for (var j = i + 1; j < list.Count; j++)
                 {
-                    if (!(list[i].Distance(point) > list[j].Distance(point)))
+                    if (!(list[i].DistanceCached(point) > list[j].DistanceCached(point)))
                         continue;
 
                     var temporary = list[i];
@@ -294,7 +294,7 @@ namespace Marksman_Master.Utils
             {
                 for (var j = i + 1; j < array.Length; j++)
                 {
-                    if (!(array[i].Distance(point) < array[j].Distance(point)))
+                    if (!(array[i].DistanceCached(point) < array[j].DistanceCached(point)))
                         continue;
 
                     var temporary = array[i];
@@ -315,7 +315,7 @@ namespace Marksman_Master.Utils
             {
                 for (var j = i + 1; j < list.Count; j++)
                 {
-                    if (!(list[i].Distance(point) < list[j].Distance(point)))
+                    if (!(list[i].DistanceCached(point) < list[j].DistanceCached(point)))
                         continue;
 
                     var temporary = list[i];
@@ -489,24 +489,24 @@ namespace Marksman_Master.Utils
             double hue = 0;
             double saturation = 0;
 
-            if (Math.Abs(cMax - r) < 0.000001)
+            if (Math.Abs(cMax - r) < 0.01)
             {
                 hue = 60 * (((g - b) / delta) % 6);
             }
-            else if (Math.Abs(cMax - g) < 0.000001)
+            else if (Math.Abs(cMax - g) < 0.01)
             {
                 hue = 60 * (((b - r) / delta) + 2);
             }
-            else if (Math.Abs(cMax - b) < 0.000001)
+            else if (Math.Abs(cMax - b) < 0.01)
             {
                 hue = 60 * (((r - g) / delta) + 4);
             }
 
-            if (Math.Abs(cMax) < 0.000001)
+            if (Math.Abs(cMax) < 0.01)
             {
                 saturation = 0;
             }
-            else if (Math.Abs(cMax) > 0.000001)
+            else if (Math.Abs(cMax) > 0.01)
             {
                 saturation = delta / cMax;
             }
@@ -526,24 +526,24 @@ namespace Marksman_Master.Utils
             double hue = 0;
             double saturation = 0;
 
-            if (Math.Abs(cMax - r) < 0.000001)
+            if (Math.Abs(cMax - r) < 0.01)
             {
                 hue = 60 * (((g - b) / delta) % 6);
             }
-            else if (Math.Abs(cMax - g) < 0.000001)
+            else if (Math.Abs(cMax - g) < 0.01)
             {
                 hue = 60 * (((b - r) / delta) + 2);
             }
-            else if (Math.Abs(cMax - b) < 0.000001)
+            else if (Math.Abs(cMax - b) < 0.01)
             {
                 hue = 60 * (((r - g) / delta) + 4);
             }
 
-            if (Math.Abs(cMax) < 0.000001)
+            if (Math.Abs(cMax) < 0.01)
             {
                 saturation = 0;
             }
-            else if (Math.Abs(cMax) > 0.000001)
+            else if (Math.Abs(cMax) > 0.01)
             {
                 saturation = delta / cMax;
             }

@@ -73,8 +73,7 @@ namespace Marksman_Master.Utils
                 foreach (
                     var unit in
                         EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, DrawingRange)
-                            .Where(x => x.IsValidTarget()
-                                        && x.IsHPBarRendered && Drawing.WorldToScreen(x.Position).IsOnScreen()))
+                            .Where(x => x.IsValidTarget() && x.IsHPBarRendered && Drawing.WorldToScreen(x.Position).IsOnScreen()))
                 {
                     if (DamageDelegate(unit) <= 0)
                         return;
@@ -174,7 +173,7 @@ namespace Marksman_Master.Utils
 
 
             foreach (var unit in
-                EntityManager.Heroes.Enemies.Where(
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     index => index.IsHPBarRendered && index.IsValidTarget(DrawingRange) && index.Position.IsOnScreen()))
             {
                 if (DamageDelegate(unit) <= 0)

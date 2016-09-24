@@ -36,6 +36,7 @@ using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
+using Marksman_Master.Cache.Modules;
 using SharpDX;
 using Marksman_Master.Utils;
 using Color = SharpDX.Color;
@@ -67,6 +68,8 @@ namespace Marksman_Master.Plugins.Twitch
 
         private static bool _changingRangeScan;
 
+        protected static Cache.Cache Cache { get; }
+
         static Twitch()
         {
             Q = new Spell.Active(SpellSlot.Q);
@@ -76,6 +79,8 @@ namespace Marksman_Master.Plugins.Twitch
             };
             E = new Spell.Active(SpellSlot.E, 1200);
             R = new Spell.Active(SpellSlot.R, 950);
+
+            Cache = StaticCacheProvider.Cache;
 
             ColorPicker = new ColorPicker[4];
             
@@ -103,7 +108,7 @@ namespace Marksman_Master.Plugins.Twitch
         {
             if (Q.IsReady() && Settings.Combo.UseQAfterKill)
             {
-                if (EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(1500)) &&
+                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x=>x.IsValidTargetCached(1500)) &&
                         args.NetworkId == Player.Instance.NetworkId && args.EventId == GameEventId.OnChampionKill)
                 {
                     Q.Cast();
@@ -138,17 +143,17 @@ namespace Marksman_Master.Plugins.Twitch
         {
             if (R.IsReady() && Settings.Combo.UseR && target.GetType() == typeof(AIHeroClient))
             {
-                if (Player.Instance.CountEnemiesInRange(1000) < Settings.Combo.RIfEnemiesHit)
+                if (Player.Instance.CountEnemiesInRangeCached(1000) < Settings.Combo.RIfEnemiesHit)
                     return;
 
                 var polygon = new Geometry.Polygon.Rectangle(Player.Instance.Position, Player.Instance.Position.Extend(args.Target, 850).To3D(), 65);
 
                 var count =
-                    EntityManager.Heroes.Enemies.Count(
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         x =>
-                            !x.IsDead && x.IsValidTarget(950) &&
+                            !x.IsDead && x.IsValidTargetCached(950) &&
                             new Geometry.Polygon.Circle(x.Position, x.BoundingRadius).Points.Any(
-                                k => polygon.IsInside(k)));
+                                k => polygon.IsInside(k))).Count();
 
                 if (count >= Settings.Combo.RIfEnemiesHit)
                 {
@@ -185,22 +190,28 @@ namespace Marksman_Master.Plugins.Twitch
 
             if (!Settings.Drawings.DrawDamageIndicator)
                 return;
-            /*
-            foreach (var source in EntityManager.Heroes.Enemies.Where(x=> x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && HasDeadlyVenomBuff(x)))
+            
+            foreach (var source in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && HasDeadlyVenomBuff(x)))
             {
                 var hpPosition = source.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 30; // tracker friendly.
-                var timeLeft = GetDeadlyVenomBuff(source).EndTime - Game.Time;
-                var endPos = timeLeft * 0x3e8 / 0x37; BUG
-                
-                var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 6000d * 100d, 3, 110);
-                var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
 
-                Text.X = (int) (hpPosition.X + endPos);
-                Text.Y = (int)hpPosition.Y + 15; // + text size 
-                Text.Color = color;
-                Text.TextValue = timeLeft.ToString("F1");
-                Text.Draw();
+                if (GetDeadlyVenomBuff(source) != null)
+                {
+                    var timeLeft = GetDeadlyVenomBuff(source).EndTime - Game.Time;
+                    var endPos = timeLeft * 0x3e8 / 0x37;
+
+                    var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 6000d * 100d, 3, 110);
+                    var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
+
+                    Text.X = (int)(hpPosition.X + endPos);
+                    Text.Y = (int)hpPosition.Y + 15; // + text size 
+                    Text.Color = color;
+                    Text.TextValue = timeLeft.ToString("F1");
+                    Text.Draw();
+
+                    Drawing.DrawLine(hpPosition.X + endPos, hpPosition.Y, hpPosition.X, hpPosition.Y, 1, color);
+                }
 
                 var percentDamage = Math.Min(100, Damage.GetEDamage(source) / source.TotalHealthWithShields() * 100);
 
@@ -209,9 +220,7 @@ namespace Marksman_Master.Plugins.Twitch
                 Text.Color = new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
                 Text.TextValue = percentDamage.ToString("F1");
                 Text.Draw();
-
-                Drawing.DrawLine(hpPosition.X + endPos, hpPosition.Y, hpPosition.X, hpPosition.Y, 1, color);
-            }*/
+            }
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
@@ -547,20 +556,18 @@ namespace Marksman_Master.Plugins.Twitch
             private static float EDamagePerStackBounsApMod { get; } = 0.2f;
             public static int[] RBonusAd { get; } = {0, 20, 30, 40};
 
-            private static readonly Dictionary<int, Dictionary<float, float>> ComboDamages =
-                new Dictionary<int, Dictionary<float, float>>();
-            private static readonly Dictionary<int, Dictionary<float, float>> EDamages =
-                new Dictionary<int, Dictionary<float, float>>();
-            private static readonly Dictionary<int, Dictionary<float, float>> PassiveDamages =
-                new Dictionary<int, Dictionary<float, float>>();
-            private static readonly Dictionary<int, Dictionary<float, int>> EStacks =
-                new Dictionary<int, Dictionary<float, int>>();
+            private static CustomCache<KeyValuePair<int, int>, float> ComboDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
+            private static CustomCache<int, int> EStacks { get; } = Cache.Resolve<CustomCache<int, int>>();
+            private static CustomCache<Tuple<int, bool, int>, float> EDamages { get; } = Cache.Resolve<CustomCache<Tuple<int, bool, int>, float>>();
+            private static CustomCache<KeyValuePair<int, int>, float> PassiveDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
 
             public static float GetComboDamage(AIHeroClient enemy, int autos = 0)
             {
-                if (ComboDamages.ContainsKey(enemy.NetworkId) && !ComboDamages.Any(x => x.Key == enemy.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
-                    return ComboDamages[enemy.NetworkId].Values.FirstOrDefault();
-
+                if (MenuManager.IsCacheEnabled && ComboDamages.Exist(new KeyValuePair<int, int>(enemy.NetworkId, autos)))
+                {
+                    return ComboDamages.Get(new KeyValuePair<int, int>(enemy.NetworkId, autos));
+                }
+                
                 float damage = 0;
 
                 if (Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing] != null &&
@@ -580,18 +587,20 @@ namespace Marksman_Master.Plugins.Twitch
                 
                 damage += Player.Instance.GetAutoAttackDamage(enemy, true) * autos < 1 ? 1 : autos;
 
-                ComboDamages[enemy.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
-                
+                if (MenuManager.IsCacheEnabled)
+                {
+                    ComboDamages.Add(new KeyValuePair<int, int>(enemy.NetworkId, autos), damage);
+                }
+
                 return damage;
             }
 
             public static bool CanCastEOnUnit(Obj_AI_Base target)
             {
-                if (target == null || !target.IsValidTarget(E.Range) || /* BUG GetDeadlyVenomBuff(target) == null ||*/
-                    !E.IsReady() || CountEStacks(target) < 1)
+                if (target == null || !target.IsValidTargetCached(E.Range) || /* BUG GetDeadlyVenomBuff(target) == null ||*/ CountEStacks(target) < 1)
                     return false;
 
-                if (!(target is AIHeroClient))
+                if (target.GetType() != typeof(AIHeroClient))
                     return true;
 
                 var heroClient = (AIHeroClient) target;
@@ -604,7 +613,7 @@ namespace Marksman_Master.Plugins.Twitch
                 if (!CanCastEOnUnit(target))
                     return false;
 
-                if (!(target is AIHeroClient))
+                if (target.GetType() != typeof(AIHeroClient))
                 {
                     return GetEDamage(target) > target.TotalHealthWithShields();
                 }
@@ -628,11 +637,13 @@ namespace Marksman_Master.Plugins.Twitch
 
             private static float GetPassiveDamage(Obj_AI_Base target, int stacks = -1)
             {
+                if (MenuManager.IsCacheEnabled && PassiveDamages.Exist(new KeyValuePair<int, int>(target.NetworkId, stacks)))
+                {
+                    return PassiveDamages.Get(new KeyValuePair<int, int>(target.NetworkId, stacks));
+                }
+
                 if (!HasDeadlyVenomBuff(target))
                     return 0;
-
-                if (PassiveDamages.ContainsKey(target.NetworkId) && !PassiveDamages.Any(x => x.Key == target.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
-                    return PassiveDamages[target.NetworkId].Values.FirstOrDefault();
 
                 var damagePerStack = 0;
 
@@ -649,18 +660,24 @@ namespace Marksman_Master.Plugins.Twitch
 
                 var time = Math.Max(0, GetDeadlyVenomBuff(target).EndTime - Game.Time);
 
-                PassiveDamages[target.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damagePerStack * (stacks > 0 ? stacks : CountEStacks(target)) * time - target.HPRegenRate * time } };
+                var final = damagePerStack*(stacks > 0 ? stacks : CountEStacks(target))*time - target.HPRegenRate*time;
 
-                return damagePerStack * (stacks > 0 ? stacks : CountEStacks(target)) * time - target.HPRegenRate * time;
+                if (MenuManager.IsCacheEnabled)
+                {
+                    PassiveDamages.Add(new KeyValuePair<int, int>(target.NetworkId, stacks), final);
+                }
+                return final;
             }
 
             public static float GetEDamage(Obj_AI_Base unit, bool includePassive = false, int stacks = 0)
             {
+                if (MenuManager.IsCacheEnabled && EDamages.Exist(new Tuple<int, bool, int>(unit.NetworkId, includePassive, stacks)))
+                {
+                    return EDamages.Get(new Tuple<int, bool, int>(unit.NetworkId, includePassive, stacks));
+                }
+
                 if (unit == null)
                     return 0;
-
-                if (EDamages.ContainsKey(unit.NetworkId) && !EDamages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
-                    return EDamages[unit.NetworkId].Values.FirstOrDefault();
 
                 var stack = stacks > 0 ? stacks : CountEStacks(unit);
 
@@ -675,12 +692,17 @@ namespace Marksman_Master.Plugins.Twitch
                          Player.Instance.FlatPhysicalDamageMod*EDamagePerStackBounsAdMod +
                          EDamagePerStack[E.Level]));
 
-                    EDamages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0)} };
+                    damage = damage + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0);
 
-                    return damage + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0);
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        EDamages.Add(new Tuple<int, bool, int>(unit.NetworkId, includePassive, stacks), damage);
+                    }
+
+                    return damage;
                 }
 
-                var client = (AIHeroClient)unit;
+                var client = (AIHeroClient) unit;
 
                 if (client.HasSpellShield() || client.HasUndyingBuffA())
                     return 0;
@@ -691,30 +713,33 @@ namespace Marksman_Master.Plugins.Twitch
                      Player.Instance.FlatPhysicalDamageMod*EDamagePerStackBounsAdMod +
                      EDamagePerStack[E.Level]), false, true);
 
-                EDamages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, dmg + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0) } };
+                dmg = dmg + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0);
 
-                return dmg + (includePassive && HasDeadlyVenomBuff(unit) ? GetPassiveDamage(unit) : 0);
+                if (MenuManager.IsCacheEnabled)
+                {
+                    EDamages.Add(new Tuple<int, bool, int>(unit.NetworkId, includePassive, stacks), dmg);
+                }
+                return dmg;
             }
 
             public static int CountEStacks(Obj_AI_Base unit)
             {
+                if (MenuManager.IsCacheEnabled && EStacks.Exist(unit.NetworkId))
+                {
+                    return EStacks.Get(unit.NetworkId);
+                }
+
                 if (unit.IsDead || !unit.IsEnemy || unit.Type != GameObjectType.AIHeroClient && unit.Type != GameObjectType.obj_AI_Minion)
                 {
                     return 0;
                 }
-
-                if (EStacks.ContainsKey(unit.NetworkId) &&
-                    !EStacks.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
-                {
-                    return EStacks[unit.NetworkId].Values.FirstOrDefault();
-                }
-
+                
                 var index = (from i in ObjectManager.Get<Obj_GeneralParticleEmitter>()
                     where
                         i.Name.Contains("twitch_poison_counter") &&
-                        i.Position.Distance(unit.ServerPosition) <=
+                        i.Position.DistanceCached(unit.ServerPosition) <=
                         (unit.Type == GameObjectType.obj_AI_Minion ? 65 : 176.7768f)
-                    orderby i.Distance(unit)
+                    orderby i.DistanceCached(unit)
                     select i.Name).FirstOrDefault();
 
                 if (index == null)
@@ -747,8 +772,11 @@ namespace Marksman_Master.Plugins.Twitch
                         break;
                 }
 
-                EStacks[unit.NetworkId] = new Dictionary<float, int> { { Game.Time * 1000, stacks } };
-                
+                if (MenuManager.IsCacheEnabled)
+                {
+                    EStacks.Add(unit.NetworkId, stacks);
+                }
+
                 return stacks;
             }
         }

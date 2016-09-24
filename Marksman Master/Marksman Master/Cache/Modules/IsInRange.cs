@@ -106,6 +106,7 @@ namespace Marksman_Master.Cache.Modules
             return CachedValues[new Tuple<int, int, float>(from.NetworkId, target.NetworkId, range)].Item2;
         }
 
+
         public void DeleteUnnecessaryData()
         {
             CachedValues?.Clear();

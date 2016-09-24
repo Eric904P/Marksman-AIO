@@ -28,7 +28,6 @@
 #endregion
 
 using System.Linq;
-using EloBuddy.SDK;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Twitch.Modes
@@ -37,13 +36,13 @@ namespace Marksman_Master.Plugins.Twitch.Modes
     {
         public static void Execute()
         {
-            if (E.IsReady() &&
-                EntityManager.Heroes.Enemies.Any(
-                    client => !client.IsDead && client.IsValidTarget(E.Range) && Damage.IsTargetKillableByE(client)))
-            {
-                E.Cast();
-                Misc.PrintDebugMessage("Casting E to ks !");
-            }
+            if (!E.IsReady() || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                client => !client.IsZombie && client.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByE(client))
+                .Any())
+                return;
+
+            E.Cast();
+            Misc.PrintDebugMessage("Casting E to ks !");
         }
     }
 }

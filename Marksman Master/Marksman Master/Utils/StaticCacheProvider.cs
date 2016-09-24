@@ -32,6 +32,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using EloBuddy.SDK.Menu.Values;
 using Marksman_Master.Cache.Modules;
 using SharpDX;
 
@@ -44,7 +45,7 @@ namespace Marksman_Master.Utils
         private static Distance CachedDistance { get; set; }
         private static IsValidTarget CachedIsValidTarget { get; set; }
         private static IsInRange CachedIsInRange { get; set; }
-        private static CachedEntityManager CachedEntityManager { get; set; }
+        internal static MinionCache MinionCache { get; set; }
 
         private static CustomCache<KeyValuePair<int, float>, int> CountEnemiesInRange { get; set; }
         private static CustomCache<KeyValuePair<int, float>, int> CountAlliesInRange { get; set; }
@@ -68,7 +69,7 @@ namespace Marksman_Master.Utils
             CachedDistance = Cache.Resolve<Distance>();
             CachedIsValidTarget = Cache.Resolve<IsValidTarget>();
             CachedIsInRange = Cache.Resolve<IsInRange>();
-            CachedEntityManager = Cache.Resolve<CachedEntityManager>();
+            MinionCache = Cache.Resolve<MinionCache>();
 
             CountEnemiesInRange = Cache.Resolve<CustomCache<KeyValuePair<int, float>, int>>();
             CountAlliesInRange = Cache.Resolve<CustomCache<KeyValuePair<int, float>, int>>();
@@ -77,7 +78,9 @@ namespace Marksman_Master.Utils
             CountAlliesInRange2 = Cache.Resolve<CustomCache<KeyValuePair<Vector3, float>, int>>();
             CountEnemyMinionsInRange2 = Cache.Resolve<CustomCache<KeyValuePair<Vector3, float>, int>>();
             CachedAutoAttackDamage = Cache.Resolve<CustomCache<Tuple<int, int, bool>, float>>();
+            CachedAutoAttackDamage.RefreshRate = 1000;
             CachedSpellDamage = Cache.Resolve<CustomCache<Tuple<int, int, SpellSlot>, float>>();
+            CachedSpellDamage.RefreshRate = 1000;
 
             _initialized = true;
         }
@@ -86,48 +89,34 @@ namespace Marksman_Master.Utils
         {
             Cache.Dispose();
         }
-
-        internal static IEnumerable<AIHeroClient> GetChampions(CachedEntityType type, Func<AIHeroClient, bool> predicate = null)
+       
+        internal static IEnumerable<AIHeroClient> GetChampions(CachedEntityType type,
+            Func<AIHeroClient, bool> predicate = null)
         {
             if (type > CachedEntityType.AllyHero)
             {
                 throw new Exception($"Invalid type passed. {type} is not supported by AIHeroClient.");
             }
-            
+
             switch (type)
             {
                 case CachedEntityType.EnemyHero:
                 {
-                    if (!MenuManager.IsCacheEnabled)
-                        return predicate != null
-                            ? EntityManager.Heroes.Enemies.Where(predicate)
-                            : EntityManager.Heroes.Enemies;
-
-                    return (predicate != null
-                        ? CachedEntityManager.GetChampions(type, predicate)
-                        : CachedEntityManager.GetChampions(type)) ?? EntityManager.Heroes.Enemies;
+                    return predicate != null
+                        ? EntityManager.Heroes.Enemies.Where(predicate)
+                        : EntityManager.Heroes.Enemies;
                 }
                 case CachedEntityType.AllyHero:
                 {
-                    if (!MenuManager.IsCacheEnabled)
-                        return predicate != null
-                            ? EntityManager.Heroes.Allies.Where(predicate)
-                            : EntityManager.Heroes.Allies;
-
-                    return (predicate != null
-                        ? CachedEntityManager.GetChampions(type, predicate)
-                        : CachedEntityManager.GetChampions(type)) ?? EntityManager.Heroes.Allies;
+                    return predicate != null
+                        ? EntityManager.Heroes.Allies.Where(predicate)
+                        : EntityManager.Heroes.Allies;
                 }
                 case CachedEntityType.AllHeroes:
                 {
-                    if (!MenuManager.IsCacheEnabled)
-                        return predicate != null
-                            ? EntityManager.Heroes.AllHeroes.Where(predicate)
-                            : EntityManager.Heroes.AllHeroes;
-
-                    return (predicate != null
-                        ? CachedEntityManager.GetChampions(type, predicate)
-                        : CachedEntityManager.GetChampions(type)) ?? EntityManager.Heroes.AllHeroes;
+                    return predicate != null
+                        ? EntityManager.Heroes.AllHeroes.Where(predicate)
+                        : EntityManager.Heroes.AllHeroes;
                 }
             }
             return null;
@@ -140,75 +129,78 @@ namespace Marksman_Master.Utils
             {
                 throw new Exception($"Invalid type passed. {type} is not supported by Obj_AI_Minion.");
             }
-            
+
+            MinionCache.RefreshRate =
+                MenuManager.CacheMenu["MenuManager.ExtensionsMenu.MinionCacheRefreshRate"].Cast<Slider>().CurrentValue;
+
             switch (type)
             {
                 case CachedEntityType.EnemyMinion:
-                {
-                    if (!MenuManager.IsCacheEnabled)
-                        return predicate != null
-                            ? EntityManager.MinionsAndMonsters.EnemyMinions.Where(predicate)
-                            : EntityManager.MinionsAndMonsters.EnemyMinions;
+                    {
+                        if (!MenuManager.IsCacheEnabled)
+                            return predicate != null
+                                ? EntityManager.MinionsAndMonsters.EnemyMinions.Where(predicate)
+                                : EntityManager.MinionsAndMonsters.EnemyMinions;
 
-                    return (predicate != null
-                        ? CachedEntityManager.GetMinions(type, predicate)
-                        : CachedEntityManager.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.EnemyMinions;
-                }
+                        return (predicate != null
+                            ? MinionCache.GetMinions(type, predicate)
+                            : MinionCache.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.EnemyMinions;
+                    }
                 case CachedEntityType.AllyMinion:
-                {
-                    if (!MenuManager.IsCacheEnabled)
-                        return predicate != null
-                            ? EntityManager.MinionsAndMonsters.AlliedMinions.Where(predicate)
-                            : EntityManager.MinionsAndMonsters.AlliedMinions;
+                    {
+                        if (!MenuManager.IsCacheEnabled)
+                            return predicate != null
+                                ? EntityManager.MinionsAndMonsters.AlliedMinions.Where(predicate)
+                                : EntityManager.MinionsAndMonsters.AlliedMinions;
 
-                    return (predicate != null
-                        ? CachedEntityManager.GetMinions(type, predicate)
-                        : CachedEntityManager.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.AlliedMinions;
-                }
+                        return (predicate != null
+                            ? MinionCache.GetMinions(type, predicate)
+                            : MinionCache.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.AlliedMinions;
+                    }
                 case CachedEntityType.Minions:
-                {
-                    if (!MenuManager.IsCacheEnabled)
-                        return predicate != null
-                            ? EntityManager.MinionsAndMonsters.Minions.Where(predicate)
-                            : EntityManager.MinionsAndMonsters.Minions;
+                    {
+                        if (!MenuManager.IsCacheEnabled)
+                            return predicate != null
+                                ? EntityManager.MinionsAndMonsters.Minions.Where(predicate)
+                                : EntityManager.MinionsAndMonsters.Minions;
 
-                    return (predicate != null
-                        ? CachedEntityManager.GetMinions(type, predicate)
-                        : CachedEntityManager.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.Minions;
-                }
+                        return (predicate != null
+                            ? MinionCache.GetMinions(type, predicate)
+                            : MinionCache.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.Minions;
+                    }
                 case CachedEntityType.CombinedAttackableMinions:
-                {
-                    if (!MenuManager.IsCacheEnabled)
-                        return predicate != null
-                            ? EntityManager.MinionsAndMonsters.CombinedAttackable.Where(predicate)
-                            : EntityManager.MinionsAndMonsters.CombinedAttackable;
+                    {
+                        if (!MenuManager.IsCacheEnabled)
+                            return predicate != null
+                                ? EntityManager.MinionsAndMonsters.CombinedAttackable.Where(predicate)
+                                : EntityManager.MinionsAndMonsters.CombinedAttackable;
 
-                    return (predicate != null
-                        ? CachedEntityManager.GetMinions(type, predicate)
-                        : CachedEntityManager.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.CombinedAttackable;
-                }
+                        return (predicate != null
+                            ? MinionCache.GetMinions(type, predicate)
+                            : MinionCache.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.CombinedAttackable;
+                    }
                 case CachedEntityType.CombinedMinions:
-                {
-                    if (!MenuManager.IsCacheEnabled)
-                        return predicate != null
-                            ? EntityManager.MinionsAndMonsters.Combined.Where(predicate)
-                            : EntityManager.MinionsAndMonsters.Combined;
+                    {
+                        if (!MenuManager.IsCacheEnabled)
+                            return predicate != null
+                                ? EntityManager.MinionsAndMonsters.Combined.Where(predicate)
+                                : EntityManager.MinionsAndMonsters.Combined;
 
-                    return (predicate != null
-                        ? CachedEntityManager.GetMinions(type, predicate)
-                        : CachedEntityManager.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.Combined;
-                }
+                        return (predicate != null
+                            ? MinionCache.GetMinions(type, predicate)
+                            : MinionCache.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.Combined;
+                    }
                 case CachedEntityType.Monsters:
-                {
-                    if (!MenuManager.IsCacheEnabled)
-                        return predicate != null
-                            ? EntityManager.MinionsAndMonsters.Monsters.Where(predicate)
-                            : EntityManager.MinionsAndMonsters.Monsters;
+                    {
+                        if (!MenuManager.IsCacheEnabled)
+                            return predicate != null
+                                ? EntityManager.MinionsAndMonsters.Monsters.Where(predicate)
+                                : EntityManager.MinionsAndMonsters.Monsters;
 
-                    return (predicate != null
-                        ? CachedEntityManager.GetMinions(type, predicate)
-                        : CachedEntityManager.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.Monsters;
-                }
+                        return (predicate != null
+                            ? MinionCache.GetMinions(type, predicate)
+                            : MinionCache.GetMinions(type)) ?? EntityManager.MinionsAndMonsters.Monsters;
+                    }
             }
             return null;
         }
@@ -216,184 +208,194 @@ namespace Marksman_Master.Utils
         internal static float GetSpellDamageCached(this AIHeroClient from, Obj_AI_Base target, SpellSlot spellSlot)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.GetSpellDamage(target, spellSlot);
+                return @from.GetSpellDamage(target, spellSlot);
 
-            if (CachedSpellDamage.Exist(new Tuple<int, int, SpellSlot>(from.NetworkId, target.NetworkId, spellSlot)))
+            if (CachedSpellDamage.Exist(new Tuple<int, int, SpellSlot>(@from.NetworkId, target.NetworkId, spellSlot)))
             {
-                return CachedSpellDamage.Get(new Tuple<int, int, SpellSlot>(from.NetworkId, target.NetworkId, spellSlot));
+                return CachedSpellDamage.Get(new Tuple<int, int, SpellSlot>(@from.NetworkId, target.NetworkId, spellSlot));
             }
 
-            CachedSpellDamage.Add(new Tuple<int, int, SpellSlot>(from.NetworkId, target.NetworkId, spellSlot), from.GetSpellDamage(target, spellSlot));
+            CachedSpellDamage.Add(new Tuple<int, int, SpellSlot>(@from.NetworkId, target.NetworkId, spellSlot),
+                @from.GetSpellDamage(target, spellSlot));
 
-            return CachedSpellDamage.Get(new Tuple<int, int, SpellSlot>(from.NetworkId, target.NetworkId, spellSlot));
+            return CachedSpellDamage.Get(new Tuple<int, int, SpellSlot>(@from.NetworkId, target.NetworkId, spellSlot));
         }
 
 
-        internal static float GetAutoAttackDamageCached(this Obj_AI_Base from, Obj_AI_Base target, bool respectPassives = false)
+        internal static float GetAutoAttackDamageCached(this Obj_AI_Base from, Obj_AI_Base target,
+            bool respectPassives = false)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.GetAutoAttackDamage(target, respectPassives);
+                return @from.GetAutoAttackDamage(target, respectPassives);
 
-            if (CachedAutoAttackDamage.Exist(new Tuple<int, int, bool>(from.NetworkId, target.NetworkId, respectPassives)))
+            if (
+                CachedAutoAttackDamage.Exist(new Tuple<int, int, bool>(@from.NetworkId, target.NetworkId, respectPassives)))
             {
-                return CachedAutoAttackDamage.Get(new Tuple<int, int, bool>(from.NetworkId, target.NetworkId, respectPassives));
+                return
+                    CachedAutoAttackDamage.Get(new Tuple<int, int, bool>(@from.NetworkId, target.NetworkId,
+                        respectPassives));
             }
 
-            CachedAutoAttackDamage.Add(new Tuple<int, int, bool>(from.NetworkId, target.NetworkId, respectPassives), from.GetAutoAttackDamage(target, respectPassives));
+            CachedAutoAttackDamage.Add(new Tuple<int, int, bool>(@from.NetworkId, target.NetworkId, respectPassives),
+                @from.GetAutoAttackDamage(target, respectPassives));
 
-            return CachedAutoAttackDamage.Get(new Tuple<int, int, bool>(from.NetworkId, target.NetworkId, respectPassives));
+            return
+                CachedAutoAttackDamage.Get(new Tuple<int, int, bool>(@from.NetworkId, target.NetworkId, respectPassives));
         }
 
         internal static int CountEnemiesInRangeCached(this GameObject from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.CountEnemiesInRange(range);
+                return @from.CountEnemiesInRange(range);
 
-            if (CountEnemiesInRange.Exist(new KeyValuePair<int, float>(from.NetworkId, range)))
+            if (CountEnemiesInRange.Exist(new KeyValuePair<int, float>(@from.NetworkId, range)))
             {
-                return CountEnemiesInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
+                return CountEnemiesInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
             }
-            CountEnemiesInRange.Add(new KeyValuePair<int, float>(from.NetworkId, range), from.CountEnemiesInRange(range));
+            CountEnemiesInRange.Add(new KeyValuePair<int, float>(@from.NetworkId, range), @from.CountEnemiesInRange(range));
 
-            return CountEnemiesInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
+            return CountEnemiesInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
         }
 
         internal static int CountAlliesInRangeCached(this GameObject from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.CountAlliesInRange(range);
+                return @from.CountAlliesInRange(range);
 
-            if (CountAlliesInRange.Exist(new KeyValuePair<int, float>(from.NetworkId, range)))
+            if (CountAlliesInRange.Exist(new KeyValuePair<int, float>(@from.NetworkId, range)))
             {
-                return CountAlliesInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
+                return CountAlliesInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
             }
 
-            CountAlliesInRange.Add(new KeyValuePair<int, float>(from.NetworkId, range), from.CountAlliesInRange(range));
+            CountAlliesInRange.Add(new KeyValuePair<int, float>(@from.NetworkId, range), @from.CountAlliesInRange(range));
 
-            return CountAlliesInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
+            return CountAlliesInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
         }
 
         internal static int CountEnemyMinionsInRangeCached(this GameObject from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.CountEnemyMinionsInRange(range);
+                return @from.CountEnemyMinionsInRange(range);
 
-            if (CountEnemyMinionsInRange.Exist(new KeyValuePair<int, float>(from.NetworkId, range)))
+            if (CountEnemyMinionsInRange.Exist(new KeyValuePair<int, float>(@from.NetworkId, range)))
             {
-                return CountEnemyMinionsInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
+                return CountEnemyMinionsInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
             }
 
-            CountEnemyMinionsInRange.Add(new KeyValuePair<int, float>(from.NetworkId, range), from.CountEnemyMinionsInRange(range));
+            CountEnemyMinionsInRange.Add(new KeyValuePair<int, float>(@from.NetworkId, range),
+                @from.CountEnemyMinionsInRange(range));
 
-            return CountEnemyMinionsInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
+            return CountEnemyMinionsInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
         }
 
         internal static int CountEnemiesInRangeCached(this Vector3 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.CountEnemiesInRange(range);
+                return @from.CountEnemiesInRange(range);
 
-            if (CountEnemiesInRange2.Exist(new KeyValuePair<Vector3, float>(from, range)))
+            if (CountEnemiesInRange2.Exist(new KeyValuePair<Vector3, float>(@from, range)))
             {
-                return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
+                return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
             }
 
-            CountEnemiesInRange2.Add(new KeyValuePair<Vector3, float>(from, range), from.CountEnemiesInRange(range));
+            CountEnemiesInRange2.Add(new KeyValuePair<Vector3, float>(@from, range), @from.CountEnemiesInRange(range));
 
-            return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
+            return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
         }
 
         internal static int CountAlliesInRangeCached(this Vector3 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.CountAlliesInRange(range);
+                return @from.CountAlliesInRange(range);
 
-            if (CountAlliesInRange2.Exist(new KeyValuePair<Vector3, float>(from, range)))
+            if (CountAlliesInRange2.Exist(new KeyValuePair<Vector3, float>(@from, range)))
             {
-                return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
+                return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
             }
 
-            CountAlliesInRange2.Add(new KeyValuePair<Vector3, float>(from, range), from.CountAlliesInRange(range));
+            CountAlliesInRange2.Add(new KeyValuePair<Vector3, float>(@from, range), @from.CountAlliesInRange(range));
 
-            return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
+            return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
         }
 
         internal static int CountEnemyMinionsInRangeCached(this Vector3 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.CountEnemyMinionsInRange(range);
+                return @from.CountEnemyMinionsInRange(range);
 
-            if (CountEnemyMinionsInRange2.Exist(new KeyValuePair<Vector3, float>(from, range)))
+            if (CountEnemyMinionsInRange2.Exist(new KeyValuePair<Vector3, float>(@from, range)))
             {
-                return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
+                return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
             }
 
-            CountEnemyMinionsInRange2.Add(new KeyValuePair<Vector3, float>(from, range), from.CountEnemyMinionsInRange(range));
+            CountEnemyMinionsInRange2.Add(new KeyValuePair<Vector3, float>(@from, range),
+                @from.CountEnemyMinionsInRange(range));
 
-            return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
+            return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
         }
 
 
         internal static int CountEnemiesInRangeCached(this Vector2 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.CountEnemiesInRange(range);
+                return @from.CountEnemiesInRange(range);
 
-            if (CountEnemiesInRange2.Exist(new KeyValuePair<Vector3, float>(from.To3D(), range)))
+            if (CountEnemiesInRange2.Exist(new KeyValuePair<Vector3, float>(@from.To3D(), range)))
             {
-                return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
+                return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
             }
 
-            CountEnemiesInRange2.Add(new KeyValuePair<Vector3, float>(from.To3D(), range), from.CountEnemiesInRange(range));
+            CountEnemiesInRange2.Add(new KeyValuePair<Vector3, float>(@from.To3D(), range),
+                @from.CountEnemiesInRange(range));
 
-            return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
+            return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
         }
 
         internal static int CountAlliesInRangeCached(this Vector2 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.CountAlliesInRange(range);
+                return @from.CountAlliesInRange(range);
 
-            if (CountAlliesInRange2.Exist(new KeyValuePair<Vector3, float>(from.To3D(), range)))
+            if (CountAlliesInRange2.Exist(new KeyValuePair<Vector3, float>(@from.To3D(), range)))
             {
-                return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
+                return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
             }
 
-            CountAlliesInRange2.Add(new KeyValuePair<Vector3, float>(from.To3D(), range), from.CountAlliesInRange(range));
+            CountAlliesInRange2.Add(new KeyValuePair<Vector3, float>(@from.To3D(), range), from.CountAlliesInRange(range));
 
-            return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
+            return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
         }
 
         internal static int CountEnemyMinionsInRangeCached(this Vector2 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return from.CountEnemyMinionsInRange(range);
+                return @from.CountEnemyMinionsInRange(range);
 
-            if (CountEnemyMinionsInRange2.Exist(new KeyValuePair<Vector3, float>(from.To3D(), range)))
+            if (CountEnemyMinionsInRange2.Exist(new KeyValuePair<Vector3, float>(@from.To3D(), range)))
             {
-                return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
+                return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
             }
 
-            CountEnemyMinionsInRange2.Add(new KeyValuePair<Vector3, float>(from.To3D(), range), from.CountEnemyMinionsInRange(range));
+            CountEnemyMinionsInRange2.Add(new KeyValuePair<Vector3, float>(@from.To3D(), range),
+                @from.CountEnemyMinionsInRange(range));
 
-            return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
+            return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
         }
 
         internal static bool IsInRangeCached(this Vector2 from, Vector2 target, float range)
         {
-            return from.To3D().IsInRangeCached(target.To3D(), range);
+            return @from.To3D().IsInRangeCached(target.To3D(), range);
         }
 
         internal static bool IsInRangeCached(this Vector2 from, Vector3 target, float range)
         {
-            return from.To3D().IsInRangeCached(target, range);
+            return @from.To3D().IsInRangeCached(target, range);
         }
 
         internal static bool IsInRangeCached(this Vector2 from, GameObject target, float range)
         {
-            return from.To3D().IsInRangeCached(target.Position, range);
+            return @from.To3D().IsInRangeCached(target.Position, range);
         }
-
 
         internal static bool IsInRangeCached(this Vector3 from, Vector3 target, float range)
         {
@@ -435,7 +437,9 @@ namespace Marksman_Master.Utils
 
         internal static float DistanceCached(this Vector2 from, GameObject target)
         {
-            return MenuManager.IsCacheEnabled ? CachedDistance.Get(@from.To3D(), target.Position) : @from.Distance(target);
+            return MenuManager.IsCacheEnabled
+                ? CachedDistance.Get(@from.To3D(), target.Position)
+                : @from.Distance(target);
         }
 
         internal static float DistanceCached(this Vector3 from, Vector3 target)
@@ -465,12 +469,16 @@ namespace Marksman_Master.Utils
 
         internal static float DistanceCached(this GameObject from, Vector2 target)
         {
-            return MenuManager.IsCacheEnabled ? CachedDistance.Get(@from.Position, target.To3D()) : @from.Distance(target);
+            return MenuManager.IsCacheEnabled
+                ? CachedDistance.Get(@from.Position, target.To3D())
+                : @from.Distance(target);
         }
-        
+
         internal static bool IsValidTargetCached(this AttackableUnit from, float? range = null)
         {
-            return MenuManager.IsCacheEnabled ? CachedIsValidTarget.Get(@from, range ?? 999999) : @from.IsValidTarget(range);
+            return MenuManager.IsCacheEnabled
+                ? CachedIsValidTarget.Get(@from, range ?? 999999)
+                : @from.IsValidTarget(range);
         }
     }
 }

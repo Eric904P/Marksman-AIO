@@ -45,6 +45,7 @@ namespace Marksman_Master
     {
         internal static Menu Menu { get; set; }
         internal static Menu ExtensionsMenu { get; set; }
+        internal static Menu CacheMenu { get; set; }
         internal static PermaShow.PermaShow PermaShow { get; set; } = new PermaShow.PermaShow("PermaShow", new Vector2(200, 200));
         internal static Menu GapcloserMenu { get; set; }
         internal static Menu InterrupterMenu { get; set; }
@@ -52,7 +53,7 @@ namespace Marksman_Master
         internal static int InterruptibleSpellsFound { get; private set; }
         internal static int GapcloserScanRange { get; set; } = 1250;
 
-        internal static bool IsCacheEnabled => _cache.CurrentValue;
+        internal static bool IsCacheEnabled => Menu != null && ExtensionsMenu != null && _cache != null && _cache.CurrentValue;
 
         internal static MenuValues MenuValues { get; set; } = new MenuValues();
 
@@ -68,7 +69,6 @@ namespace Marksman_Master
             {
                 if (args.NewValue)
                     StaticCacheProvider.Initialize();
-                else StaticCacheProvider.Dispose();
             };
 
             foreach (var source in Assembly.GetAssembly(typeof(ExtensionBase)).GetTypes().Where(x=>x.IsSubclassOf(typeof(ExtensionBase)) && x.IsSealed))
@@ -116,6 +116,10 @@ namespace Marksman_Master
                         }
                     };
             }
+
+            CacheMenu = ExtensionsMenu.AddSubMenu("Cache settings", "MenuManager.ExtensionsMenu.CacheMenu");
+            CacheMenu.Add("MenuManager.ExtensionsMenu.MinionCacheRefreshRate", new Slider("Minion cache refresh rate : {0} milisecounds", 200, 0, 1000));
+            CacheMenu.AddLabel("\nRecomended value : 100 - 200\nThis setting sets the delay between each minion based calculations.");
 
             Menu = MainMenu.AddMenu("Marksman AIO", "MarksmanAIO");
             Menu.AddGroupLabel("Welcome back, Buddy !");

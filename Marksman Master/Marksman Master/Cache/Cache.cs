@@ -46,7 +46,13 @@ namespace Marksman_Master.Cache
         {
             Objects = new List<ICachable>();
 
-            //Game.OnTick += Game_OnTick;
+            Game.OnTick += Game_OnTick;
+            AppDomain.CurrentDomain.DomainUnload += CurrentDomain_DomainUnload;
+        }
+
+        private void CurrentDomain_DomainUnload(object sender, EventArgs e)
+        {
+            Dispose();
         }
 
         private void Game_OnTick(EventArgs args)
@@ -132,7 +138,7 @@ namespace Marksman_Master.Cache
 
         public void Dispose()
         {
-            //Game.OnTick -= Game_OnTick;
+            Game.OnTick -= Game_OnTick;
 
             Objects.ForEach(x =>
             {

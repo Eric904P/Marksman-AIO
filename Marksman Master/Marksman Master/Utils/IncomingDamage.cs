@@ -70,7 +70,7 @@ namespace Marksman_Master.Utils
                 Sender = heroSender,
                 Target = target,
                 Tick = (int) Game.Time*1000,
-                Damage = heroSender.GetAutoAttackDamage(target, true),
+                Damage = heroSender.GetAutoAttackDamageCached(target, true),
                 IsTargetted = true
             });
         }
@@ -93,8 +93,8 @@ namespace Marksman_Master.Utils
                 return;
 
             var damage = IsInhibitorOrNexusTurret(turret.BaseSkinName)
-                ? turret.GetAutoAttackDamage(target)*0.275f
-                : turret.GetAutoAttackDamage(target);
+                ? turret.GetAutoAttackDamageCached(target)*0.275f
+                : turret.GetAutoAttackDamageCached(target);
 
             IncomingDamages.Add(new IncomingDamageArgs
             {
@@ -123,7 +123,7 @@ namespace Marksman_Master.Utils
                     Sender = heroSender,
                     Target = target,
                     Tick = (int) Game.Time*1000,
-                    Damage = heroSender.GetSpellDamage(target, args.Slot),
+                    Damage = heroSender.GetSpellDamageCached(target, args.Slot),
                     IsTargetted = true
                 });
             }
@@ -147,7 +147,7 @@ namespace Marksman_Master.Utils
                         Sender = heroSender,
                         Target = hero,
                         IsSkillShot = true,
-                        Damage = heroSender.GetSpellDamage(hero, heroSender.GetSpellSlotFromName(args.SData.Name)),
+                        Damage = heroSender.GetSpellDamageCached(hero, heroSender.GetSpellSlotFromName(args.SData.Name)),
                         Tick = (int) Game.Time*1000,
                         IsTargetted = false,
                         IsTurretShot = false

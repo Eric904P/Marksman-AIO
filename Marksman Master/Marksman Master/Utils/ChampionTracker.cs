@@ -193,7 +193,7 @@ namespace Marksman_Master.Utils
             
             foreach (var visibilityTracker in ChampionVisibility.Where(x=> Game.Time * 1000 - x.LastVisibleGameTime * 1000 < 1000))
             {
-                foreach (var unit in EntityManager.Heroes.Enemies.Where(
+                foreach (var unit in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, 
                         x => x.Hero == visibilityTracker.Hero.Hero && !visibilityTracker.Hero.IsDead && !visibilityTracker.Hero.IsZombie && !visibilityTracker.Hero.IsHPBarRendered))
                 {
                     if (unit.Hero == Champion.KogMaw && unit.Buffs.Any(x=>x.Name.ToLowerInvariant() == "kogmawicathiansurprise"))
@@ -205,18 +205,18 @@ namespace Marksman_Master.Utils
                 }
             }
 
-            foreach (var aiHeroClient in EntityManager.Heroes.Enemies.Where(x => !x.IsDead && x.IsHPBarRendered))
+            foreach (var aiHeroClient in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => !x.IsDead && x.IsHPBarRendered))
             {
                 var hero = ChampionVisibility.FirstOrDefault(x => x.Hero.NetworkId == aiHeroClient.NetworkId);
 
-                if (hero != null)
-                {
-                    hero.LastPosition = aiHeroClient.Position;
-                    hero.LastVisibleGameTime = Game.Time;
-                    hero.LastPath = aiHeroClient.Path.Last();
-                    hero.LastHealth = aiHeroClient.Health;
-                    hero.LastHealthPercent = aiHeroClient.HealthPercent;
-                }
+                if (hero == null)
+                    continue;
+
+                hero.LastPosition = aiHeroClient.Position;
+                hero.LastVisibleGameTime = Game.Time;
+                hero.LastPath = aiHeroClient.Path.Last();
+                hero.LastHealth = aiHeroClient.Health;
+                hero.LastHealthPercent = aiHeroClient.HealthPercent;
             }
             _lastTick = Game.Time*1000;
         }
@@ -238,7 +238,7 @@ namespace Marksman_Master.Utils
 
             var hero = ChampionVisibility.FirstOrDefault(x => Game.Time*1000 - x.LastVisibleGameTime*1000 > time && Game.Time * 1000 - x.LastVisibleGameTime * 1000 < 4000 && x.Hero.NetworkId == unit.NetworkId);
 
-            return hero != null && EntityManager.Heroes.Enemies.Any(x => x.NetworkId == hero.Hero.NetworkId && !x.IsDead && !x.IsHPBarRendered);
+            return hero != null && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.NetworkId == hero.Hero.NetworkId && !x.IsDead && !x.IsHPBarRendered);
         }
 
         public class VisibilityTracker

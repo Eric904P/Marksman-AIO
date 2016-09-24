@@ -47,7 +47,7 @@ namespace Marksman_Master.Cache.Modules
         {
             CachedValues = new Dictionary<KeyValuePair<int, float>, Tuple<float, bool>>();
         }
-        
+
         ~IsValidTarget()
         {
             Dispose(true);

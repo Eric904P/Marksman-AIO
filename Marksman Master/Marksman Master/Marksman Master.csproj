@@ -84,12 +84,12 @@
     <Compile Include="Activator\Items\Quicksilver.cs" />
     <Compile Include="Cache\Cache.cs" />
     <Compile Include="Cache\Interfaces\ICachable.cs" />
-    <Compile Include="Cache\Modules\CachedEntityManager.cs" />
     <Compile Include="Cache\Modules\CacheModuleBase.cs" />
     <Compile Include="Cache\Modules\CustomCache.cs" />
     <Compile Include="Cache\Modules\Distance.cs" />
     <Compile Include="Cache\Modules\IsInRange.cs" />
     <Compile Include="Cache\Modules\IsValidTarget.cs" />
+    <Compile Include="Cache\Modules\MinionCache.cs" />
     <Compile Include="Extensions\ExtensionBase.cs" />
     <Compile Include="Extensions\SkinHack\SkinHack.cs" />
     <Compile Include="Interfaces\IExtension.cs" />

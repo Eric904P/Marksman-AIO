@@ -26,7 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
+
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -45,7 +45,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
 
             var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
 
-            if (target != null && !target.IsDead && Q.IsReady() && Settings.Combo.UseQ && !target.HasSpellShield() &&
+            if (target != null && !target.IsDead && !target.IsZombie && Q.IsReady() && Settings.Combo.UseQ && !target.HasSpellShield() &&
                 !target.HasUndyingBuffA() && Player.Instance.GetSpellDamageCached(target, SpellSlot.Q) >= target.TotalHealthWithShields())
             {
                 Q.Cast(Q.GetPrediction(target).CastPosition);

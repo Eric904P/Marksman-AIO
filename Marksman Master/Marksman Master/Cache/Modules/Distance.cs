@@ -51,7 +51,7 @@ namespace Marksman_Master.Cache.Modules
             CachedValues = new Dictionary<KeyValuePair<int, int>, Tuple<float, float>>();
             CachedValues2 = new Dictionary<KeyValuePair<Vector3, Vector3>, Tuple<float, float>>();
         }
-        
+
         ~Distance()
         {
             Dispose(true);
@@ -106,7 +106,7 @@ namespace Marksman_Master.Cache.Modules
             }
             return CachedValues[new KeyValuePair<int, int>(from.NetworkId, target.NetworkId)].Item2;
         }
-        
+
         public void DeleteUnnecessaryData()
         {
             CachedValues?.Clear();

@@ -55,25 +55,22 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                 if (Settings.Harass.TwoEnemiesMin)
                 {
                     var count =
-                        EntityManager.Heroes.Enemies.Count(
-                            unit =>
-                                !unit.IsDead && unit.IsValid && unit.IsValidTarget(E.Range) && HasDeadlyVenomBuff(unit));
+                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                            unit => !unit.IsZombie && unit.IsValidTargetCached(E.Range) && HasDeadlyVenomBuff(unit)).Count();
 
                     if (count >= 2 &&
-                        EntityManager.Heroes.Enemies.Any(
-                            unit =>
-                                !unit.IsDead && unit.IsValid && unit.IsValidTarget(E.Range) &&
-                                Damage.CountEStacks(unit) >= Settings.Harass.EMinStacks))
+                         StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                            unit => !unit.IsZombie && unit.IsValidTargetCached(E.Range) &&
+                                Damage.CountEStacks(unit) >= Settings.Harass.EMinStacks).Any())
                     {
                         E.Cast();
                     }
                 }
                 else
                 {
-                    if (EntityManager.Heroes.Enemies.Any(
-                            unit =>
-                                !unit.IsDead && unit.IsValid && unit.IsValidTarget(E.Range) &&
-                                Damage.CountEStacks(unit) >= Settings.Harass.EMinStacks))
+                    if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                            unit => !unit.IsZombie && unit.IsValidTargetCached(E.Range) &&
+                                Damage.CountEStacks(unit) >= Settings.Harass.EMinStacks).Any())
                     {
                         E.Cast();
                     }

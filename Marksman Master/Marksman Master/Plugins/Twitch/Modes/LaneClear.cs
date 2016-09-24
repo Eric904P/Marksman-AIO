@@ -30,6 +30,7 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Twitch.Modes
 {
@@ -37,12 +38,12 @@ namespace Marksman_Master.Plugins.Twitch.Modes
     {
         public static bool CanILaneClear()
         {
-            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
+            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRangeCached(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
         }
 
         public static void Execute()
         {
-            var laneMinions = EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy, Player.Instance.Position, W.Range).ToList();
+            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTargetCached(W.Range)).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
@@ -56,8 +57,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
             {
                 var minions =
                     laneMinions.Where(
-                        minion =>
-                            !minion.IsDead && minion.IsValidTarget(E.Range) &&
+                        minion => minion.IsValidTargetCached(E.Range) &&
                             HasDeadlyVenomBuff(minion));
 
                 if (minions.Count() >= Settings.LaneClear.EMinMinionsHit)

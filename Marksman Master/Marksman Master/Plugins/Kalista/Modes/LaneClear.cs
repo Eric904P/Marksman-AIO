@@ -49,7 +49,19 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 if (!minions.Any() || Player.Instance.IsDashing())
                     return;
 
-                foreach (var minion in minions.Where(x=> x.Health < Player.Instance.GetSpellDamageCached(x, SpellSlot.Q) && Q.GetPrediction(x).HitChance >= HitChance.Medium))
+                foreach (var minion in minions.Where(x =>
+                {
+                    if (x != null && x.Health < Player.Instance.GetSpellDamageCached(x, SpellSlot.Q))
+                    {
+                        var prediction = Q.GetPrediction(x);
+
+                        if (prediction != null && prediction.HitChance >= HitChance.Medium)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                }))
                 {
                     if (Settings.JungleLaneClear.MinMinionsForQ == 1)
                     {
@@ -70,12 +82,15 @@ namespace Marksman_Master.Plugins.Kalista.Modes
 
                     var count = 1;
 
+                    Obj_AI_Base lastMinion = null;
+
                     for (int i = 0, lenght = collisionableObjects.Count; i < lenght; i++)
                     {
                         if (collisionableObjects[i].Health <
                             Player.Instance.GetSpellDamageCached(collisionableObjects[i], SpellSlot.Q))
                         {
                             count++;
+                            lastMinion = collisionableObjects[i];
 
                             if (i + 1 < lenght && collisionableObjects[i + 1].Health >
                                 Player.Instance.GetSpellDamageCached(collisionableObjects[i + 1], SpellSlot.Q))
@@ -85,10 +100,10 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                         }
                     }
 
-                    if (count < Settings.JungleLaneClear.MinMinionsForQ)
+                    if (count < Settings.JungleLaneClear.MinMinionsForQ || lastMinion == null)
                         continue;
 
-                    Q.Cast(Q.GetPrediction(minion).CastPosition);
+                    Q.Cast(lastMinion.ServerPosition);
                     break;
                 }
             }
