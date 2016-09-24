@@ -220,8 +220,6 @@ namespace Marksman_Master.Plugins.Vayne
                 }
             }
 
-            Chat.Print(prediction.HitChancePercent);
-
             if (prediction.HitChancePercent < Settings.Misc.EHitchance)
                 return false;
 

@@ -317,8 +317,16 @@ namespace Marksman_Master.Plugins.Varus
                 new BoolItem("Enable auto harass with Q", Settings.Harass.AutoHarassWithQ));
         }
 
+        private static bool HasAnyOrbwalkerFlags()
+        {
+            return (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
+        }
+
         protected override void PermaActive()
         {
+            if (Q.IsCharging && HasAnyOrbwalkerFlags())
+                Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+
             Modes.PermaActive.Execute();
         }
 
