@@ -36,23 +36,17 @@ namespace Marksman_Master.Utils
 {
     internal class SafeSpotFinder
     {
-        public static IEnumerable<Vector2> PointsInRange(Vector2 start, float range, float step = 25, int quality = 125)
+        public static IEnumerable<Vector2> PointsInRange(Vector2 start, float range, float step = 200, int quality = 50)
         {
-            var list = new List<Vector2>();
-
-            try
+            for (var i = step; i <= range; i += step)
             {
-                for (var i = 0f; i <= range; i += step)
+                var circle = new Geometry.Polygon.Circle(start, range, (int) Misc.GetNumberInRangeFromProcent(step/range*100, quality/6f, quality));
+
+                foreach (var vector2 in circle.Points)
                 {
-                    var circle = new Geometry.Polygon.Circle(start, range, (int)Misc.GetNumberInRangeFromProcent(step/range*100, quality/5D, quality));
-                    list.AddRange(circle.Points.Select(xd => start.Extend(xd, i)));
+                    yield return start.Extend(vector2, i);
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
-            return list;
         }
 
         /// <summary>
@@ -69,12 +63,11 @@ namespace Marksman_Master.Utils
 
             try
             {
-                var sortedChampions =
-                    EntityManager.Heroes.Enemies.Where(unit => !unit.IsDead && unit.Distance(start) <= enemyScanRangge)
+                var sortedChampions = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, unit => !unit.IsDead && unit.DistanceCached(start) <= enemyScanRangge)
                         .OrderBy(unit => unit.HealthPercent)
                         .ToList(); //DangerLevel from lowest
 
-                var pointsInRange = PointsInRange(start, maxDistance, 50);
+                var pointsInRange = PointsInRange(start, maxDistance);
 
                 var inRange = pointsInRange as IList<Vector2> ?? pointsInRange.ToList();
 
@@ -90,21 +83,21 @@ namespace Marksman_Master.Utils
 
                 foreach (var location in inRange)
                 {
-                    if (location.Distance(start) > maxDistance)
+                    if (location.DistanceCached(start) > maxDistance)
                         continue;
 
                     foreach (var sortedChampion in sortedChampions)
                     {
-                        if (location.IsInRange(sortedChampion, enemyRange)) // location is inside enemy range
+                        if (location.IsInRangeCached(sortedChampion, enemyRange)) // location is inside enemy range
                         {
                             var index = sortedChampions.FindIndex(p => p == sortedChampion);
 
                             if (index > sortedChampions.Count && index != 0)
                             {
                                 if (!list.ContainsKey(location))
-                                    list.Add(location, index + 1 + location.CountEnemiesInRange(enemyRange - location.Distance(start)));
+                                    list.Add(location, index + 1 + location.CountEnemiesInRangeCached(enemyRange - location.DistanceCached(start)));
                             } else if (!list.ContainsKey(location))
-                                list.Add(location, 1 + location.CountEnemiesInRange(enemyRange - location.Distance(start)));
+                                list.Add(location, 1 + location.CountEnemiesInRangeCached(enemyRange - location.DistanceCached(start)));
                         } else if (!list.ContainsKey(location))
                             list.Add(location, 0);
                     }
@@ -119,20 +112,10 @@ namespace Marksman_Master.Utils
 
         private static IEnumerable<float> ValuesBetween(float start, float end, float step = 1)
         {
-            var list = new List<float>();
-
-            try
+            for (var i = 0f; i <= end; i += step)
             {
-                for (var i = 0f; i <= end; i += step)
-                {
-                    list.Add(start + i);
-                }
+               yield return start + i;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
-            return list;
         }
     }
 }
