@@ -207,7 +207,7 @@ namespace Marksman_Master.Plugins.Vayne
             var pushDistance = Settings.Misc.PushDistance;
             var eta = target.DistanceCached(Player.Instance) / 2000;
             var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 350, 2000, int.MaxValue, Player.Instance.Position, true);
-            var position = Prediction.Position.PredictUnitPosition(target, (int)(eta*1000 + 150));
+            var position = Prediction.Position.PredictUnitPosition(target, (int)(eta*1000 + 250));
 
             if (target.GetMovementBlockedDebuffDuration() > eta + 0.25f)
             {
@@ -223,12 +223,12 @@ namespace Marksman_Master.Plugins.Vayne
             if (prediction.HitChancePercent < Settings.Misc.EHitchance)
                 return false;
 
-            for (var i = pushDistance; i >= 100; i -= 100)
+            for (var i = 100; i < pushDistance; i += 10)
             {
                 var vec = position.Extend(Player.Instance.ServerPosition, -i);
                 var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
 
-                if (polygon.Points.Count(x => x.IsWall()) >= Settings.Misc.EHitchance)
+                if (vec.IsWall() && target.ServerPosition.Extend(Player.Instance.ServerPosition, -Math.Min(i, pushDistance)).IsWall() && polygon.Points.Count(x => x.IsWall()) >= Settings.Misc.EHitchance)
                 {
                     return true;
                 }
@@ -353,8 +353,8 @@ namespace Marksman_Master.Plugins.Vayne
             MiscMenu.AddLabel("Additional Condemn (E) settings :");
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EAntiRengar", new CheckBox("Enable Anti-Rengar"));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.Eks", new CheckBox("Use E to killsteal"));
-            MiscMenu.Add("Plugins.Vayne.MiscMenu.PushDistance", new Slider("Push distance", 420, 400, 455));
-            MiscMenu.Add("Plugins.Vayne.MiscMenu.EHitchance", new Slider("Condemn hitchance : {0}%", 50, 1));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.PushDistance", new Slider("Push distance", 420, 400, 470));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.EHitchance", new Slider("Condemn hitchance : {0}%", 100, 1));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EMode", new ComboBox("E Mode", 1, "Always", "Only in Combo"));
             MiscMenu.AddSeparator(5);
 
