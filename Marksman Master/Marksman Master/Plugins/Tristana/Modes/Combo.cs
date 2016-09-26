@@ -107,7 +107,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                      Damage.GetEPhysicalDamage(target2, 2) + Player.Instance.GetAutoAttackDamageCached(target2)))
                 {
                     E.Cast(target2);
-                } else if (target != null && Settings.Combo.IsEnabledFor(target) && target.IsValidTargetCached(E.Range) && (target.DistanceCached(Player.Instance) < Player.Instance.GetAutoAttackRange() - 100))
+                } else if (target != null && Settings.Combo.IsEnabledFor(target) && target.IsValidTargetCached(E.Range) && Player.Instance.IsInRangeCached(target, Player.Instance.GetAutoAttackRange() - 50))
                 {
                     E.Cast(target);
                 }
