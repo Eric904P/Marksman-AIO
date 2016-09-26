@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using EloBuddy;
+using EloBuddy.Sandbox;
 using EloBuddy.SDK;
 using Marksman_Master.Interfaces;
 using SharpDX;
@@ -109,8 +110,8 @@ namespace Marksman_Master.Utils
 
             _lastMessageTick = Game.Time * 1000;
             _lastMessageString = message;
-
-            Chat.Print("<font size=\"21\"><font color=\"#0075B0\"><b>[Marksman AIO]</b></font> " + message + "</font>");
+            
+            Chat.Print($"<font size=\"21\"><font color=\"{ (SandboxConfig.IsBuddy ? "#BF1B49" : "#1BBF91")}\"><b>[Marksman Master]</b></font> {message}</font>");
         }
 
         public static void UseItem(this IItem item, Obj_AI_Base target = null)

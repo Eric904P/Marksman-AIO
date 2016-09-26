@@ -62,7 +62,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                         x =>
                             x.IsValidTarget(Player.Instance.GetAutoAttackRange()) &&
                             x.Health < Player.Instance.GetAutoAttackDamage(x, true) &&
-                            x.NetworkId != enemy.NetworkId))
+                            x.NetworkId != enemy.NetworkId) && !Orbwalker.ShouldWait)
                     {
                         Orbwalker.ForcedTarget = enemy;
                     }

@@ -96,9 +96,18 @@ namespace Marksman_Master.Plugins.Tristana.Modes
 
             if (E.IsReady() && Settings.Combo.UseE && IsPreAttack)
             {
-                var target = TargetSelector.GetTarget(E.Range, DamageType.Physical);
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => x.IsValidTargetCached(E.Range + 200) && Settings.Combo.IsEnabledFor(x));
 
-                if (target != null && Settings.Combo.IsEnabledFor(target))
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+                var target2 = TargetSelector.GetTarget(E.Range, DamageType.Physical);
+
+                if (target2 != null && Settings.Combo.IsEnabledFor(target) &&
+                    (target2.TotalHealthWithShields() <
+                     Damage.GetEPhysicalDamage(target2, 2) + Player.Instance.GetAutoAttackDamageCached(target2)))
+                {
+                    E.Cast(target2);
+                } else if (target != null && Settings.Combo.IsEnabledFor(target) && target.IsValidTargetCached(E.Range) && (target.DistanceCached(Player.Instance) < Player.Instance.GetAutoAttackRange() - 100))
                 {
                     E.Cast(target);
                 }

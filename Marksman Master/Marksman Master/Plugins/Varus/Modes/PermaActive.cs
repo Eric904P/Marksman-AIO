@@ -108,11 +108,17 @@ namespace Marksman_Master.Plugins.Varus.Modes
 
             if (t == null || !Settings.Combo.RKeybind)
                 return;
-            /*
+
             var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
-                CollisionTypes = new HashSet<CollisionType> { CollisionType.ObjAiMinion },
-                Delay = 550,
+                CollisionTypes =
+                                new HashSet<CollisionType>
+                                {
+                                    Prediction.Manager.PredictionSelected == "ICPrediction"
+                                        ? CollisionType.AiHeroClient
+                                        : CollisionType.ObjAiMinion
+                                },
+                Delay = 0.55f,
                 From = Player.Instance.Position,
                 Radius = 115,
                 Range = 1150,
@@ -120,11 +126,11 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 Speed = 1800,
                 Target = t,
                 Type = SkillShotType.Linear
-            });*/
+            });
 
-            var rPrediction = R.GetPrediction(t);
+           // var rPrediction = R.GetPrediction(t);
 
-            if (rPrediction.HitChancePercent >= 60 && rPrediction.CollisionObjects.Where(x => x.NetworkId != t.NetworkId).All(x => x.GetType() != typeof (AIHeroClient)))
+            if (rPrediction.HitChancePercent >= 60 )
             {
                 R.Cast(rPrediction.CastPosition);
             }

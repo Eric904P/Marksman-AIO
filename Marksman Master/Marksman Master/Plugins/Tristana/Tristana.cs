@@ -173,6 +173,20 @@ namespace Marksman_Master.Plugins.Tristana
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
             IsPreAttack = true;
+
+            if (!Settings.LaneClear.UseEOnTowers || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) || Player.Instance.ManaPercent < Settings.LaneClear.MinManaE || !E.IsReady())
+                return;
+
+            if (args.Target.GetType() != typeof (Obj_AI_Turret) || !args.Target.IsValidTargetCached() ||
+                (args.Target.Health < Player.Instance.GetAutoAttackDamageCached(args.Target as Obj_AI_Base)*2.5f))
+                return;
+
+            if (Settings.LaneClear.UseQInLaneClear && Q.IsReady())
+            {
+                Q.Cast();
+            }
+
+            E.Cast(args.Target as Obj_AI_Base);
         }
 
         private static float HandleDamageIndicator(Obj_AI_Base unit)
@@ -340,6 +354,7 @@ namespace Marksman_Master.Plugins.Tristana
             LaneClearMenu.AddLabel("Explosive Charge (E) settings :");
             LaneClearMenu.Add("Plugins.Tristana.LaneClearMenu.UseEInLaneClear", new CheckBox("Use E in Lane Clear"));
             LaneClearMenu.Add("Plugins.Tristana.LaneClearMenu.UseEInJungleClear", new CheckBox("Use E in Jungle Clear"));
+            LaneClearMenu.Add("Plugins.Tristana.LaneClearMenu.UseEOnTowers", new CheckBox("Use E on Towers"));
             LaneClearMenu.Add("Plugins.Tristana.LaneClearMenu.MinManaE", new Slider("Min mana percentage ({0}%) to use E", 80, 1));
 
             MenuManager.BuildAntiGapcloserMenu();
@@ -403,6 +418,9 @@ namespace Marksman_Master.Plugins.Tristana
 
         protected override void LaneClear()
         {
+            if (Orbwalker.ShouldWait && Orbwalker.ForcedTarget != null)
+                Orbwalker.ForcedTarget = null;
+
             Modes.LaneClear.Execute();
         }
 
@@ -462,11 +480,13 @@ namespace Marksman_Master.Plugins.Tristana
 
                 public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseQInLaneClear"];
 
-                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseQInJungleClear"];
+                public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseQInJungleClear"]; 
 
                 public static bool UseEInLaneClear => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseEInLaneClear"];
 
                 public static bool UseEInJungleClear => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseEInJungleClear"];
+
+                public static bool UseEOnTowers => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.UseEOnTowers"];
 
                 public static int MinManaE => MenuManager.MenuValues["Plugins.Tristana.LaneClearMenu.MinManaE", true];
             }

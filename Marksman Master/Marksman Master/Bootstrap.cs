@@ -29,6 +29,7 @@
 using System;
 using System.Collections.Generic;
 using EloBuddy;
+using EloBuddy.Sandbox;
 using EloBuddy.SDK;
 using Marksman_Master.Utils;
 using SharpDX;
@@ -67,7 +68,9 @@ namespace Marksman_Master
 
                     MenuLoaded = true;
 
-                    Misc.PrintInfoMessage($"<b><font color=\"#5ED43D\"> {Player.Instance.ChampionName}</font></b> loaded successfully.");
+                    Misc.PrintInfoMessage(
+                        $"<b><font color=\"#5ED43D\">{Player.Instance.ChampionName}</font></b> loaded successfully. Welcome back <b><font color=\"{(SandboxConfig.IsBuddy ? "#BF1B49" : "#1BBF91")}\">{(SandboxConfig.IsBuddy ? "[VIP] " + (SandboxConfig.Username == "intr" ? "intr you boosted animal from Latvia <3" : SandboxConfig.Username) : SandboxConfig.Username == "intr" ? "cunt" : SandboxConfig.Username)}</font></b> !");
+
                     Misc.PrintDebugMessage("Marksman AIO  fully loaded");
                 }, 250);
         }

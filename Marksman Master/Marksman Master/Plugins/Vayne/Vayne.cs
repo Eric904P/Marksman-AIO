@@ -206,8 +206,8 @@ namespace Marksman_Master.Plugins.Vayne
 
             var pushDistance = Settings.Misc.PushDistance;
             var eta = target.DistanceCached(Player.Instance) / 2000;
-            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 250, 2000, int.MaxValue, Player.Instance.Position, true);
-            var position = prediction.UnitPosition;
+            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 350, 2000, int.MaxValue, Player.Instance.Position, true);
+            var position = Prediction.Position.PredictUnitPosition(target, (int)(eta*1000 + 150));
 
             if (target.GetMovementBlockedDebuffDuration() > eta + 0.25f)
             {

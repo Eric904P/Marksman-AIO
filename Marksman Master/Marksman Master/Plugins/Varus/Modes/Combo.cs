@@ -27,10 +27,12 @@
 // ---------------------------------------------------------------------
 #endregion
 
+using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Spells;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Varus.Modes
@@ -53,10 +55,10 @@ namespace Marksman_Master.Plugins.Varus.Modes
 
                 if (target != null)
                 {
-                    /*var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                    var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {
-                        CollisionTypes = new HashSet<CollisionType> {CollisionType.ObjAiMinion},
-                        Delay = 550,
+                        CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
+                        Delay = 0.55f,
                         From = Player.Instance.Position,
                         Radius = 115,
                         Range = 1150,
@@ -64,13 +66,13 @@ namespace Marksman_Master.Plugins.Varus.Modes
                         Speed = 1800,
                         Target = target,
                         Type = SkillShotType.Linear
-                    }); */
+                    }); 
 
-                    var rPrediction = R.GetPrediction(target);
+                   // var rPrediction = R.GetPrediction(target);
 
-                    if (rPrediction.HitChancePercent >= 60 && rPrediction.CollisionObjects.Where(x => x.NetworkId != target.NetworkId).All(x => x.GetType() != typeof(AIHeroClient)))
+                    if (rPrediciton.HitChancePercent >= 60)
                     {
-                        R.Cast(rPrediction.CastPosition);
+                        R.Cast(rPrediciton.CastPosition);
                     }
                 }
                 else
@@ -79,11 +81,17 @@ namespace Marksman_Master.Plugins.Varus.Modes
                         x => x.IsValidTarget(R.Range) && !x.HasSpellShield() && x.CountEnemiesInRange(850) >= 3);
 
                     if (t != null)
-                    {/*
-                        var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                    {
+                        var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                         {
-                            CollisionTypes = new HashSet<CollisionType> {CollisionType.ObjAiMinion},
-                            Delay = 550,
+                            CollisionTypes =
+                                new HashSet<CollisionType>
+                                {
+                                    Prediction.Manager.PredictionSelected == "ICPrediction"
+                                        ? CollisionType.AiHeroClient
+                                        : CollisionType.ObjAiMinion
+                                },
+                            Delay = 0.55f,
                             From = Player.Instance.Position,
                             Radius = 115,
                             Range = 1150,
@@ -91,11 +99,11 @@ namespace Marksman_Master.Plugins.Varus.Modes
                             Speed = 1800,
                             Target = t,
                             Type = SkillShotType.Linear
-                        }); */
+                        });
 
-                        var rPrediction = R.GetPrediction(t);
+                        // var rPrediction = R.GetPrediction(t);
 
-                        if (rPrediction.HitChancePercent >= 60 && rPrediction.CollisionObjects.Where(x => x.NetworkId != t.NetworkId).All(x => x.GetType() != typeof(AIHeroClient)))
+                        if (rPrediction.HitChancePercent >= 60)
                         {
                             R.Cast(rPrediction.CastPosition);
                         }
@@ -170,7 +178,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                     }
                     else if(Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) >= 1)
                     {
-                        var t = Q.GetTarget();
+                        var t = EntityManager.Heroes.Enemies.OrderBy(x => x.Distance(Player.Instance)).FirstOrDefault();
                         if (t != null)
                         {
                             Q.CastMinimumHitchance(t, 50);
