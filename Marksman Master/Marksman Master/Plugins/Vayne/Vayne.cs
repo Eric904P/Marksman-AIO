@@ -38,6 +38,7 @@ using EloBuddy.SDK.Rendering;
 using Marksman_Master.Cache.Modules;
 using Marksman_Master.PermaShow.Values;
 using Marksman_Master.Utils;
+using SharpDX;
 using Color = SharpDX.Color;
 using Text = EloBuddy.SDK.Rendering.Text;
 
@@ -107,6 +108,9 @@ namespace Marksman_Master.Plugins.Vayne
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
             Game.OnPostTick += args => IsPostAttack = false;
 
+            ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
+            ChampionTracker.OnPostBasicAttack += ChampionTracker_OnPostBasicAttack;
+
             if (EntityManager.Heroes.Enemies.Any(client => client.Hero == Champion.Rengar))
             {
                 GameObject.OnCreate += Obj_AI_Base_OnCreate;
@@ -115,25 +119,27 @@ namespace Marksman_Master.Plugins.Vayne
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
         }
 
+        private static void ChampionTracker_OnPostBasicAttack(object sender, PostBasicAttackArgs e)
+        {
+            if (!e.Sender.IsMe || e.Target == null || e.Target.GetType() != typeof(AIHeroClient) || !Settings.Misc.EKs || !e.Target.IsValid)
+                return;
+
+            var enemy = (AIHeroClient) e.Target;
+
+            if (enemy.IsValidTargetCached(E.Range) && HasSilverDebuff(enemy) && GetSilverDebuff(enemy).Count == 1)
+            {
+                if (Damage.IsKillableFromSilverEAndAuto(enemy) &&
+                    enemy.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(enemy) > 0)
+                {
+                    Misc.PrintDebugMessage("casting e to ks");
+                    E.Cast(enemy);
+                }
+            }
+        }
+
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
             IsPostAttack = true;
-
-            if (target == null || target.GetType() != typeof(AIHeroClient) || !Settings.Misc.EKs || !target.IsValidTargetCached(E.Range))
-                return;
-
-            var enemy = (AIHeroClient)target;
-
-            if (HasSilverDebuff(enemy) && GetSilverDebuff(enemy).Count == 1)
-            {
-                Core.DelayAction(() =>
-                {
-                    if (Damage.IsKillableFromSilverEAndAuto(enemy) && enemy.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(enemy) > 0)
-                    {
-                        Misc.PrintDebugMessage("casting e to ks");
-                        E.Cast(enemy);
-                    }}, 40 + Game.Ping / 2);
-            }
         }
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
@@ -215,6 +221,7 @@ namespace Marksman_Master.Plugins.Vayne
                 {
                     if (target.ServerPosition.Extend(Player.Instance.ServerPosition, -Math.Min(i, pushDistance)).IsWall())
                     {
+                        Misc.PrintDebugMessage("casting e to stun");
                         return true;
                     }
                 }
@@ -223,13 +230,21 @@ namespace Marksman_Master.Plugins.Vayne
             if (prediction.HitChancePercent < Settings.Misc.EHitchance)
                 return false;
 
-            for (var i = 100; i < pushDistance; i += 10)
+            for (var i = 100; i < pushDistance + 50; i += 50)
             {
                 var vec = position.Extend(Player.Instance.ServerPosition, -i);
                 var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
+                var unitDir = (position.Extend(Player.Instance.ServerPosition, - (i - 10)) - position).Normalized();
 
-                if (vec.IsWall() && target.ServerPosition.Extend(Player.Instance.ServerPosition, -Math.Min(i, pushDistance)).IsWall() && polygon.Points.Count(x => x.IsWall()) >= Settings.Misc.EHitchance)
+                Vector2[] vectors = 
                 {
+                    vec + target.BoundingRadius*unitDir.Perpendicular()*unitDir,
+                    vec - target.BoundingRadius*unitDir.Perpendicular()*unitDir
+                };
+
+                if (vec.IsWall() && vectors.All(x=>x.IsWall()) && target.ServerPosition.Extend(Player.Instance.ServerPosition, -Math.Min(i, pushDistance)).IsWall() && polygon.Points.Count(x => x.IsWall()) >= Settings.Misc.EHitchance)
+                {
+                    Misc.PrintDebugMessage("casting e to stun");
                     return true;
                 }
             }
@@ -354,7 +369,7 @@ namespace Marksman_Master.Plugins.Vayne
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EAntiRengar", new CheckBox("Enable Anti-Rengar"));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.Eks", new CheckBox("Use E to killsteal"));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.PushDistance", new Slider("Push distance", 420, 400, 470));
-            MiscMenu.Add("Plugins.Vayne.MiscMenu.EHitchance", new Slider("Condemn hitchance : {0}%", 100, 1));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.EHitchance", new Slider("Condemn hitchance : {0}%", 65));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EMode", new ComboBox("E Mode", 1, "Always", "Only in Combo"));
             MiscMenu.AddSeparator(5);
 

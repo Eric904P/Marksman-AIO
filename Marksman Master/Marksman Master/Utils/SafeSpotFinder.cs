@@ -63,7 +63,7 @@ namespace Marksman_Master.Utils
 
             try
             {
-                var sortedChampions = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, unit => !unit.IsDead && unit.DistanceCached(start) <= enemyScanRangge)
+                var sortedChampions = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, unit => !unit.IsDead && unit.Distance(start) <= enemyScanRangge)
                         .OrderBy(unit => unit.HealthPercent)
                         .ToList(); //DangerLevel from lowest
 
@@ -83,7 +83,7 @@ namespace Marksman_Master.Utils
 
                 foreach (var location in inRange)
                 {
-                    if (location.DistanceCached(start) > maxDistance)
+                    if (location.Distance(start) > maxDistance)
                         continue;
 
                     foreach (var sortedChampion in sortedChampions)
@@ -95,9 +95,9 @@ namespace Marksman_Master.Utils
                             if (index > sortedChampions.Count && index != 0)
                             {
                                 if (!list.ContainsKey(location))
-                                    list.Add(location, index + 1 + location.CountEnemiesInRangeCached(enemyRange - location.DistanceCached(start)));
+                                    list.Add(location, index + 1 + location.CountEnemiesInRangeCached(enemyRange - location.Distance(start)));
                             } else if (!list.ContainsKey(location))
-                                list.Add(location, 1 + location.CountEnemiesInRangeCached(enemyRange - location.DistanceCached(start)));
+                                list.Add(location, 1 + location.CountEnemiesInRangeCached(enemyRange - location.Distance(start)));
                         } else if (!list.ContainsKey(location))
                             list.Add(location, 0);
                     }
