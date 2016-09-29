@@ -1,26 +1,26 @@
 ﻿#region Licensing
 // ---------------------------------------------------------------------
 // <copyright file="LaneClear.cs" company="EloBuddy">
-// 
+//
 // Marksman Master
 // Copyright (C) 2016 by gero
 // All rights reserved
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see http://www.gnu.org/licenses/. 
+// along with this program.  If not, see http://www.gnu.org/licenses/.
 // </copyright>
 // <summary>
-// 
+//
 // Email: geroelobuddy@gmail.com
 // PayPal: geroelobuddy@gmail.com
 // </summary>
@@ -44,7 +44,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
         {
             var laneMinions =
                 StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion,
-                    x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange() + 250)).ToList();
+                    x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange() + 300)).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
@@ -53,13 +53,12 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 !(Player.Instance.ManaPercent >= Settings.LaneClear.MinMana))
                 return;
 
-            var minion =
-                StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion,
-                    x =>
-                        x.IsValidTargetCached(Player.Instance.GetAutoAttackRange()) && x.Health > Player.Instance.GetAutoAttackDamageCached(x, true) &&
-                        x.Health <
+            var delay = (int)(Player.Instance.AttackDelay*100 + Player.Instance.AttackCastDelay*1000);
+
+            var minion = laneMinions.Where(x=>
+                        (Prediction.Health.GetPrediction(x, 250 + delay) <
                         Player.Instance.GetAutoAttackDamageCached(x, true) +
-                        Player.Instance.TotalAttackDamage*Damage.QBonusDamage[Q.Level] && Prediction.Health.GetPrediction(x, 500) > Player.Instance.GetAutoAttackDamageCached(x, true)).OrderBy(x=>x.DistanceCached(Player.Instance));
+                        Player.Instance.TotalAttackDamage*Damage.QBonusDamage[Q.Level]) && (Prediction.Health.GetPrediction(x, 350 + delay) > 10)).OrderBy(x=>x.DistanceCached(Player.Instance));
 
             if (!minion.Any())
                 return;
@@ -70,14 +69,14 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
                 return;
             }
-            
+
             var pos = SafeSpotFinder.PointsInRange(Player.Instance.Position.To2D(), 900, 100).Where(x=> StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, e => e.Position.IsInRangeCached(x.To3D(), e.GetAutoAttackRange())).Any() == false).ToList();
 
             if (!pos.Any())
                 return;
 
             var poss = Misc.SortVectorsByDistance(pos, minion.First().Position.To2D())[0];
-
+            
             Q.Cast(poss.To3D().DistanceCached(Player.Instance.Position) > Q.Range ? Player.Instance.Position.Extend(poss, Q.Range).To3D() : poss.To3D());
         }
     }

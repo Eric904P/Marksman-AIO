@@ -1,26 +1,26 @@
 ﻿#region Licensing
 // ---------------------------------------------------------------------
 // <copyright file="Graves.cs" company="EloBuddy">
-// 
+//
 // Marksman Master
 // Copyright (C) 2016 by gero
 // All rights reserved
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see http://www.gnu.org/licenses/. 
+// along with this program.  If not, see http://www.gnu.org/licenses/.
 // </copyright>
 // <summary>
-// 
+//
 // Email: geroelobuddy@gmail.com
 // PayPal: geroelobuddy@gmail.com
 // </summary>
@@ -35,7 +35,6 @@ using EloBuddy.SDK.Constants;
 using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
-using EloBuddy.SDK.Utils;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
 using Marksman_Master.Utils;
@@ -115,7 +114,7 @@ namespace Marksman_Master.Plugins.Graves
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
 
             Obj_AI_Base.OnSpellCast += Obj_AI_Base_OnSpellCast;
-            
+
             Obj_AI_Base.OnPlayAnimation += Obj_AI_Base_OnPlayAnimation;
         }
 
@@ -247,7 +246,7 @@ namespace Marksman_Master.Plugins.Graves
 
             if (!E.IsReady() || !Settings.Combo.UseE || Settings.Misc.EUsageMode != 1 || Settings.Combo.UseEOnlyToDardoch || GetAmmoCount > 1)
                 return;
-            
+
             var heroClient = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 425, DamageType.Physical);
             var position = Vector3.Zero;
 
@@ -405,7 +404,7 @@ namespace Marksman_Master.Plugins.Graves
         {
             ComboMenu = MenuManager.Menu.AddSubMenu("Combo");
             ComboMenu.AddGroupLabel("Combo mode settings for Graves addon");
-                
+
             ComboMenu.AddLabel("End of the Line	(Q) settings :");
             ComboMenu.Add("Plugins.Graves.ComboMenu.UseQ", new CheckBox("Use Q"));
             ComboMenu.AddSeparator(5);
@@ -528,7 +527,7 @@ namespace Marksman_Master.Plugins.Graves
         {
             Modes.Combo.Execute();
         }
-        
+
         protected override void HarassMode()
         {
             Modes.Harass.Execute();
@@ -565,7 +564,7 @@ namespace Marksman_Master.Plugins.Graves
                 public static bool UseE => MenuManager.MenuValues["Plugins.Graves.ComboMenu.UseE"];
 
                 public static bool UseEOnlyToDardoch => MenuManager.MenuValues["Plugins.Graves.ComboMenu.UseEOnlyToDardoch"];
-                
+
                 public static bool UseR => MenuManager.MenuValues["Plugins.Graves.ComboMenu.UseR"];
 
                 public static int RMinEnemiesHit => MenuManager.MenuValues["Plugins.Graves.ComboMenu.RMinEnemiesHit", true];
@@ -656,7 +655,7 @@ namespace Marksman_Master.Plugins.Graves
             public static float GetWDamage(Obj_AI_Base unit)
             {
                 var damage = WDamage[W.Level] + Player.Instance.FlatMagicDamageMod * WDamageApMod;
-                
+
                 return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage);
             }
 

@@ -1,26 +1,26 @@
 ﻿#region Licensing
 // ---------------------------------------------------------------------
 // <copyright file="Jinx.cs" company="EloBuddy">
-// 
+//
 // Marksman Master
 // Copyright (C) 2016 by gero
 // All rights reserved
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see http://www.gnu.org/licenses/. 
+// along with this program.  If not, see http://www.gnu.org/licenses/.
 // </copyright>
 // <summary>
-// 
+//
 // Email: geroelobuddy@gmail.com
 // PayPal: geroelobuddy@gmail.com
 // </summary>
@@ -34,7 +34,6 @@ using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
-using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using SharpDX;
 using Color = System.Drawing.Color;
@@ -112,7 +111,7 @@ namespace Marksman_Master.Plugins.Jinx
             ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
         }
-        
+
         private static void ChampionTracker_OnLongSpellCast(object sender, OnLongSpellCastEventArgs e)
         {
             if (!E.IsReady() || !Settings.Combo.AutoE)
@@ -179,7 +178,7 @@ namespace Marksman_Master.Plugins.Jinx
             if (!Settings.Misc.EnableAntiGapcloser || !(args.End.Distance(Player.Instance) < 350) || !E.IsReady() ||
                 !sender.IsValidTarget(E.Range))
                 return;
-            
+
             if (args.Delay == 0)
                 E.Cast(args.End);
             else Core.DelayAction(() => E.Cast(args.End), args.Delay);
@@ -387,7 +386,7 @@ namespace Marksman_Master.Plugins.Jinx
                 public static int MinManaQ => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.MinManaQ", true];
 
                 public static bool UseW => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.UseW"];
-                
+
                 public static int MinManaW => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.MinManaW", true];
 
                 public static bool IsWHarassEnabledFor(AIHeroClient unit) => MenuManager.MenuValues["Plugins.Jinx.HarassMenu.UseW." + unit.Hero];
@@ -402,9 +401,9 @@ namespace Marksman_Master.Plugins.Jinx
                 public static int ScanRange => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.ScanRange", true];
 
                 public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.AllowedEnemies", true];
-                
+
                 public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.UseQInLaneClear"];
-                
+
                 public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.UseQInJungleClear"];
 
                 public static int MinManaQ => MenuManager.MenuValues["Plugins.Jinx.LaneClearMenu.MinManaQ", true];
@@ -447,7 +446,7 @@ namespace Marksman_Master.Plugins.Jinx
                     RBonusAdDamageMod,
                     RBonusAdDamageMod*10);
                 var percentDamage = (target.MaxHealth - target.Health)*RMissingHealthBonusDamage[R.Level];
-                
+
                 return Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
                     (float) (baseDamage + percentDamage + Player.Instance.FlatPhysicalDamageMod*bonusAd));
             }

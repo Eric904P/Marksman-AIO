@@ -1,26 +1,26 @@
 ﻿#region Licensing
 // ---------------------------------------------------------------------
 // <copyright file="Vayne.cs" company="EloBuddy">
-// 
+//
 // Marksman Master
 // Copyright (C) 2016 by gero
 // All rights reserved
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see http://www.gnu.org/licenses/. 
+// along with this program.  If not, see http://www.gnu.org/licenses/.
 // </copyright>
 // <summary>
-// 
+//
 // Email: geroelobuddy@gmail.com
 // PayPal: geroelobuddy@gmail.com
 // </summary>
@@ -95,15 +95,14 @@ namespace Marksman_Master.Plugins.Vayne
         private static readonly Text Text;
 
         protected static bool IsPostAttack { get; private set; }
-        
+
         static Vayne()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 300, SkillShotType.Linear);
             W = new Spell.Active(SpellSlot.W);
             E = new Spell.Targeted(SpellSlot.E, 765);
             R = new Spell.Active(SpellSlot.R);
-            
-            Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;
+
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
             Game.OnPostTick += args => IsPostAttack = false;
@@ -121,7 +120,12 @@ namespace Marksman_Master.Plugins.Vayne
 
         private static void ChampionTracker_OnPostBasicAttack(object sender, PostBasicAttackArgs e)
         {
-            if (!e.Sender.IsMe || e.Target == null || e.Target.GetType() != typeof(AIHeroClient) || !Settings.Misc.EKs || !e.Target.IsValid)
+            if (e.Sender == null || !e.Sender.IsMe)
+                return;
+
+            IsPostAttack = true;
+
+            if (e.Target == null || e.Target.GetType() != typeof(AIHeroClient) || !Settings.Misc.EKs || !e.Target.IsValid)
                 return;
 
             var enemy = (AIHeroClient) e.Target;
@@ -135,11 +139,6 @@ namespace Marksman_Master.Plugins.Vayne
                     E.Cast(enemy);
                 }
             }
-        }
-
-        private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
-        {
-            IsPostAttack = true;
         }
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
@@ -157,7 +156,7 @@ namespace Marksman_Master.Plugins.Vayne
         {
             if (sender.Name != "Rengar_LeapSound.troy" || !E.IsReady() || Player.Instance.IsDead || Settings.Misc.EAntiRengar)
                 return;
-            
+
             foreach (var rengar in EntityManager.Heroes.Enemies.Where(x => x.ChampionName == "Rengar").Where(rengar => rengar.Distance(Player.Instance.Position) < 1000).Where(rengar => rengar.IsValidTarget(E.Range) && E.IsReady()))
             {
                 Misc.PrintDebugMessage("casting e as anti-rengar");
@@ -236,7 +235,7 @@ namespace Marksman_Master.Plugins.Vayne
                 var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
                 var unitDir = (position.Extend(Player.Instance.ServerPosition, - (i - 10)) - position).Normalized();
 
-                Vector2[] vectors = 
+                Vector2[] vectors =
                 {
                     vec + target.BoundingRadius*unitDir.Perpendicular()*unitDir,
                     vec - target.BoundingRadius*unitDir.Perpendicular()*unitDir
@@ -282,7 +281,7 @@ namespace Marksman_Master.Plugins.Vayne
                 var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
 
                 Text.X = (int) (hpPosition.X + endPos);
-                Text.Y = (int) hpPosition.Y + 15; // + text size 
+                Text.Y = (int) hpPosition.Y + 15; // + text size
                 Text.Color = color;
                 Text.TextValue = timeLeft.ToString("F1");
                 Text.Draw();
@@ -390,7 +389,7 @@ namespace Marksman_Master.Plugins.Vayne
             SafetyChecks = MenuManager.PermaShow.AddItem("Vanye.SafetyChecks",
                 new BoolItem("Enable safety checks", Settings.Misc.QSafetyChecks));
         }
-        
+
         protected override void PermaActive()
         {
             Modes.PermaActive.Execute();
@@ -431,7 +430,7 @@ namespace Marksman_Master.Plugins.Vayne
             internal static class Combo
             {
                 public static bool UseQ => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQ"];
-                
+
                 public static bool UseQOnlyToProcW => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQOnlyToProcW"];
 
                 public static bool UseE => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseE"];
@@ -451,13 +450,13 @@ namespace Marksman_Master.Plugins.Vayne
                 public static bool EnableIfNoEnemies => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.EnableLCIfNoEn"];
 
                 public static int ScanRange => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.ScanRange", true];
-                
+
                 public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.AllowedEnemies", true];
 
                 public static bool UseQToLaneClear => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.UseQToLaneClear"];
 
                 public static bool UseQToJungleClear => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.UseQToJungleClear"];
-                
+
                 public static int MinMana => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.MinMana", true];
             }
 
@@ -474,7 +473,7 @@ namespace Marksman_Master.Plugins.Vayne
                 public static int PushDistance => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.PushDistance", true];
 
                 public static int EHitchance => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.EHitchance", true];
-                
+
                 /// <summary>
                 /// 0 - Always
                 /// 1 - Only in combo
@@ -538,7 +537,7 @@ namespace Marksman_Master.Plugins.Vayne
                 }
 
                 bool output;
-                
+
                 var edmg = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical,
                     EDamage[E.Level] + Player.Instance.FlatPhysicalDamageMod / 2);
 
