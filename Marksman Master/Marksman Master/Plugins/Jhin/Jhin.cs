@@ -73,7 +73,8 @@ namespace Marksman_Master.Plugins.Jhin
                 return HasBuff[unit.NetworkId];
             }
             
-            var hasBuff = ObjectManager.Get<Obj_GeneralParticleEmitter>().Any(x => x.DistanceCached(unit) < 10 && string.Equals(x.Name, "Jhin_Base_E_passive_mark.troy", StringComparison.InvariantCultureIgnoreCase));
+            var hasBuff = unit.Buffs.Any(
+                    b => b.IsActive && string.Equals(b.Name, "jhinespotteddebuff", StringComparison.InvariantCultureIgnoreCase));
 
             if (MenuManager.IsCacheEnabled)
             {

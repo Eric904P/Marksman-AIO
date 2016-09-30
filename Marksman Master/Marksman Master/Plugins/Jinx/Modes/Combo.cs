@@ -67,7 +67,10 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                 }
             }
 
-            if (W.IsReady() && Settings.Combo.UseW && !Player.Instance.Position.IsVectorUnderEnemyTower() && Player.Instance.Mana - (50+10*(W.Level-1)) > 100)
+            if (W.IsReady() && Settings.Combo.UseW &&
+                Player.Instance.CountEnemiesInRangeCached(Settings.Combo.WMinDistanceToTarget) == 0 &&
+                !Player.Instance.Position.IsVectorUnderEnemyTower() &&
+                (Player.Instance.Mana - (50 + 10*(W.Level - 1)) > (R.IsReady() ? 100 : 50)))
             {
                 var target =
                     EntityManager.Heroes.Enemies.Where(
@@ -76,7 +79,23 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                             x.Distance(Player.Instance) > Settings.Combo.WMinDistanceToTarget)
                         .OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.W)).FirstOrDefault();
 
-                if (target != null)
+                var orbwalkerTarget = Orbwalker.GetTarget();
+
+                if (orbwalkerTarget != null && orbwalkerTarget.GetType() == typeof (AIHeroClient))
+                {
+                    var wt = orbwalkerTarget as AIHeroClient;
+                    if (wt != null && wt.IsValidTarget(W.Range) && !wt.HasUndyingBuffA() && !wt.HasSpellShield() &&
+                        wt.Distance(Player.Instance) > Settings.Combo.WMinDistanceToTarget)
+                    {
+                        var wPrediction = W.GetPrediction(wt);
+                        if (wPrediction.HitChance == HitChance.High)
+                        {
+                            W.Cast(wPrediction.CastPosition);
+                            return;
+                        }
+                    }
+                }
+                else if (target != null)
                 {
                     var wPrediction = W.GetPrediction(target);
                     if (wPrediction.HitChance == HitChance.High)
