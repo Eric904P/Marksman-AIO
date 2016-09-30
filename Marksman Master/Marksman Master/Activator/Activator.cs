@@ -166,7 +166,10 @@ namespace Marksman_Master.Activator
             if (Summoners == null)
                 return;
 
-            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Heal) && MenuManager.MenuValues["Activator.SummonersMenu.UseHeal"] && IncomingDamage.GetIncomingDamage(Player.Instance) > Player.Instance.TotalHealthWithShields() - 100)
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Heal) &&
+                MenuManager.MenuValues["Activator.SummonersMenu.UseHeal"] &&
+                (IncomingDamage.GetIncomingDamage(Player.Instance) >
+                Player.Instance.TotalHealthWithShields() - 100 * Player.Instance.CountEnemiesInRangeCached(900)))
             {
                 var heal = Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Heal).Key);
 
@@ -177,9 +180,13 @@ namespace Marksman_Master.Activator
                 }
             }
 
-            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Barrier) && MenuManager.MenuValues["Activator.SummonersMenu.UseBarrier"] && IncomingDamage.GetIncomingDamage(Player.Instance) > Player.Instance.TotalHealthWithShields() - 100)
+            if (Summoners.Any(x => x.Value?.Item1 == Summoner.Barrier) &&
+                MenuManager.MenuValues["Activator.SummonersMenu.UseBarrier"] &&
+                (IncomingDamage.GetIncomingDamage(Player.Instance) >
+                Player.Instance.TotalHealthWithShields() - 100 * Player.Instance.CountEnemiesInRangeCached(900)))
             {
-                var barrier = Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Barrier).Key);
+                var barrier =
+                    Player.Instance.Spellbook.GetSpell(Summoners.First(x => x.Value?.Item1 == Summoner.Barrier).Key);
 
                 if (barrier.IsReady)
                 {

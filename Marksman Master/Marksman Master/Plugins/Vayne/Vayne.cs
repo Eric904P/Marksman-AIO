@@ -27,6 +27,7 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using EloBuddy;
@@ -93,8 +94,24 @@ namespace Marksman_Master.Plugins.Vayne
         private static bool _changingRangeScan;
         private static float _lastQCastTime;
         private static readonly Text Text;
+        private static readonly Text FlashCondemnText;
 
         protected static bool IsPostAttack { get; private set; }
+        protected static bool IsPreAttack { get; private set; }
+
+        protected static KeyBind FlashCondemnKeybind { get; set; }
+
+        protected static Spell.Skillshot Flash { get; }
+
+        protected static Vector3 FlashPosition { get; set; }
+
+        protected static float LastTick { get; set; }
+
+        protected static float LastQ { get; set; }
+        protected static float LastE { get; set; }
+        protected static bool Stun { get; set; }
+        protected static Vector3 EEndPosition { get; set; }
+        protected static GameObject ETarget { get; set; }
 
         static Vayne()
         {
@@ -109,13 +126,67 @@ namespace Marksman_Master.Plugins.Vayne
 
             ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
             ChampionTracker.OnPostBasicAttack += ChampionTracker_OnPostBasicAttack;
+            GameObject.OnCreate += Obj_AI_Base_OnCreate;
+            Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
+            Messages.OnMessage += Messages_OnMessage;
 
-            if (EntityManager.Heroes.Enemies.Any(client => client.Hero == Champion.Rengar))
+            var flashSlot = Player.Instance.GetSpellSlotFromName("summonerflash");
+
+            if (flashSlot == SpellSlot.Summoner1 || flashSlot == SpellSlot.Summoner2)
             {
-                GameObject.OnCreate += Obj_AI_Base_OnCreate;
+                Flash = new Spell.Skillshot(flashSlot, 475, SkillShotType.Linear);
+            }
+            
+            Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
+            FlashCondemnText = new Text("", new Font("calibri", 25, FontStyle.Regular));
+        }
+
+        private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if(!sender.IsMe)
+                return;
+
+            if (args.Slot == SpellSlot.Q)
+            {
+                LastQ = Game.Time * 1000;
             }
 
-            Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
+            if (args.Slot != SpellSlot.E || args.Target == null)
+                return;
+            
+            if (FlashPosition != Vector3.Zero)
+            {
+                Flash.Cast(FlashPosition);
+                FlashPosition = Vector3.Zero;
+            }
+
+            ETarget = args.Target;
+            Stun = args.Target.Position.Extend(sender.Position, -475).CutVectorNearWall(1000).Distance(args.Target) <= 475;
+            EEndPosition = args.Target.Position.Extend(sender.Position, -475).CutVectorNearWall(1000).To3D();
+            LastE = Game.Time*1000;
+        }
+
+        private static void Messages_OnMessage(Messages.WindowMessage args)
+        {
+            if (FlashCondemnKeybind == null)
+                return;
+
+            if (args.Message == WindowMessages.KeyDown)
+            {
+                if (args.Handle.WParam == FlashCondemnKeybind.Keys.Item1 || args.Handle.WParam == FlashCondemnKeybind.Keys.Item2)
+                {
+                    Orbwalker.ActiveModesFlags |= Orbwalker.ActiveModes.Combo;
+                }
+            }
+
+            if (args.Message != WindowMessages.KeyUp)
+                return;
+
+            if (args.Handle.WParam == FlashCondemnKeybind.Keys.Item1 || args.Handle.WParam == FlashCondemnKeybind.Keys.Item2)
+            {
+                Orbwalker.ActiveModesFlags = Orbwalker.ActiveModes.None;
+                FlashPosition = Vector3.Zero;
+            }
         }
 
         private static void ChampionTracker_OnPostBasicAttack(object sender, PostBasicAttackArgs e)
@@ -123,26 +194,52 @@ namespace Marksman_Master.Plugins.Vayne
             if (e.Sender == null || !e.Sender.IsMe)
                 return;
 
+            if (LastQ > 0)
+                LastQ = 0;
+
+            IsPreAttack = false;
             IsPostAttack = true;
+
+            if (e.Target.GetType() == typeof (Obj_AI_Turret) && Q.IsReady() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) && Settings.LaneClear.UseQToLaneClear)
+            {
+                if (Player.Instance.CountEnemiesInRangeCached(1000) == 0 &&
+                    Player.Instance.ManaPercent >= Settings.LaneClear.MinMana)
+                {
+                    Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
+                }
+            }
 
             if (e.Target == null || e.Target.GetType() != typeof(AIHeroClient) || !Settings.Misc.EKs || !e.Target.IsValid)
                 return;
 
             var enemy = (AIHeroClient) e.Target;
 
-            if (enemy.IsValidTargetCached(E.Range) && HasSilverDebuff(enemy) && GetSilverDebuff(enemy).Count == 1)
-            {
-                if (Damage.IsKillableFromSilverEAndAuto(enemy) &&
-                    enemy.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(enemy) > 0)
-                {
-                    Misc.PrintDebugMessage("casting e to ks");
-                    E.Cast(enemy);
-                }
-            }
+            if (!enemy.IsValidTargetCached(E.Range) || !HasSilverDebuff(enemy) || GetSilverDebuff(enemy).Count != 1)
+                return;
+
+            if (!Damage.IsKillableFromSilverEAndAuto(enemy) ||
+                (enemy.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(enemy) <= 0))
+                return;
+
+            Misc.PrintDebugMessage("casting e to ks");
+
+            E.Cast(enemy);
+        }
+
+
+        private static bool HasAnyOrbwalkerFlags()
+        {
+            return (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
         }
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
+            if (args.Slot == SpellSlot.Q && HasAnyOrbwalkerFlags())
+            {
+                Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                Orbwalker.ResetAutoAttack();
+            }
+
             if (!Settings.Misc.NoAaWhileStealth || !HasInquisitionBuff)
                 return;
 
@@ -154,6 +251,9 @@ namespace Marksman_Master.Plugins.Vayne
 
         private static void Obj_AI_Base_OnCreate(GameObject sender, EventArgs args)
         {
+            if (sender == null || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.Hero == Champion.Rengar).Any())
+                return;
+
             if (sender.Name != "Rengar_LeapSound.troy" || !E.IsReady() || Player.Instance.IsDead || Settings.Misc.EAntiRengar)
                 return;
 
@@ -166,6 +266,8 @@ namespace Marksman_Master.Plugins.Vayne
 
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
+            IsPreAttack = true;
+
             if (!HasInquisitionBuff || !Settings.Misc.NoAaWhileStealth ||
                 !(Game.Time*1000 - _lastQCastTime < Settings.Misc.NoAaDelay))
                 return;
@@ -174,6 +276,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             if (client != null && client.Health > Player.Instance.GetAutoAttackDamageCached(client, true)*3)
             {
+                IsPreAttack = false;
                 args.Process = false;
             }
         }
@@ -189,74 +292,233 @@ namespace Marksman_Master.Plugins.Vayne
 
             Misc.PrintInfoMessage("Interrupting " + sender.ChampionName + "'s " + args.SpellName);
 
-            Misc.PrintDebugMessage($"[DEBUG] OnInterruptible | Champion : {sender.ChampionName} | SpellSlot : {args.SpellSlot}");
+            Misc.PrintDebugMessage($"OnInterruptible | Champion : {sender.ChampionName} | SpellSlot : {args.SpellSlot}");
         }
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (E.IsReady() && sender.IsValidTargetCached(E.Range) && args.End.DistanceCached(Player.Instance.Position) < 500)
-            {
-                if (args.Delay == 0)
-                    E.Cast(sender);
-                else Core.DelayAction(() => E.Cast(sender), args.Delay);
+            if (!E.IsReady() || !sender.IsValidTargetCached(E.Range) || args.End.DistanceCached(Player.Instance.Position) > 500)
+                return;
 
-                Misc.PrintDebugMessage($"[DEBUG] OnGapcloser | Champion : {sender.ChampionName} | SpellSlot : {args.SpellSlot}");
-            }
+            if (args.Delay == 0)
+                E.Cast(sender);
+            else Core.DelayAction(() => E.Cast(sender), args.Delay);
+
+            Misc.PrintDebugMessage($"OnGapcloser | Champion : {sender.ChampionName} | SpellSlot : {args.SpellSlot}");
         }
 
-        public static bool WillEStun(Obj_AI_Base target)
+        protected static bool WillEStun(Obj_AI_Base target, Vector3 from = default(Vector3), int customHitchance = -1)
         {
             if (target == null || !IsECastableOnEnemy(target))
                 return false;
 
+            var hitchance = customHitchance > 0 ? customHitchance : Settings.Misc.EHitchance;
+            var checkFrom = @from != default(Vector3) ? @from : Player.Instance.Position;
             var pushDistance = Settings.Misc.PushDistance;
-            var eta = target.DistanceCached(Player.Instance) / 2000;
-            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 350, 2000, int.MaxValue, Player.Instance.Position, true);
-            var position = Prediction.Position.PredictUnitPosition(target, (int)(eta*1000 + 250));
+            var eta = target.DistanceCached(checkFrom) / 1300;
+            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 250, 1300, int.MaxValue, checkFrom, true);
+            var position = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000 + 250));
 
             if (target.GetMovementBlockedDebuffDuration() > eta + 0.25f)
             {
                 for (var i = 25; i < pushDistance + 50; i += 50)
                 {
-                    if (target.ServerPosition.Extend(Player.Instance.ServerPosition, -Math.Min(i, pushDistance)).IsWall())
-                    {
-                        Misc.PrintDebugMessage("casting e to stun");
-                        return true;
-                    }
+                    if (!target.ServerPosition.Extend(checkFrom, -Math.Min(i, pushDistance)).IsWall())
+                        continue;
+
+                    return true;
                 }
             }
 
-            if (prediction.HitChancePercent < Settings.Misc.EHitchance)
+            if (prediction.HitChance < HitChance.High)
                 return false;
 
             for (var i = 100; i < pushDistance + 50; i += 50)
             {
-                var vec = position.Extend(Player.Instance.ServerPosition, -i);
+                var max = i > pushDistance ? pushDistance : i;
+                var vec = position.Extend(checkFrom, -max);
                 var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
-                var unitDir = (position.Extend(Player.Instance.ServerPosition, - (i - 10)) - position).Normalized();
+                var unitDir = vec.Normalized();
 
                 Vector2[] vectors =
                 {
-                    vec + target.BoundingRadius*unitDir.Perpendicular()*unitDir,
-                    vec - target.BoundingRadius*unitDir.Perpendicular()*unitDir
+                    vec + 25*unitDir.Perpendicular()*unitDir,
+                    vec - 25*unitDir.Perpendicular()*unitDir,
+                    vec + 50*unitDir.Perpendicular()*unitDir,
+                    vec - 50*unitDir.Perpendicular()*unitDir,
+                    vec + 75*unitDir.Perpendicular()*unitDir,
+                    vec - 75*unitDir.Perpendicular()*unitDir,
+                    vec + 100*unitDir.Perpendicular()*unitDir,
+                    vec - 100*unitDir.Perpendicular()*unitDir,
+                    vec + 125*unitDir.Perpendicular()*unitDir,
+                    vec - 125*unitDir.Perpendicular()*unitDir
                 };
 
-                if (vec.IsWall() && vectors.All(x=>x.IsWall()) && target.ServerPosition.Extend(Player.Instance.ServerPosition, -Math.Min(i, pushDistance)).IsWall() && polygon.Points.Count(x => x.IsWall()) >= Settings.Misc.EHitchance)
+                if (vec.IsWall() && (vectors.Count(x => x.IsWall())*10 >= hitchance) && target.ServerPosition.Extend(checkFrom, -max).IsWall() &&
+                    (polygon.Points.Count(x => x.IsWall()) >= hitchance))
                 {
-                    Misc.PrintDebugMessage("casting e to stun");
                     return true;
                 }
             }
             return false;
         }
 
-        public static bool IsECastableOnEnemy(Obj_AI_Base unit)
+        public static bool FlashCondemnCheck(Obj_AI_Base target, Vector3 from = default(Vector3))
         {
-            return E.IsReady() && unit.IsValidTargetCached(E.Range) && !unit.IsZombie &&
+            if (target == null)
+                return false;
+
+            var checkFrom = @from != default(Vector3) ? @from : Player.Instance.Position;
+            const int pushDistance = 440;
+            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 250, 1300, int.MaxValue, checkFrom, true);
+            var eta = target.DistanceCached(checkFrom) / 1300;
+            var position = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000));
+            
+            if (prediction.HitChance < HitChance.High)
+                return false;
+
+            for (var i = 100; i < pushDistance + 50; i += 50)
+            {
+                var max = i > pushDistance ? pushDistance : i;
+                var vec = position.Extend(checkFrom, -max);
+                var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
+                var unitDir = vec.Normalized();
+
+                Vector2[] vectors =
+                {
+                    vec + 25*unitDir.Perpendicular()*unitDir,
+                    vec - 25*unitDir.Perpendicular()*unitDir,
+                    vec + 50*unitDir.Perpendicular()*unitDir,
+                    vec - 50*unitDir.Perpendicular()*unitDir,
+                    vec + 75*unitDir.Perpendicular()*unitDir,
+                    vec - 75*unitDir.Perpendicular()*unitDir,
+                    vec + 100*unitDir.Perpendicular()*unitDir,
+                    vec - 100*unitDir.Perpendicular()*unitDir,
+                    vec + 125*unitDir.Perpendicular()*unitDir,
+                    vec - 125*unitDir.Perpendicular()*unitDir
+                };
+
+                if (vec.IsWall() && (vectors.Count(x => x.IsWall()) * 10 >= 70) && target.ServerPosition.Extend(checkFrom, -max).IsWall() &&
+                    (polygon.Points.Count(x => x.IsWall()) >= 70))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static int GetCondemnHitchanceForPosition(Obj_AI_Base target, Vector3 position)
+        {
+            if (target == null || !IsECastableOnEnemy(target))
+                return 0;
+
+            var pushDistance = Settings.Misc.PushDistance;
+            var eta = target.DistanceCached(position) / 1300;
+            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 350, 1300, int.MaxValue, position, true);
+            var pos = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000 + 250));
+
+            if (target.GetMovementBlockedDebuffDuration() > eta + 0.25f)
+            {
+                for (var i = 25; i < pushDistance + 50; i += 50)
+                {
+                    if (!target.ServerPosition.Extend(position, -Math.Min(i, pushDistance)).IsWall())
+                        continue;
+
+                    return 100;
+                }
+            }
+
+            if (prediction.HitChancePercent <= 10)
+                return 0;
+
+            var highest = 0;
+
+            for (var i = 100; i < pushDistance + 50; i += 50)
+            {
+                var vec = pos.Extend(position, -i);
+                var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
+
+                var count = polygon.Points.Count(x => x.IsWall());
+
+                if (highest < count)
+                {
+                    highest = count;
+                }
+            }
+            return highest;
+        }
+
+        protected static void PerformFlashCondemn()
+        {
+            if(Game.Time * 1000 - LastTick < 500 || !E.IsReady() || (!Q.IsReady() && !Flash.IsReady()))
+                return;
+
+            LastTick = Game.Time * 1000;
+
+            var target = TargetSelector.SelectedTarget != null &&
+                         TargetSelector.SelectedTarget.IsValidTargetCached(E.Range + 475)
+                ? TargetSelector.SelectedTarget
+                : TargetSelector.GetTarget(E.Range + 475, DamageType.Physical);
+
+            if (target == null || FlashCondemnCheck(target))
+                return;
+
+            List<Vector2> points;
+
+            if (Q.IsReady() && Player.Instance.IsInRangeCached(target, Q.Range))
+            {
+                if (FlashCondemnCheck(target, Player.Instance.Position.Extend(Game.CursorPos, 300).To3D()))
+                {
+                    Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
+                    return;
+                }
+
+                points = new Geometry.Polygon.Circle(Player.Instance.Position, 300, 30).Points.Where(
+                        x => !x.To3D().IsVectorUnderEnemyTower() && FlashCondemnCheck(target, x.To3D())).ToList();
+
+                var position = points.FirstOrDefault();
+
+                if (position != default(Vector2))
+                {
+                    Q.Cast(Player.Instance.Position.Extend(position, 285).To3D());
+
+                    return;
+                }
+            }
+
+            if (Flash.IsReady())
+            {
+                if (FlashCondemnCheck(target, Player.Instance.Position.Extend(Game.CursorPos, 450).To3D()))
+                {
+                    E.Cast(target);
+                    FlashPosition = Player.Instance.Position.Extend(Game.CursorPos, 450).To3D();
+                    return;
+                }
+
+                points =
+                    SafeSpotFinder.PointsInRange(target.Position.To2D(), 500, 100)
+                        .Where(
+                            x =>
+                                !x.To3D().IsVectorUnderEnemyTower() && (x.Distance(Player.Instance) < 475) &&
+                                (x.Distance(target) > 150) && FlashCondemnCheck(target, x.To3D()))
+                        .ToList();
+
+                foreach (var vector2 in points)
+                {
+                    E.Cast(target);
+                    FlashPosition = vector2.To3D();
+
+                    break;
+                }
+            }
+        }
+
+        protected static bool IsECastableOnEnemy(Obj_AI_Base unit)
+        {
+            return E.IsReady() && unit.IsValidTargetCached(E.Range) && !IsPreAttack && !unit.IsZombie &&
                    !unit.HasBuffOfType(BuffType.Invulnerability) && !unit.HasBuffOfType(BuffType.SpellImmunity) &&
                    !unit.HasBuffOfType(BuffType.SpellShield);
         }
-
 
         protected override void OnDraw()
         {
@@ -288,6 +550,26 @@ namespace Marksman_Master.Plugins.Vayne
 
                 Drawing.DrawLine(hpPosition.X + endPos, hpPosition.Y, hpPosition.X, hpPosition.Y, 1, color);
             }
+
+            if (FlashCondemnKeybind.CurrentValue)
+            {
+                FlashCondemnText.Position = new Vector2(Drawing.Width * 0.4f, Drawing.Height*0.8f);
+                FlashCondemnText.Color = System.Drawing.Color.Red;
+                FlashCondemnText.TextValue = "FLASH CONDEMN IS ACTIVE !";
+                FlashCondemnText.Draw();
+            }
+
+            if (Game.Time*1000 - LastE < 2000 && EEndPosition != default(Vector3))
+            {
+                var polygon = new Geometry.Polygon.Rectangle(ETarget.Position, EEndPosition, 15);
+
+                Line.DrawLine(System.Drawing.Color.White, 2, polygon.Points[1].To3D(), polygon.Points[2].To3D());
+                Line.DrawLine(System.Drawing.Color.White, 2, polygon.Points[0].To3D(), polygon.Points[1].To3D());
+                Line.DrawLine(System.Drawing.Color.White, 2, polygon.Points[2].To3D(), polygon.Points[3].To3D());
+                Line.DrawLine(System.Drawing.Color.White, 2, polygon.Points[0].To3D(), polygon.Points[3].To3D());
+
+                Line.DrawLine(Stun ? System.Drawing.Color.YellowGreen : System.Drawing.Color.Red, 2, polygon.Start.To3D(), polygon.End.To3D());
+            }
         }
 
         protected override void CreateMenu()
@@ -297,11 +579,13 @@ namespace Marksman_Master.Plugins.Vayne
 
             ComboMenu.AddLabel("Tumble (Q) settings :");
             ComboMenu.Add("Plugins.Vayne.ComboMenu.UseQ", new CheckBox("Use Q"));
+            ComboMenu.Add("Plugins.Vayne.ComboMenu.UseQToPoke", new CheckBox("Use Q to poke"));
             ComboMenu.Add("Plugins.Vayne.ComboMenu.UseQOnlyToProcW", new CheckBox("Use Q only to proc W stacks", false));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Condemn (E) settings :");
             ComboMenu.Add("Plugins.Vayne.ComboMenu.UseE", new CheckBox("Use E"));
+            FlashCondemnKeybind = ComboMenu.Add("Plugins.Vayne.ComboMenu.FlashCondemn", new KeyBind("Flash condemn", false, KeyBind.BindTypes.HoldActive, 'A'));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Final Hour (R) settings :");
@@ -324,7 +608,7 @@ namespace Marksman_Master.Plugins.Vayne
             LaneClearMenu.Add("Plugins.Vayne.LaneClearMenu.EnableLCIfNoEn",
                 new CheckBox("Enable lane clear only if no enemies nearby"));
             var scanRange = LaneClearMenu.Add("Plugins.Vayne.LaneClearMenu.ScanRange",
-                new Slider("Range to scan for enemies", 1500, 300, 2500));
+                new Slider("Range to scan for enemies", 1500, 0, 2500));
             scanRange.OnValueChange += (a, b) =>
             {
                 _changingRangeScan = true;
@@ -337,15 +621,21 @@ namespace Marksman_Master.Plugins.Vayne
                 }, 2000);
             };
             LaneClearMenu.Add("Plugins.Vayne.LaneClearMenu.AllowedEnemies",
-                new Slider("Allowed enemies amount", 1, 0, 5));
+                new Slider("Allowed enemies amount", 1500, 0, 2500));
             LaneClearMenu.AddSeparator(5);
 
             LaneClearMenu.AddLabel("Tumble (Q) settings :");
             LaneClearMenu.Add("Plugins.Vayne.LaneClearMenu.UseQToLaneClear", new CheckBox("Use Q to lane clear"));
             LaneClearMenu.Add("Plugins.Vayne.LaneClearMenu.UseQToJungleClear", new CheckBox("Use Q to jungle clear"));
-            LaneClearMenu.Add("Plugins.Vayne.LaneClearMenu.MinMana",
-                new Slider("Min mana percentage ({0}%) to use Q", 80, 1));
             LaneClearMenu.AddSeparator(5);
+
+            LaneClearMenu.AddLabel("Condemn (E) settings :");
+            LaneClearMenu.Add("Plugins.Vayne.LaneClearMenu.UseE", new CheckBox("Use E in jungle clear"));
+            LaneClearMenu.AddSeparator(5);
+
+            LaneClearMenu.AddLabel("Mana settings :");
+            LaneClearMenu.Add("Plugins.Vayne.LaneClearMenu.MinMana",
+                new Slider("Min mana percentage ({0}%) for lane clear and jungle clear", 80, 1));
 
             MenuManager.BuildAntiGapcloserMenu();
             MenuManager.BuildInterrupterMenu();
@@ -392,11 +682,18 @@ namespace Marksman_Master.Plugins.Vayne
 
         protected override void PermaActive()
         {
+            Orbwalker.DisableMovement = Game.Time*1000 - LastQ < 370;
+
             Modes.PermaActive.Execute();
         }
 
         protected override void ComboMode()
         {
+            if (FlashCondemnKeybind.CurrentValue)
+            {
+                PerformFlashCondemn();
+            }
+
             Modes.Combo.Execute();
         }
 
@@ -431,6 +728,8 @@ namespace Marksman_Master.Plugins.Vayne
             {
                 public static bool UseQ => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQ"];
 
+                public static bool UseQToPoke => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQToPoke"]; 
+
                 public static bool UseQOnlyToProcW => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQOnlyToProcW"];
 
                 public static bool UseE => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseE"];
@@ -456,6 +755,8 @@ namespace Marksman_Master.Plugins.Vayne
                 public static bool UseQToLaneClear => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.UseQToLaneClear"];
 
                 public static bool UseQToJungleClear => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.UseQToJungleClear"];
+
+                public static bool UseE => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.UseE"]; 
 
                 public static int MinMana => MenuManager.MenuValues["Plugins.Vayne.LaneClearMenu.MinMana", true];
             }

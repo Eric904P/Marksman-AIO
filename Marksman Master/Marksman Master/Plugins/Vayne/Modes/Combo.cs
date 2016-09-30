@@ -39,10 +39,14 @@ namespace Marksman_Master.Plugins.Vayne.Modes
     {
         public static void Execute()
         {
-            if (IsPostAttack && Q.IsReady() && Settings.Combo.UseQ && (!Settings.Combo.UseQOnlyToProcW || (Orbwalker.LastTarget.GetType() == typeof(AIHeroClient) && HasSilverDebuff((AIHeroClient)Orbwalker.LastTarget) && GetSilverDebuff((AIHeroClient)Orbwalker.LastTarget).Count == 1)))
+            if (IsPostAttack && Q.IsReady() && Settings.Combo.UseQ &&
+                (!Settings.Combo.UseQOnlyToProcW ||
+                 (Orbwalker.LastTarget.GetType() == typeof (AIHeroClient) &&
+                  HasSilverDebuff((AIHeroClient) Orbwalker.LastTarget) &&
+                  GetSilverDebuff((AIHeroClient) Orbwalker.LastTarget).Count == 1)))
             {
-                var enemies = Player.Instance.CountEnemiesInRangeCached(1300);
-                var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 300, DamageType.Physical);
+                var enemies = Player.Instance.CountEnemiesInRangeCached(2000);
+                var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 320, DamageType.Physical);
                 var position = Vector3.Zero;
 
                 if (!Settings.Misc.QSafetyChecks)
@@ -58,61 +62,94 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                     switch (Settings.Misc.QMode)
                     {
                         case 1:
-                            if (target != null && Player.Instance.HealthPercent > 50 && target.HealthPercent < 30 && target.CountEnemiesInRangeCached(600) < 2)
+                            if (target != null && Player.Instance.HealthPercent >  target.HealthPercent && Player.Instance.HealthPercent > 10 &&
+                                target.CountEnemiesInRangeCached(1000) <= 2)
                             {
                                 if (!Player.Instance.Position.Extend(Game.CursorPos, 285)
                                     .To3D()
-                                    .IsVectorUnderEnemyTower() && (!target.IsMelee || Player.Instance.Position.Extend(Game.CursorPos, 285).To3D().IsInRangeCached(target.Position, target.GetAutoAttackRange() * 1.5f)))
+                                    .IsVectorUnderEnemyTower() &&
+                                    (!target.IsMelee ||
+                                     !Player.Instance.Position.Extend(Game.CursorPos, 285).IsInRangeCached(target.Position, target.GetAutoAttackRange()*1.5f)) || !target.IsMovingTowards(Player.Instance, 300))
                                 {
                                     Misc.PrintDebugMessage("1v1 Game.CursorPos");
-                                    position = Player.Instance.Position.Extend(Game.CursorPos, 285).To3D();
+                                    Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
+                                    return;
                                 }
                             }
                             else if (target != null)
                             {
-                                var closest =
-                                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(1300))
-                                        .OrderBy(x => x.DistanceCached(Player.Instance)).ToArray()[0];
+                                var closest = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                                        x => x.IsValidTargetCached(2000)).OrderBy(x => x.DistanceCached(Player.Instance)).ToArray()[0];
 
                                 var list =
                                     SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
-                                        1300,
-                                        target.IsMelee ? target.GetAutoAttackRange() * 2 : target.GetAutoAttackRange()).Where(x => !x.Key.To3D().IsVectorUnderEnemyTower() && x.Key.IsInRangeCached(Prediction.Position.PredictUnitPosition(closest, 850), Player.Instance.GetAutoAttackRange() - 50)).Select(source => source.Key).ToList();
+                                        2000, 600)
+                                        .Where(
+                                            x => x.Key.CutVectorNearWall(320).Distance(Player.Instance) > 250 && x.Value <= 1)
+                                        .Select(source => source.Key)
+                                        .ToList();
 
                                 if (list.Any())
                                 {
-                                    var paths =
-                                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(1300))
-                                            .Select(x => x.Path)
-                                            .Count(result => result != null && result.Last().DistanceCached(Player.Instance.Position) < 300);
+                                    var range = enemies * 125;
 
-                                    var asc = Misc.SortVectorsByDistance(list, target.Position.To2D())[0].To3D();
-                                    if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0 &&
-                                        !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.DistanceCached(Player.Instance) < 1000).Any(
-                                            x => Prediction.Position.PredictUnitPosition(x, 800)
-                                                .IsInRangeCached(asc,
-                                                    x.IsMelee ? x.GetAutoAttackRange() * 2 : x.GetAutoAttackRange())))
+                                    var paths =
+                                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                                            x => x.IsValidTargetCached(2000))
+                                            .Count(x => x.IsMovingTowards(Player.Instance, range < x.GetAutoAttackRange() ? (int)x.GetAutoAttackRange() : range));
+
+                                    if (
+                                        Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange()) ==
+                                        0 || paths == 0)
                                     {
-                                        position = asc;
+                                        position = Misc.SortVectorsByDistance(list, closest.Position.To2D())[0].To3D();
 
                                         Misc.PrintDebugMessage("Paths low sorting Ascending");
                                     }
-                                    else if (Player.Instance.CountEnemiesInRangeCached(1000) <= 2 && (paths == 0 || paths == 1) && ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2) || (Orbwalker.LastTarget is AIHeroClient && Orbwalker.LastTarget.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2)))
+                                    else if (Player.Instance.CountEnemiesInRangeCached(1000) <= 2 &&
+                                             (paths <= 2) &&
+                                             list.Any(
+                                                 x =>
+                                                     x.IsInRangeCached(
+                                                         Prediction.Position.PredictUnitPosition(target, 300),
+                                                         Player.Instance.GetAutoAttackRange() - 50)) &&
+                                             (target.Health <
+                                              Player.Instance.GetAutoAttackDamage(target)*2f +
+                                              Damage.QBonusDamage[Q.Level]))
                                     {
-                                        position = asc;
+                                        position =
+                                            Misc.SortVectorsByDistance(
+                                                list.Where(
+                                                    x =>
+                                                        x.IsInRangeCached(
+                                                            Prediction.Position.PredictUnitPosition(target, 300),
+                                                            Player.Instance.GetAutoAttackRange() - 50)).ToList(),
+                                                target.Position.To2D())[0].To3D();
+                                        Misc.PrintDebugMessage("Paths low sorting Ascending");
                                     }
                                     else
                                     {
                                         position =
-                                            Misc.SortVectorsByDistanceDescending(list, target.Position.To2D())[0].To3D();
+                                            Misc.SortVectorsByDistanceDescending(list, target.Position.To2D())[0]
+                                                .To3D();
                                         Misc.PrintDebugMessage("Paths high sorting Descending");
                                     }
                                 }
-                                else Misc.PrintDebugMessage("1v1 not found positions...");
-                                
+                                else
+                                {
+                                    position =
+                                        Misc.SortVectorsByDistanceDescending(
+                                            SafeSpotFinder.PointsInRange(Player.Instance.Position.To2D(), 400).ToList(),
+                                            closest.Position.To2D())[0]
+                                            .To3D();
+
+                                    Misc.PrintDebugMessage("not found positions...");
+                                }
                             }
-                            
-                            if (position != Vector3.Zero && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(900)).Any())
+
+                            if (position != Vector3.Zero &&
+                                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                                    x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange() + 300) && Prediction.Health.GetPrediction(x, 500) > 0).Any())
                             {
                                 Q.Cast(Player.Instance.Position.Extend(position, 285).To3D());
                                 return;
@@ -127,38 +164,68 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                 {
                                     if (enemies == 1)
                                     {
-                                        if (target.IsMelee && !pos.IsInRangeCached(Prediction.Position.PredictUnitPosition(target, 850), target.GetAutoAttackRange() + 150))
-                                        {
-                                            Q.Cast(pos);
-                                            return;
-                                        }
-                                        if (!target.IsMelee)
+                                        if (!Prediction.Position.PredictUnitPosition(target, 300).IsInRangeCached(pos, 300) || !target.IsMovingTowards(Player.Instance, 300))
                                         {
                                             Q.Cast(pos);
                                             return;
                                         }
                                     }
-                                    else if (enemies == 2 && Player.Instance.CountAlliesInRangeCached(850) >= 1)
+                                    else if (enemies == 2 && Player.Instance.CountAlliesInRangeCached(400) > 1)
                                     {
                                         Q.Cast(pos);
                                         return;
                                     }
-                                    else if (enemies >= 2)
+                                    else
                                     {
-                                        
-                                        if (!StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
-                                                    pos.IsInRangeCached(Prediction.Position.PredictUnitPosition(x, 400),
-                                                        x.IsMelee ? x.GetAutoAttackRange() + 150 : x.GetAutoAttackRange())).Any())
+                                        var range = enemies * 150;
+
+                                        if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
+                                            !pos.IsInRangeCached(Prediction.Position.PredictUnitPosition(x, 300), range < x.GetAutoAttackRange() ? x.GetAutoAttackRange() : range))
+                                            .Any())
                                         {
                                             Q.Cast(pos);
+
                                             return;
                                         }
                                     }
+                                }
+
+                                var closest = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                                        x => x.IsValidTargetCached(1300)).OrderBy(x => x.DistanceCached(Player.Instance)).FirstOrDefault();
+
+                                var paths =
+                                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                                        x => x.IsValidTargetCached(1300))
+                                        .Count(x => x.IsMovingTowards(Player.Instance, 300));
+
+                                if (closest != null && Player.Instance.CountEnemiesInRangeCached(350) >= 1 && paths >= 1 && pos.DistanceCached(closest) > Player.Instance.DistanceCached(closest))
+                                {
+                                    Q.Cast(pos);
                                 }
                             }
                             break;
                         default:
                             return;
+                    }
+                }
+            }
+
+            if (!IsPreAttack && Q.IsReady() && Settings.Combo.UseQ && Settings.Combo.UseQToPoke)
+            {
+                var enemies = Player.Instance.CountEnemiesInRangeCached(1200);
+                var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 300, DamageType.Physical);
+                var position = Player.Instance.Position.Extend(Game.CursorPos, 299).To3D();
+
+                if (target != null && !target.IsMovingTowards(Player.Instance, 300) &&
+                    (Player.Instance.HealthPercent > target.HealthPercent) &&
+                    !Player.Instance.IsInAutoAttackRange(target) && enemies == 1)
+                {
+                    var targetPos = Prediction.Position.PredictUnitPosition(target, 370);
+
+                    if (!targetPos.IsInRange(position, 300) &&
+                        position.IsInRange(targetPos, Player.Instance.GetAutoAttackRange()))
+                    {
+                        Q.Cast(position);
                     }
                 }
             }
@@ -193,7 +260,6 @@ namespace Marksman_Master.Plugins.Vayne.Modes
 
             if (!R.IsReady() || !Settings.Combo.UseR)
                 return;
-
             {
                 var enemies = Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 330);
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 330, DamageType.Physical);

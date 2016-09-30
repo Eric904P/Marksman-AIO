@@ -42,11 +42,32 @@ namespace Marksman_Master.Plugins.Vayne.Modes
             if (!jungleMinions.Any())
                 return;
 
-            if (!IsPostAttack || !Q.IsReady() || !Settings.LaneClear.UseQToJungleClear)
+            string[] allowedMonsters =
+            {
+                "SRU_Gromp", "SRU_Blue", "SRU_Red", "SRU_Razorbeak", "SRU_Krug", "SRU_Murkwolf", "Sru_Crab",
+                "SRU_Crab"
+            };
+
+            if (IsPostAttack && E.IsReady() && Settings.LaneClear.UseE &&
+                Player.Instance.ManaPercent >= Settings.LaneClear.MinMana)
+            {
+                var entity =
+                    jungleMinions.Find(
+                        x =>
+                            x.IsValidTargetCached(E.Range) &&
+                            allowedMonsters.Any(name => string.Equals(name, x.BaseSkinName)) && WillEStun(x));
+
+                if (entity != null && (entity.Health > Player.Instance.GetAutoAttackDamageCached(entity) * 2))
+                {
+                    E.Cast(entity);
+                }
+            }
+
+            if (!IsPostAttack || !Q.IsReady() || Orbwalker.LastTarget == null || !Settings.LaneClear.UseQToJungleClear || Player.Instance.ManaPercent < Settings.LaneClear.MinMana)
                 return;
 
             if (!Player.Instance.Position.Extend(Game.CursorPos, 299)
-                .IsInRangeCached(Orbwalker.LastTarget.Position.To2D(), Player.Instance.GetAutoAttackRange()))
+                .IsInRangeCached(Orbwalker.LastTarget, Player.Instance.GetAutoAttackRange()))
                 return;
 
             Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());

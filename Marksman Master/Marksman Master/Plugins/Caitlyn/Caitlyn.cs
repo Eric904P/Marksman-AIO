@@ -1,26 +1,26 @@
 ﻿#region Licensing
 // ---------------------------------------------------------------------
 // <copyright file="Caitlyn.cs" company="EloBuddy">
-// 
+//
 // Marksman Master
 // Copyright (C) 2016 by gero
 // All rights reserved
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see http://www.gnu.org/licenses/. 
+// along with this program.  If not, see http://www.gnu.org/licenses/.
 // </copyright>
 // <summary>
-// 
+//
 // Email: geroelobuddy@gmail.com
 // PayPal: geroelobuddy@gmail.com
 // </summary>
@@ -67,7 +67,7 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         private static readonly Dictionary<int, Dictionary<float, float>> Damages =
             new Dictionary<int, Dictionary<float, float>>();
-        
+
         protected static bool IsPreAttack { get; private set; }
 
         static Caitlyn()
@@ -121,7 +121,7 @@ namespace Marksman_Master.Plugins.Caitlyn
                 _lastWCastTime = Game.Time * 1000;
             }
         }
-        
+
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
             if (args.Slot == SpellSlot.W &&
@@ -161,7 +161,7 @@ namespace Marksman_Master.Plugins.Caitlyn
             if (Damages.ContainsKey(unit.NetworkId) &&
                 !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200))) //
                 return Damages[unit.NetworkId].Values.FirstOrDefault();
-            
+
             var damage = 0f;
 
             if (unit.IsValidTarget(Q.Range))
@@ -180,7 +180,7 @@ namespace Marksman_Master.Plugins.Caitlyn
                 damage += Player.Instance.GetAutoAttackDamage(unit);
 
             Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
-            
+
             return damage;
         }
 
@@ -326,7 +326,7 @@ namespace Marksman_Master.Plugins.Caitlyn
                 a.CurrentValue = false;
             };
             DrawingsMenu.AddSeparator(5);
-            
+
             DrawingsMenu.AddLabel("Ace in the Hole (R) settings :");
             DrawingsMenu.Add("Plugins.Caitlyn.DrawingsMenu.DrawR", new CheckBox("Draw R range", false));
             DrawingsMenu.Add("Plugins.Caitlyn.DrawingsMenu.DrawRColor", new CheckBox("Change color", false)).OnValueChange += (a, b) =>
@@ -355,7 +355,7 @@ namespace Marksman_Master.Plugins.Caitlyn
                 a.CurrentValue = false;
             };
         }
-        
+
         protected static IEnumerable<Obj_GeneralParticleEmitter> GetTrapsInRange(Vector3 position, float range)
         {
             return
@@ -363,7 +363,7 @@ namespace Marksman_Master.Plugins.Caitlyn
                     .Where(
                         x => x.Name == "Caitlyn_Base_W_Indicator_SizeRing.troy" && x.Position.Distance(position) < range);
         }
-        
+
         protected static Vector3 GetDashEndPosition(Vector3 castPosition)
         {
             return Player.Instance.Position.Extend(castPosition, -400).To3D();

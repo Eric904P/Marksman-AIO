@@ -64,13 +64,13 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 return;
 
             if (Player.Instance.Position.Extend(Game.CursorPos, 299)
-                .IsInRangeCached(minion.First().Position.To2D(), Player.Instance.GetAutoAttackRange()))
+                .IsInRangeCached(minion.First().Position.To2D(), Player.Instance.GetAutoAttackRange()) && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, e => Player.Instance.Position.Extend(Game.CursorPos, 299).IsInRangeCached(e.Position, e.IsMelee ? e.GetAutoAttackRange() * 2 : e.GetAutoAttackRange())).Any() == false)
             {
                 Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
                 return;
             }
 
-            var pos = SafeSpotFinder.PointsInRange(Player.Instance.Position.To2D(), 900, 100).Where(x=> StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, e => e.Position.IsInRangeCached(x.To3D(), e.GetAutoAttackRange())).Any() == false).ToList();
+            var pos = SafeSpotFinder.PointsInRange(Player.Instance.Position.To2D(), 900, 100).Where(x=> StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, e => x.IsInRangeCached(e.Position, e.IsMelee ? e.GetAutoAttackRange() * 2 : e.GetAutoAttackRange())).Any() == false).ToList();
 
             if (!pos.Any())
                 return;

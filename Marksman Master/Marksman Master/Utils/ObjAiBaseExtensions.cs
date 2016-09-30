@@ -62,6 +62,20 @@ namespace Marksman_Master.Utils
             return 0f;
         }
         */
+        
+        internal static bool IsMovingTowards(this Obj_AI_Base source, Obj_AI_Base target, int minDistance = 0)
+        {
+            var safetyDistance = minDistance == 0 ? target.GetAutoAttackRange() : minDistance;
+
+            if (source.DistanceCached(target) < safetyDistance)
+                return true;
+
+            if (!source.IsMoving || source.Distance(source.RealPath().Last()) < 10)
+                return false;
+
+            return source.IsFacing(target) && source.RealPath().Last().DistanceSquared(target.Position) < safetyDistance * safetyDistance;
+        }
+
         public static bool HasSpellShield(this Obj_AI_Base target)
         {
             return target.HasBuffOfType(BuffType.SpellShield) || target.HasBuffOfType(BuffType.SpellImmunity);
