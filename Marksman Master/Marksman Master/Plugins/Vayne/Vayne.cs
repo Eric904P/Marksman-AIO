@@ -132,6 +132,8 @@ namespace Marksman_Master.Plugins.Vayne
             Obj_AI_Base.OnPlayAnimation += Obj_AI_Base_OnPlayAnimation;
             Messages.OnMessage += Messages_OnMessage;
 
+            Player.OnIssueOrder += Player_OnIssueOrder;
+
             var flashSlot = Player.Instance.GetSpellSlotFromName("summonerflash");
 
             if (flashSlot == SpellSlot.Summoner1 || flashSlot == SpellSlot.Summoner2)
@@ -145,10 +147,19 @@ namespace Marksman_Master.Plugins.Vayne
             TargetedSpells.Initialize();
         }
 
+        private static void Player_OnIssueOrder(Obj_AI_Base sender, PlayerIssueOrderEventArgs args)
+        {
+            if (sender.IsMe && (Game.Time * 1000 - LastQ < 400) && args.Order == GameObjectOrder.MoveTo)
+                args.Process = false;
+        }
+
         private static void Obj_AI_Base_OnPlayAnimation(Obj_AI_Base sender, GameObjectPlayAnimationEventArgs args)
         {
-            if(sender.IsMe && args.Animation == "Spell1")
+            if (sender.IsMe && args.Animation == "Spell1")
+            {
+                Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
                 Orbwalker.ResetAutoAttack();
+            }
         }
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
@@ -482,7 +493,7 @@ namespace Marksman_Master.Plugins.Vayne
         {
             if (args.Slot == SpellSlot.Q && HasAnyOrbwalkerFlags())
             {
-                Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
                 Orbwalker.ResetAutoAttack();
             }
 
@@ -910,7 +921,7 @@ namespace Marksman_Master.Plugins.Vayne
 
         protected override void PermaActive()
         {
-            Orbwalker.DisableMovement = Game.Time * 1000 - LastQ < 400;
+            //Orbwalker.DisableMovement = Game.Time * 1000 - LastQ < 400;
 
             Modes.PermaActive.Execute();
         }
