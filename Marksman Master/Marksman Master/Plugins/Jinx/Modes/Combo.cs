@@ -124,14 +124,14 @@ namespace Marksman_Master.Plugins.Jinx.Modes
             if (!R.IsReady() || !Settings.Combo.UseR || Player.Instance.Position.IsVectorUnderEnemyTower())
                 return;
 
-            var t = TargetSelector.GetTarget(3000, DamageType.Physical);
+            var t = TargetSelector.GetTarget(4500, DamageType.Physical);
 
-            if (t == null || t.HasUndyingBuffA() || !(t.Distance(Player.Instance) > GetRealRocketLauncherRange() + 50))
+            if (t == null || t.HasUndyingBuffA() || (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 50) > 0) || ((t.Health < Player.Instance.GetAutoAttackDamageCached(t, true)*1.8f) && Player.Instance.IsInAutoAttackRange(t)))
                 return;
 
             var health = t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t);
 
-            if (health > 0 && health < Damage.GetRDamage(t))
+            if (health > 0 && (health < Damage.GetRDamage(t)))
             {
                 var rPrediction = R.GetPrediction(t);
 
@@ -143,12 +143,14 @@ namespace Marksman_Master.Plugins.Jinx.Modes
             }
             else
             {
-                var rPrediction = R.GetPrediction(t);
+                R.CastIfItWillHit(4, 60);
 
-                if (t.CountEnemiesInRange(225) < 5 || rPrediction.HitChancePercent < 65)
-                    return;
+                //var rPrediction = R.GetPrediction(t);
 
-                R.Cast(rPrediction.CastPosition);
+                //if (t.CountEnemiesInRange(225) < 5 || rPrediction.HitChancePercent < 65)
+                //    return;
+
+                //R.Cast(rPrediction.CastPosition);
                 Misc.PrintDebugMessage("AOE ULT");
             }
         }

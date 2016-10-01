@@ -97,7 +97,7 @@ namespace Marksman_Master.Plugins.Jinx
             E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 1100, 1300, 100);
             R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 1000, 1500, 130)
             {
-                AllowedCollisionCount = 0
+                AllowedCollisionCount = -1
             };
 
             ColorPicker = new ColorPicker[2];

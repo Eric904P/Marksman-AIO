@@ -224,18 +224,6 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                         if (!StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
                                             pos.IsInRangeCached(Prediction.Position.PredictUnitPosition(x, 300), range < x.GetAutoAttackRange() ? x.GetAutoAttackRange() : range)).Any())
                                         {
-                                            if (Settings.Combo.BlockQsOutOfAaRange)
-                                            {
-                                                var positions =
-                                                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
-                                                        .Select(x => Prediction.Position.PredictUnitPosition(x, 300));
-
-                                                if (!positions.Any(x => pos.IsInRangeCached(x, Player.Instance.GetAutoAttackRange())))
-                                                {
-                                                    return;
-                                                }
-                                            }
-
                                             Q.Cast(pos);
 
                                             return;

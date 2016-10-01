@@ -33,6 +33,7 @@ using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
@@ -128,6 +129,7 @@ namespace Marksman_Master.Plugins.Vayne
             ChampionTracker.OnPostBasicAttack += ChampionTracker_OnPostBasicAttack;
             GameObject.OnCreate += Obj_AI_Base_OnCreate;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
+            Obj_AI_Base.OnPlayAnimation += Obj_AI_Base_OnPlayAnimation;
             Messages.OnMessage += Messages_OnMessage;
 
             var flashSlot = Player.Instance.GetSpellSlotFromName("summonerflash");
@@ -141,6 +143,12 @@ namespace Marksman_Master.Plugins.Vayne
             FlashCondemnText = new Text("", new Font("calibri", 25, FontStyle.Regular));
 
             TargetedSpells.Initialize();
+        }
+
+        private static void Obj_AI_Base_OnPlayAnimation(Obj_AI_Base sender, GameObjectPlayAnimationEventArgs args)
+        {
+            if(sender.IsMe && args.Animation == "Spell1")
+                Orbwalker.ResetAutoAttack();
         }
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
@@ -902,7 +910,7 @@ namespace Marksman_Master.Plugins.Vayne
 
         protected override void PermaActive()
         {
-            Orbwalker.DisableMovement = Game.Time*1000 - LastQ < 370;
+            Orbwalker.DisableMovement = Game.Time * 1000 - LastQ < 400;
 
             Modes.PermaActive.Execute();
         }
@@ -1184,6 +1192,9 @@ namespace Marksman_Master.Plugins.Vayne
 
             private static void Game_OnTick(EventArgs args)
             {
+                if (!E.IsReady())
+                    return;
+
                 var buff =
                     Player.Instance.Buffs.Find(
                         x => x.IsActive && string.Equals(x.Name, "kledqmark", StringComparison.InvariantCultureIgnoreCase));
@@ -1218,7 +1229,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             private static void OnProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
             {
-                if (sender.IsMe || Player.Instance.IsDead || sender.GetType() != typeof (AIHeroClient) ||
+                if (!E.IsReady() || sender.IsMe || Player.Instance.IsDead || sender.GetType() != typeof (AIHeroClient) ||
                     !sender.IsEnemy || !sender.IsValidTargetCached(E.Range))
                     return;
 
