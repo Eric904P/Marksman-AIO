@@ -436,19 +436,21 @@ namespace Marksman_Master.Plugins.Jinx
 
             public static float GetRDamage(Obj_AI_Base target)
             {
-                var distance = Player.Instance.Distance(target) > 1500 ? 1499 : Player.Instance.Distance(target);
-                distance = distance < 100 ? 100 : distance;
+                //var distance = Player.Instance.Distance(target) > 1500 ? 1499 : Player.Instance.Distance(target);
+                //distance = distance < 100 ? 100 : distance;
 
-                var baseDamage = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
-                    RMinimalDamage[R.Level],
-                    RMinimalDamage[R.Level]*10);
-                var bonusAd = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
-                    RBonusAdDamageMod,
-                    RBonusAdDamageMod*10);
-                var percentDamage = (target.MaxHealth - target.Health)*RMissingHealthBonusDamage[R.Level];
+                //var baseDamage = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
+                //    RMinimalDamage[R.Level],
+                //    RMinimalDamage[R.Level]*10);
+                //var bonusAd = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
+                //    RBonusAdDamageMod,
+                //    RBonusAdDamageMod*10);
+                //var percentDamage = (target.MaxHealth - target.Health)*RMissingHealthBonusDamage[R.Level];
 
-                return Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
-                    (float) (baseDamage + percentDamage + Player.Instance.FlatPhysicalDamageMod*bonusAd));
+                //return Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
+                //    (float) (baseDamage + percentDamage + Player.Instance.FlatPhysicalDamageMod*bonusAd));
+
+                return Player.Instance.GetSpellDamageCached(target, SpellSlot.R);
             }
         }
     }

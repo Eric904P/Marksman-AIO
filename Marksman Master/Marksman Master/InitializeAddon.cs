@@ -48,7 +48,7 @@ namespace Marksman_Master
         public static bool Initialize()
         {
             LoadPlugin();
-
+            
             if (PluginInstance == null)
             {
                 Misc.PrintInfoMessage("<b><font color=\"#5ED43D\">" + Player.Instance.ChampionName +
@@ -56,11 +56,55 @@ namespace Marksman_Master
                 return false;
             }
 
+            if (EntityManager.Heroes.Enemies.Any(x => x.Hero == Champion.Ziggs))
+            {
+                GameObject.OnCreate += GameObject_OnCreate;
+            }
+
             Game.OnTick += Game_OnTick;
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
 
             return true;
+        }
+
+        private static void GameObject_OnCreate(GameObject sender, EventArgs args)
+        {
+            if (!sender.Name.Equals("Ziggs_Base_W_tar.troy", StringComparison.InvariantCultureIgnoreCase))
+                return;
+
+            if (!MenuManager.MenuValues["MenuManager.GapcloserMenu.Enabled"] ||
+                (MenuManager.MenuValues["MenuManager.GapcloserMenu.OnlyInCombo"] &&
+                 !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)))
+                return;
+
+            var ziggs = EntityManager.Heroes.Enemies.Find(x => x.Hero == Champion.Ziggs);
+
+            if (ziggs == null)
+                return;
+
+            var polygon = new Geometry.Polygon.Circle(sender.Position, 325, 50);
+
+            if (!polygon.IsInside(ziggs))
+                return;
+
+            var closestPoint = polygon.Points.OrderBy(x => x.Distance(ziggs.ServerPosition.To2D())).ToList()[0];
+            var endPosition = ziggs.ServerPosition.Extend(closestPoint, 465).To3D();
+
+            var hp = MenuManager.MenuValues["MenuManager.GapcloserMenu." + ziggs.ChampionName + ".W.Hp", true];
+            var enemies = MenuManager.MenuValues["MenuManager.GapcloserMenu." + ziggs.ChampionName + ".W.Enemies", true];
+
+            if (MenuManager.MenuValues["MenuManager.GapcloserMenu." + ziggs.ChampionName + ".W.Enabled"] &&
+                Player.Instance.HealthPercent <= hp &&
+                Player.Instance.CountEnemiesInRange(MenuManager.GapcloserScanRange) <= enemies)
+            {
+                PluginInstance.OnGapcloser(ziggs,
+                    new GapCloserEventArgs(null, SpellSlot.W, GapcloserTypes.Skillshot,
+                        ziggs.Position, endPosition,
+                        MenuManager.MenuValues[
+                            "MenuManager.GapcloserMenu." + ziggs.ChampionName + ".W.Delay",
+                            true], enemies, hp, Game.Time*1000));
+            }
         }
 
         private static Vector3 _flagPos;
@@ -159,15 +203,14 @@ namespace Marksman_Master
                         PluginInstance.OnGapcloser(enemy,
                             new GapCloserEventArgs(args.Target, args.Slot,
                                 args.Target == null ? GapcloserTypes.Skillshot : GapcloserTypes.Targeted,
-                                args.Start, args.End,
+                                args.Start, GetGapcloserEndPosition(args.Start, args.End, gapcloser.SpellName, gapcloser.SkillType),
                                 menu[
                                     "MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot +
                                     ".Delay",
                                     true], enemies, hp, Game.Time*1000));
                     }
                     else if (enemy.Hero == Champion.JarvanIV &&
-                             args.SData.Name.ToLower() == "jarvanivdragonstrike" &&
-                             args.End.Distance(Player.Instance.Position) < 1000)
+                             args.SData.Name.ToLower() == "jarvanivdragonstrike" && GetGapcloserEndPosition(args.Start, args.End, "jarvanivdragonstrike", Gapcloser.GapcloserType.Skillshot).Distance(Player.Instance.Position) < 1000)
                     {
                         var flagpolygon = new Geometry.Polygon.Circle(_flagPos, 150);
                         var playerpolygon = new Geometry.Polygon.Circle(Player.Instance.Position, 150);
@@ -181,7 +224,7 @@ namespace Marksman_Master
                                 PluginInstance.OnGapcloser(enemy,
                                     new GapCloserEventArgs(args.Target, args.Slot,
                                         args.Target == null ? GapcloserTypes.Skillshot : GapcloserTypes.Targeted,
-                                        args.Start, args.End,
+                                        args.Start, GetGapcloserEndPosition(args.Start, args.End, gapcloser.SpellName, gapcloser.SkillType),
                                         menu["MenuManager.GapcloserMenu." + enemy.ChampionName + "." +
                                              gapcloser.SpellSlot +
                                              ".Delay",
@@ -195,13 +238,171 @@ namespace Marksman_Master
                         PluginInstance.OnGapcloser(enemy,
                             new GapCloserEventArgs(args.Target, args.Slot,
                                 args.Target == null ? GapcloserTypes.Skillshot : GapcloserTypes.Targeted,
-                                args.Start, args.End,
+                                args.Start, GetGapcloserEndPosition(args.Start, args.End, gapcloser.SpellName, gapcloser.SkillType),
                                 menu[
                                     "MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot +
                                     ".Delay",
                                     true], enemies, hp, Game.Time*1000));
                     }
                 }
+            }
+        }
+
+        public static Vector3 GetGapcloserEndPosition(Vector3 start, Vector3 end, string spellName, Gapcloser.GapcloserType type)
+        {
+            if (type == Gapcloser.GapcloserType.Targeted)
+                return end;
+
+            switch (spellName)
+            {
+                case "aatroxq": // Aatroxq Q
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 600 ? 600 : distance).To3D();
+                }
+                case "ahritumble": // Ahri R
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 450 ? 450 : distance).To3D();
+                }
+                case "caitlynentrapment": // Cait E
+                {
+                    return start.Extend(end, -400).To3D();
+                }
+                case "carpetbomb": // Corki W
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 600 ? 600 : distance).To3D();
+                }
+                case "ezrealarcaneshift": // Ezreal E
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 475 ? 475 : distance).To3D();
+                }
+                case "fioraq": // Fiora Q
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 400 ? 400 : distance).To3D();
+                }
+                case "gnarbige": // Gnar E
+                case "gnare": // Gnar E
+                {
+                    return start.Extend(end, 475).To3D();
+                }
+                case "gragase": // Gragas E
+                {
+                    return start.Extend(end, 600).To3D();
+                }
+                case "gravesmove": // Graves E
+                {
+                    return start.Extend(end, 425).To3D();
+                }
+                case "hecarimult": // Hecarim R
+                {
+                    return start.Extend(end, 1000).To3D();
+                }
+                case "jarvanivdragonstrike": // Jarvan Q
+                {
+                    return start.Extend(end, 790).To3D();
+                }
+                case "riftwalk": // Kassadin R
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 500 ? 500 : distance).To3D();
+                }
+                case "kindredq": // Kindred Q
+                {
+                    return start.Extend(end, 350).To3D();
+                }
+                case "khazixe": // Kha'Zix E
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 700 ? 700 : distance).To3D();
+                }
+                case "khazixelong": // Kha'Zix E
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 900 ? 900 : distance).To3D();
+                }
+                case "leblancslide": // LeBlanc W
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 600 ? 600 : distance).To3D();
+                }
+                case "leblancslidem": // LeBlanc R W
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 600 ? 600 : distance).To3D();
+                }
+                case "leonazenithblade": // Leona E
+                {
+                    return start.Extend(end, 900).To3D();
+                }
+                case "luciane": // Lucian E
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 425 ? 425 : distance).To3D();
+                }
+                case "ufslash": // Malphite R
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 1000 ? 1000 : distance).To3D();
+                }
+                case "renektonsliceanddice": // Renekton E
+                {
+                    return start.Extend(end, 450).To3D();
+                }
+                case "reksaieburrowed": // Rek'Sai E
+                {
+                    return start.Extend(end, 250).To3D();
+                }
+                case "riventricleave": // Riven Q
+                {
+                    return start.Extend(end, 270).To3D();
+                }
+                case "rivenfeint": // Riven E
+                {
+                    return start.Extend(end, 330).To3D();
+                }
+                case "sejuaniarcticassault": // Sejuani Q
+                {
+                    return start.Extend(end, 650).To3D();
+                }
+                case "shenshadowdash": // Shen E
+                {
+                    return start.Extend(end, 620).To3D();
+                }
+                case "rocketjump": // Tristana W
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 900 ? 900 : distance).To3D();
+                }
+                case "slashcast": // Tryndamere E
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 660 ? 660 : distance).To3D();
+                }
+                case "vaynetumble": // Vayne Q
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 300 ? 300 : distance).To3D();
+                }
+                case "viq": // Vi Q
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 725 ? 725 : distance).To3D();
+                }
+                case "zace": // Zac R
+                {
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 1900 ? 1900 : distance).To3D();
+                }
+                case "ziggsw": // Ziggs W
+                {
+                    return Vector3.Zero;
+                }
+                default:
+                    return end;
             }
         }
 

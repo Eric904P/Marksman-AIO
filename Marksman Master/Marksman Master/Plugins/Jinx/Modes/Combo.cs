@@ -131,7 +131,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
 
             var health = t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t);
 
-            if (health > 0 && (health < Damage.GetRDamage(t)))
+            if (health > 0 && (health < Damage.GetRDamage(t)) && R.GetHealthPrediction(t) > 0)
             {
                 var rPrediction = R.GetPrediction(t);
 
