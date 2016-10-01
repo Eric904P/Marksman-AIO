@@ -71,8 +71,17 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                     (!target.IsMelee ||
                                      !Player.Instance.Position.Extend(Game.CursorPos, 285).IsInRangeCached(target.Position, target.GetAutoAttackRange()*1.5f)) || !target.IsMovingTowards(Player.Instance, 300))
                                 {
+                                    var qPosition = Player.Instance.Position.Extend(Game.CursorPos, 300).To3D();
+                                    var unitPosition = Prediction.Position.PredictUnitPosition(target, 300);
+
+                                    if (Settings.Combo.BlockQsOutOfAaRange &&
+                                        !qPosition.IsInRangeCached(unitPosition, Player.Instance.GetAutoAttackRange()))
+                                    {
+                                        return;
+                                    }
+
                                     Misc.PrintDebugMessage("1v1 Game.CursorPos");
-                                    Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
+                                    Q.Cast(qPosition);
                                     return;
                                 }
                             }
@@ -98,10 +107,24 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                             x => x.IsValidTargetCached(2000))
                                             .Count(x => x.IsMovingTowards(Player.Instance, range < x.GetAutoAttackRange() ? (int)x.GetAutoAttackRange() : range));
 
-                                    if (
-                                        Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange()) ==
+                                    if (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange()) ==
                                         0 || paths == 0)
                                     {
+                                        if (Settings.Combo.BlockQsOutOfAaRange)
+                                        {
+                                            var positions =
+                                                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                                                        .Select(x => Prediction.Position.PredictUnitPosition(x, 300));
+                                            
+                                            list.ForEach(x =>
+                                            {
+                                                if (!positions.Any(p => x.IsInRangeCached(p, Player.Instance.GetAutoAttackRange())))
+                                                {
+                                                    list.Remove(x);
+                                                }
+                                            });
+                                        }
+
                                         position = Misc.SortVectorsByDistance(list, closest.Position.To2D())[0].To3D();
 
                                         Misc.PrintDebugMessage("Paths low sorting Ascending");
@@ -164,14 +187,33 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                 {
                                     if (enemies == 1)
                                     {
-                                        if (!Prediction.Position.PredictUnitPosition(target, 300).IsInRangeCached(pos, 300) || !target.IsMovingTowards(Player.Instance, 300))
+                                        var unitPosition = Prediction.Position.PredictUnitPosition(target, 300);
+                                        
+                                        if (!unitPosition.IsInRangeCached(pos, 300) || !target.IsMovingTowards(Player.Instance, 300))
                                         {
+                                            if (Settings.Combo.BlockQsOutOfAaRange && !pos.IsInRangeCached(unitPosition, Player.Instance.GetAutoAttackRange()))
+                                            {
+                                                return;
+                                            }
+
                                             Q.Cast(pos);
                                             return;
                                         }
                                     }
                                     else if (enemies == 2 && Player.Instance.CountAlliesInRangeCached(400) > 1)
                                     {
+                                        if (Settings.Combo.BlockQsOutOfAaRange)
+                                        {
+                                            var positions =
+                                                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                                                    .Select(x => Prediction.Position.PredictUnitPosition(x, 300));
+
+                                            if (!positions.Any(x => pos.IsInRangeCached(x, Player.Instance.GetAutoAttackRange())))
+                                            {
+                                                return;
+                                            }
+                                        }
+
                                         Q.Cast(pos);
                                         return;
                                     }
@@ -179,10 +221,21 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                     {
                                         var range = enemies * 150;
 
-                                        if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
-                                            !pos.IsInRangeCached(Prediction.Position.PredictUnitPosition(x, 300), range < x.GetAutoAttackRange() ? x.GetAutoAttackRange() : range))
-                                            .Any())
+                                        if (!StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
+                                            pos.IsInRangeCached(Prediction.Position.PredictUnitPosition(x, 300), range < x.GetAutoAttackRange() ? x.GetAutoAttackRange() : range)).Any())
                                         {
+                                            if (Settings.Combo.BlockQsOutOfAaRange)
+                                            {
+                                                var positions =
+                                                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                                                        .Select(x => Prediction.Position.PredictUnitPosition(x, 300));
+
+                                                if (!positions.Any(x => pos.IsInRangeCached(x, Player.Instance.GetAutoAttackRange())))
+                                                {
+                                                    return;
+                                                }
+                                            }
+
                                             Q.Cast(pos);
 
                                             return;

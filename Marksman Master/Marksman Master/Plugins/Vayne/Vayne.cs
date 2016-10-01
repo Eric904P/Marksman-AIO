@@ -115,7 +115,7 @@ namespace Marksman_Master.Plugins.Vayne
 
         static Vayne()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 300, SkillShotType.Linear);
+            Q = new Spell.Skillshot(SpellSlot.Q, 320, SkillShotType.Linear);
             W = new Spell.Active(SpellSlot.W);
             E = new Spell.Targeted(SpellSlot.E, 765);
             R = new Spell.Active(SpellSlot.R);
@@ -139,10 +139,246 @@ namespace Marksman_Master.Plugins.Vayne
             
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
             FlashCondemnText = new Text("", new Font("calibri", 25, FontStyle.Regular));
+
+            TargetedSpells.Initialize();
         }
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
+#region Q
+            if (Q.IsReady() && sender.IsEnemy && sender.Type == GameObjectType.AIHeroClient)
+            {
+                var enemy = sender as AIHeroClient;
+                
+                if (enemy != null )
+                {
+                    var positions = new Geometry.Polygon.Circle(Player.Instance.Position, 300, 50).Points;
+
+                    switch (enemy.Hero)
+                    {
+                        case Champion.Alistar:
+                            {
+                                if (args.Slot == SpellSlot.Q)
+                                {
+                                    var polygon = new Geometry.Polygon.Circle(enemy.Position, 365);
+                                    if (polygon.IsInside(Player.Instance) && positions.Any(x => polygon.IsOutside(x)))
+                                    {
+                                        Q.Cast(
+                                            positions.FirstOrDefault(
+                                                x =>
+                                                    new Geometry.Polygon.Circle(x,
+                                                        Player.Instance.BoundingRadius).Points.All(
+                                                            p => polygon.IsOutside(p)) &&
+                                                    (x.DistanceCached(enemy) - 50 >
+                                                     Player.Instance.DistanceCached(enemy)))
+                                                .To3D());
+                                    }
+                                }
+                                break;
+                            }
+                        case Champion.Leona:
+                        {
+                            if (args.Slot == SpellSlot.R)
+                            {
+                                var polygon = new Geometry.Polygon.Circle(args.End, 150);
+                                if (polygon.IsInside(Player.Instance) && positions.Any(x => polygon.IsOutside(x)))
+                                    {
+                                        Q.Cast(
+                                            positions.FirstOrDefault(
+                                                x =>
+                                                    new Geometry.Polygon.Circle(x,
+                                                        Player.Instance.BoundingRadius).Points.All(
+                                                            p => polygon.IsOutside(p)) &&
+                                                    (x.DistanceCached(enemy) - 50 >
+                                                     Player.Instance.DistanceCached(enemy)))
+                                                .To3D());
+                                    }
+                            }
+                            break;
+                        }
+                        case Champion.Chogath:
+                        {
+                            if (args.Slot == SpellSlot.Q)
+                            {
+                                var polygon = new Geometry.Polygon.Circle(args.End, 180);
+
+                                if (polygon.IsInside(Player.Instance))
+                                {
+                                    var qPos =
+                                        positions.FirstOrDefault(
+                                            x =>
+                                                new Geometry.Polygon.Circle(x,
+                                                    Player.Instance.BoundingRadius, 10).Points.All(
+                                                        p => polygon.IsOutside(p)) &&
+                                                (x.DistanceCached(enemy) >
+                                                 Player.Instance.DistanceCached(enemy)))
+                                            .To3D();
+
+                                    Q.Cast(qPos);
+                                }
+                            }
+                            break;
+                        }
+                        case Champion.Thresh:
+                        {
+                            if (args.Slot == SpellSlot.E)
+                            {
+                                var endPosition = enemy.Position.Extend(args.End, 400);
+                                var startPosition = enemy.Position.Extend(endPosition, -400);
+                                var polygon = new Geometry.Polygon.Rectangle(startPosition, endPosition, 90);
+
+                                if (polygon.IsInside(Player.Instance) && positions.Any(x => polygon.IsOutside(x)))
+                                {
+                                    Q.Cast(
+                                        positions.FirstOrDefault(
+                                            x =>
+                                                new Geometry.Polygon.Circle(x,
+                                                    Player.Instance.BoundingRadius).Points.All(
+                                                        p => polygon.IsOutside(p)) &&
+                                                (x.DistanceCached(enemy) - 50 >
+                                                 Player.Instance.DistanceCached(enemy)))
+                                            .To3D());
+                                }
+                            }
+                            break;
+                            }
+                        case Champion.Braum:
+                        {
+                            if (args.Slot == SpellSlot.R)
+                            {
+                                var polygon = new Geometry.Polygon.Rectangle(enemy.Position,
+                                    enemy.Position.Extend(args.End, 1250).To3D(), 120);
+
+                                if (polygon.IsInside(Player.Instance) && positions.Any(x => polygon.IsOutside(x)))
+                                {
+                                    Q.Cast(
+                                        positions.FirstOrDefault(
+                                            x =>
+                                                new Geometry.Polygon.Circle(x,
+                                                    Player.Instance.BoundingRadius).Points.All(
+                                                        p => polygon.IsOutside(p)) &&
+                                                (x.DistanceCached(enemy) - 50 >
+                                                 Player.Instance.DistanceCached(enemy)))
+                                            .To3D());
+                                }
+                            }
+                            break;
+                        }
+                        case Champion.Sona:
+                        {
+                            if (args.Slot == SpellSlot.R)
+                            {
+                                var polygon = new Geometry.Polygon.Rectangle(enemy.Position,
+                                    enemy.Position.Extend(args.End, 900).To3D(), 120);
+
+                                if (polygon.IsInside(Player.Instance) && positions.Any(x => polygon.IsOutside(x)))
+                                {
+                                    Q.Cast(
+                                        positions.FirstOrDefault(
+                                            x =>
+                                                new Geometry.Polygon.Circle(x,
+                                                    Player.Instance.BoundingRadius).Points.All(
+                                                        p => polygon.IsOutside(p)) &&
+                                                (x.DistanceCached(enemy) - 50 >
+                                                 Player.Instance.DistanceCached(enemy)))
+                                            .To3D());
+                                }
+                            }
+                            break;
+                        }
+                        case Champion.Ezreal:
+                        {
+                            if (args.Slot == SpellSlot.R)
+                            {
+                                var polygon = new Geometry.Polygon.Rectangle(enemy.Position,
+                                    enemy.Position.Extend(args.End, 3000).To3D(), 120);
+
+                                if (polygon.IsInside(Player.Instance) && positions.Any(x => polygon.IsOutside(x)))
+                                {
+                                    Q.Cast(
+                                        positions.FirstOrDefault(
+                                            x =>
+                                                new Geometry.Polygon.Circle(x,
+                                                    Player.Instance.BoundingRadius).Points.All(
+                                                        p => polygon.IsOutside(p)) &&
+                                                (x.DistanceCached(enemy) - 50 >
+                                                 Player.Instance.DistanceCached(enemy)))
+                                            .To3D());
+                                }
+                            }
+                            break;
+                        }
+                        case Champion.Jinx:
+                        case Champion.Ashe:
+                        {
+                            if (args.Slot == SpellSlot.R)
+                            {
+                                var polygon = new Geometry.Polygon.Rectangle(enemy.Position,
+                                    enemy.Position.Extend(args.End, 3000).To3D(), 90);
+
+                                if (polygon.IsInside(Player.Instance) && positions.Any(x => polygon.IsOutside(x)))
+                                {
+                                    Q.Cast(
+                                        positions.FirstOrDefault(
+                                            x =>
+                                                new Geometry.Polygon.Circle(x,
+                                                    Player.Instance.BoundingRadius).Points.All(
+                                                        p => polygon.IsOutside(p)) &&
+                                                (x.DistanceCached(enemy) - 50 >
+                                                 Player.Instance.DistanceCached(enemy)))
+                                            .To3D());
+                                }
+                            }
+                            break;
+                        }
+                        case Champion.Draven:
+                        {
+                            if (args.Slot == SpellSlot.R)
+                            {
+                                var polygon = new Geometry.Polygon.Rectangle(enemy.Position,
+                                    enemy.Position.Extend(args.End, 3000).To3D(), 120);
+
+                                if (polygon.IsInside(Player.Instance) && positions.Any(x => polygon.IsOutside(x)))
+                                {
+                                    Q.Cast(
+                                        positions.FirstOrDefault(
+                                            x =>
+                                                new Geometry.Polygon.Circle(x,
+                                                    Player.Instance.BoundingRadius).Points.All(
+                                                        p => polygon.IsOutside(p)) &&
+                                                (x.DistanceCached(enemy) - 50 >
+                                                 Player.Instance.DistanceCached(enemy)))
+                                            .To3D());
+                                }
+                            }
+                            break;
+                        }
+                        case Champion.Graves:
+                        {
+                            if (args.Slot == SpellSlot.R)
+                            {
+                                var polygon = new Geometry.Polygon.Rectangle(enemy.Position,
+                                    enemy.Position.Extend(args.End, 1000).To3D(), 120);
+
+                                if (polygon.IsInside(Player.Instance) && positions.Any(x => polygon.IsOutside(x)))
+                                {
+                                    Q.Cast(
+                                        positions.FirstOrDefault(
+                                            x =>
+                                                new Geometry.Polygon.Circle(x,
+                                                    Player.Instance.BoundingRadius).Points.All(
+                                                        p => polygon.IsOutside(p)) &&
+                                                (x.DistanceCached(enemy) - 50 >
+                                                 Player.Instance.DistanceCached(enemy)))
+                                            .To3D());
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+#endregion
             if(!sender.IsMe)
                 return;
 
@@ -224,6 +460,8 @@ namespace Marksman_Master.Plugins.Vayne
             Misc.PrintDebugMessage("casting e to ks");
 
             E.Cast(enemy);
+
+            Misc.PrintInfoMessage($"Casting <b><blue>condemn</blue></b> to execute <c>{enemy.Hero}</c>");
         }
 
 
@@ -290,15 +528,36 @@ namespace Marksman_Master.Plugins.Vayne
                 E.Cast(sender);
             else Core.DelayAction(() => E.Cast(sender), args.Delay);
 
-            Misc.PrintInfoMessage("Interrupting " + sender.ChampionName + "'s " + args.SpellName);
+            Misc.PrintInfoMessage($"Interrupting <c>{sender.ChampionName}'s</c> <in>{args.SpellName}</in>");
 
             Misc.PrintDebugMessage($"OnInterruptible | Champion : {sender.ChampionName} | SpellSlot : {args.SpellSlot}");
         }
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (!E.IsReady() || !sender.IsValidTargetCached(E.Range) || args.End.DistanceCached(Player.Instance.Position) > 500)
+            if (args.End.DistanceCached(Player.Instance.Position) > 300)
                 return;
+
+            if (!E.IsReady() || !sender.IsValidTargetCached(E.Range))
+            {
+                if (Q.IsReady())
+                {
+                    var list = SafeSpotFinder.PointsInRange(Player.Instance.Position.To2D(), 300, 300);
+                    var closestEnemy = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(1300))
+                            .OrderBy(x => x.DistanceCached(Player.Instance))
+                            .ToList()[0];
+
+                    var positionToCast = Misc.SortVectorsByDistanceDescending(list.ToList(),
+                        closestEnemy.Position.To2D())[0];
+
+                    if (positionToCast != default(Vector2))
+                    {
+                        Misc.PrintDebugMessage($"OnGapcloser | Champion : {sender.ChampionName} | SpellSlot : {args.SpellSlot}");
+                        Q.Cast(positionToCast.To3D());
+                        return;
+                    }
+                }
+            }
 
             if (args.Delay == 0)
                 E.Cast(sender);
@@ -317,7 +576,8 @@ namespace Marksman_Master.Plugins.Vayne
             var pushDistance = Settings.Misc.PushDistance;
             var eta = target.DistanceCached(checkFrom) / 1300;
             var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 250, 1300, int.MaxValue, checkFrom, true);
-            var position = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000 + 250));
+            var predictedPosition = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000 + 250));
+            var position = predictedPosition.Shorten(target.Position.To2D(), target.BoundingRadius / 2);
 
             if (target.GetMovementBlockedDebuffDuration() > eta + 0.25f)
             {
@@ -337,24 +597,23 @@ namespace Marksman_Master.Plugins.Vayne
             {
                 var max = i > pushDistance ? pushDistance : i;
                 var vec = position.Extend(checkFrom, -max);
+                var tPos = target.ServerPosition.Extend(checkFrom, -max);
                 var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
-                var unitDir = vec.Normalized();
+                var unitDir = tPos.Normalized();
 
                 Vector2[] vectors =
                 {
-                    vec + 25*unitDir.Perpendicular()*unitDir,
-                    vec - 25*unitDir.Perpendicular()*unitDir,
-                    vec + 50*unitDir.Perpendicular()*unitDir,
-                    vec - 50*unitDir.Perpendicular()*unitDir,
-                    vec + 75*unitDir.Perpendicular()*unitDir,
-                    vec - 75*unitDir.Perpendicular()*unitDir,
-                    vec + 100*unitDir.Perpendicular()*unitDir,
-                    vec - 100*unitDir.Perpendicular()*unitDir,
-                    vec + 125*unitDir.Perpendicular()*unitDir,
-                    vec - 125*unitDir.Perpendicular()*unitDir
+                    tPos + 25*unitDir.Perpendicular()*unitDir,
+                    tPos - 25*unitDir.Perpendicular()*unitDir,
+                    tPos + 50*unitDir.Perpendicular()*unitDir,
+                    tPos - 50*unitDir.Perpendicular()*unitDir,
+                    tPos + 75*unitDir.Perpendicular()*unitDir,
+                    tPos - 75*unitDir.Perpendicular()*unitDir,
+                    tPos + target.BoundingRadius*unitDir.Perpendicular()*unitDir,
+                    tPos - target.BoundingRadius*unitDir.Perpendicular()*unitDir
                 };
 
-                if (vec.IsWall() && (vectors.Count(x => x.IsWall())*10 >= hitchance) && target.ServerPosition.Extend(checkFrom, -max).IsWall() &&
+                if (vec.IsWall() && (vectors.Count(x => x.IsWall())*12.5 >= hitchance) && tPos.IsWall() &&
                     (polygon.Points.Count(x => x.IsWall()) >= hitchance))
                 {
                     return true;
@@ -372,8 +631,9 @@ namespace Marksman_Master.Plugins.Vayne
             const int pushDistance = 440;
             var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 250, 1300, int.MaxValue, checkFrom, true);
             var eta = target.DistanceCached(checkFrom) / 1300;
-            var position = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000));
-            
+            var predictedPosition = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000));
+            var position = predictedPosition.Shorten(target.Position.To2D(), target.BoundingRadius / 2);
+
             if (prediction.HitChance < HitChance.High)
                 return false;
 
@@ -381,71 +641,29 @@ namespace Marksman_Master.Plugins.Vayne
             {
                 var max = i > pushDistance ? pushDistance : i;
                 var vec = position.Extend(checkFrom, -max);
+                var tPos = target.ServerPosition.Extend(checkFrom, -max);
                 var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
-                var unitDir = vec.Normalized();
+                var unitDir = tPos.Normalized();
 
                 Vector2[] vectors =
                 {
-                    vec + 25*unitDir.Perpendicular()*unitDir,
-                    vec - 25*unitDir.Perpendicular()*unitDir,
-                    vec + 50*unitDir.Perpendicular()*unitDir,
-                    vec - 50*unitDir.Perpendicular()*unitDir,
-                    vec + 75*unitDir.Perpendicular()*unitDir,
-                    vec - 75*unitDir.Perpendicular()*unitDir,
-                    vec + 100*unitDir.Perpendicular()*unitDir,
-                    vec - 100*unitDir.Perpendicular()*unitDir,
-                    vec + 125*unitDir.Perpendicular()*unitDir,
-                    vec - 125*unitDir.Perpendicular()*unitDir
+                    tPos + 25*unitDir.Perpendicular()*unitDir,
+                    tPos - 25*unitDir.Perpendicular()*unitDir,
+                    tPos + 50*unitDir.Perpendicular()*unitDir,
+                    tPos - 50*unitDir.Perpendicular()*unitDir,
+                    tPos + 75*unitDir.Perpendicular()*unitDir,
+                    tPos - 75*unitDir.Perpendicular()*unitDir,
+                    tPos + target.BoundingRadius*unitDir.Perpendicular()*unitDir,
+                    tPos - target.BoundingRadius*unitDir.Perpendicular()*unitDir
                 };
 
-                if (vec.IsWall() && (vectors.Count(x => x.IsWall()) * 10 >= 70) && target.ServerPosition.Extend(checkFrom, -max).IsWall() &&
+                if (vec.IsWall() && (vectors.Count(x => x.IsWall()) * 12.5 >= 70) && tPos.IsWall() &&
                     (polygon.Points.Count(x => x.IsWall()) >= 70))
                 {
                     return true;
                 }
             }
             return false;
-        }
-
-        public static int GetCondemnHitchanceForPosition(Obj_AI_Base target, Vector3 position)
-        {
-            if (target == null || !IsECastableOnEnemy(target))
-                return 0;
-
-            var pushDistance = Settings.Misc.PushDistance;
-            var eta = target.DistanceCached(position) / 1300;
-            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 350, 1300, int.MaxValue, position, true);
-            var pos = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000 + 250));
-
-            if (target.GetMovementBlockedDebuffDuration() > eta + 0.25f)
-            {
-                for (var i = 25; i < pushDistance + 50; i += 50)
-                {
-                    if (!target.ServerPosition.Extend(position, -Math.Min(i, pushDistance)).IsWall())
-                        continue;
-
-                    return 100;
-                }
-            }
-
-            if (prediction.HitChancePercent <= 10)
-                return 0;
-
-            var highest = 0;
-
-            for (var i = 100; i < pushDistance + 50; i += 50)
-            {
-                var vec = pos.Extend(position, -i);
-                var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
-
-                var count = polygon.Points.Count(x => x.IsWall());
-
-                if (highest < count)
-                {
-                    highest = count;
-                }
-            }
-            return highest;
         }
 
         protected static void PerformFlashCondemn()
@@ -581,6 +799,7 @@ namespace Marksman_Master.Plugins.Vayne
             ComboMenu.Add("Plugins.Vayne.ComboMenu.UseQ", new CheckBox("Use Q"));
             ComboMenu.Add("Plugins.Vayne.ComboMenu.UseQToPoke", new CheckBox("Use Q to poke"));
             ComboMenu.Add("Plugins.Vayne.ComboMenu.UseQOnlyToProcW", new CheckBox("Use Q only to proc W stacks", false));
+            ComboMenu.Add("Plugins.Vayne.ComboMenu.BlockQsOutOfAARange", new CheckBox("Don't use Q if it leaves range of target", false));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Condemn (E) settings :");
@@ -621,7 +840,7 @@ namespace Marksman_Master.Plugins.Vayne
                 }, 2000);
             };
             LaneClearMenu.Add("Plugins.Vayne.LaneClearMenu.AllowedEnemies",
-                new Slider("Allowed enemies amount", 1500, 0, 2500));
+                new Slider("Allowed enemies amount", 1, 0, 5));
             LaneClearMenu.AddSeparator(5);
 
             LaneClearMenu.AddLabel("Tumble (Q) settings :");
@@ -639,6 +858,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             MenuManager.BuildAntiGapcloserMenu();
             MenuManager.BuildInterrupterMenu();
+            TargetedSpells.BuildMenu();
 
             MiscMenu = MenuManager.Menu.AddSubMenu("Misc");
             MiscMenu.AddGroupLabel("Misc settings for Vayne addon");
@@ -728,9 +948,11 @@ namespace Marksman_Master.Plugins.Vayne
             {
                 public static bool UseQ => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQ"];
 
-                public static bool UseQToPoke => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQToPoke"]; 
+                public static bool UseQToPoke => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQToPoke"];
 
                 public static bool UseQOnlyToProcW => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQOnlyToProcW"];
+
+                public static bool BlockQsOutOfAaRange => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.BlockQsOutOfAARange"]; 
 
                 public static bool UseE => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseE"];
 
@@ -910,6 +1132,208 @@ namespace Marksman_Master.Plugins.Vayne
                     WDamageCache.Add(unit.NetworkId, damage);
 
                 return damage;
+            }
+        }
+
+        protected static class TargetedSpells
+        {
+            public static Menu EEvadeMenu { get; private set; } 
+
+            public static List<TargetedSpell> SpellsList = new List<TargetedSpell>
+            {
+                new TargetedSpell(Champion.Brand, "Pyroclasm", SpellSlot.R),
+                new TargetedSpell(Champion.Caitlyn, "Ace in the Hole", SpellSlot.R),
+                new TargetedSpell(Champion.Chogath, "Feast", SpellSlot.R),
+                new TargetedSpell(Champion.Darius, "Noxian Guillotine", SpellSlot.R),
+                new TargetedSpell(Champion.FiddleSticks, "Terrify", SpellSlot.Q, false, 50, 20, 700),
+                new TargetedSpell(Champion.Fiora, "Grand Challenge", SpellSlot.R),
+                new TargetedSpell(Champion.Garen, "Demacian Justice", SpellSlot.R),
+                new TargetedSpell(Champion.JarvanIV, "Cataclysm", SpellSlot.R),
+                new TargetedSpell(Champion.Jayce, "To The Skies!", SpellSlot.Q, true, 100, 30),
+                new TargetedSpell(Champion.Karma, "Focused Resolve", SpellSlot.W, true, 100, 30),
+                new TargetedSpell(Champion.Kayle, "Reckoning", SpellSlot.Q, true, 50, 30),
+                new TargetedSpell(Champion.Khazix, "Taste Their Fear", SpellSlot.Q, false),
+                new TargetedSpell(Champion.Kindred, "Mounting Dread", SpellSlot.E, true, 100, 50),
+                new TargetedSpell(Champion.Kled, "Beartrap on a Rope", SpellSlot.Q, true, 100, 50),
+                new TargetedSpell(Champion.LeeSin, "Dragon's Rage", SpellSlot.R),
+                new TargetedSpell(Champion.Mordekaiser, "Children of the Grave", SpellSlot.R),
+                new TargetedSpell(Champion.Morgana, "Soul Shackles", SpellSlot.R),
+                new TargetedSpell(Champion.Nasus, "Wither", SpellSlot.W, false, 100, 20),
+                new TargetedSpell(Champion.Quinn, "Vault", SpellSlot.E, true, 50, 20),
+                new TargetedSpell(Champion.Renekton, "Ruthless Predator", SpellSlot.W),
+                new TargetedSpell(Champion.Rammus, "Puncturing Taunt", SpellSlot.E),
+                new TargetedSpell(Champion.Ryze, "Rune Prison", SpellSlot.W, true, 100, 20, 500),
+                new TargetedSpell(Champion.Shaco, "Two-Shiv Poison", SpellSlot.E, true, 70, 20, 400),
+                new TargetedSpell(Champion.Singed, "Fling", SpellSlot.E),
+                new TargetedSpell(Champion.TahmKench, "Devour", SpellSlot.W),
+                new TargetedSpell(Champion.Teemo, "Blinding Dart", SpellSlot.Q, true, 70, 30, 400),
+                new TargetedSpell(Champion.Vayne, "Condemn", SpellSlot.E, false),
+                new TargetedSpell(Champion.Warwick, "Infinite Duress", SpellSlot.R)
+            };
+
+
+            public static void Initialize()
+            {
+                Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
+
+                if (EntityManager.Heroes.Enemies.Any(x => x.Hero == Champion.Kled))
+                {
+                    Game.OnTick += Game_OnTick;
+                }
+            }
+
+            private static void Game_OnTick(EventArgs args)
+            {
+                var buff =
+                    Player.Instance.Buffs.Find(
+                        x => x.IsActive && string.Equals(x.Name, "kledqmark", StringComparison.InvariantCultureIgnoreCase));
+
+                if (buff?.Caster == null)
+                    return;
+
+                var target =
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                        .ToList()
+                        .Find(x => x.NetworkId == buff.Caster.NetworkId);
+
+                if (target == null || !target.IsValidTargetCached(E.Range) || target.DistanceCached(Player.Instance) < 150)
+                    return;
+
+                var data = GetMenuData(target.Hero, SpellSlot.Q);
+
+                if (data == null || !data.Enabled)
+                    return;
+
+                if (data.OnlyInCombo && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+                    return;
+
+                if ((target.DistanceCached(Player.Instance) <= data.CasterMinimumDistanceToPlayer) && (Player.Instance.HealthPercent <= data.MyHealthMinimumPercent) &&
+                    (target.HealthPercent <= data.CasterHealthMinimumPercent))
+                {
+                    E.Cast(target);
+
+                    Misc.PrintInfoMessage("Casting <blue>condemn</blue> against <c>Kled's</c> <in>Beartrap on a Rope</in>");
+                }
+            }
+
+            private static void OnProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+            {
+                if (sender.IsMe || Player.Instance.IsDead || sender.GetType() != typeof (AIHeroClient) ||
+                    !sender.IsEnemy || !sender.IsValidTargetCached(E.Range))
+                    return;
+
+                var hero = sender as AIHeroClient;
+
+                if (hero == null || hero.Hero == Champion.Kled || hero.Hero == Champion.Rengar)
+                    return;
+
+                var data = GetMenuData(hero.Hero, args.Slot);
+
+                if (data == null || !data.Enabled)
+                    return;
+
+                if (data.OnlyInCombo && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+                    return;
+
+                if ((hero.DistanceCached(Player.Instance) <= data.CasterMinimumDistanceToPlayer) && (Player.Instance.HealthPercent <= data.MyHealthMinimumPercent) &&
+                    (hero.HealthPercent <= data.CasterHealthMinimumPercent))
+                {
+                    E.Cast(hero);
+
+                    Misc.PrintInfoMessage($"Casting <b><blue>condemn</blue></b> against <c>{hero.Hero}</c> <in>{data.SpellName}</in>");
+                }
+            }
+
+            public static void BuildMenu()
+            {
+                EEvadeMenu = MenuManager.Menu.AddSubMenu("Condemn evade");
+
+                foreach (var spellData in EntityManager.Heroes.Enemies.Where(enemy => SpellsList.Any(x => x.Champion == enemy.Hero)).Select(enemy => SpellsList.Find(x => x.Champion == enemy.Hero)).Where(spellData => spellData != null))
+                {
+                    EEvadeMenu.AddGroupLabel(spellData.Champion.ToString());
+
+                    EEvadeMenu.AddLabel($"Spell : [{spellData.SpellSlot}] {spellData.SpellName}");
+                    EEvadeMenu.Add($"Plugins.Vayne.EEvadeMenu.{spellData.Champion}.{spellData.SpellSlot}.MyMinHealth", new Slider("My minimum health percentage to cast condemn : {0}%", spellData.MyHealthMinimumPercent));
+                    EEvadeMenu.Add($"Plugins.Vayne.EEvadeMenu.{spellData.Champion}.{spellData.SpellSlot}.CasterMinHealth", new Slider("Cast if "+spellData.Champion+" health percentage is higher than : {0}%", spellData.CasterHealthMinimumPercent));
+                    EEvadeMenu.Add($"Plugins.Vayne.EEvadeMenu.{spellData.Champion}.{spellData.SpellSlot}.CasterMinDistance", new Slider(spellData.Champion + " minimum distance to player to cast condemn : {0}", spellData.CasterMinimumDistanceToPlayer, 0, 750));
+                    EEvadeMenu.Add($"Plugins.Vayne.EEvadeMenu.{spellData.Champion}.{spellData.SpellSlot}.OnlyInCombo", new CheckBox("Only in combo", false));
+                    EEvadeMenu.Add($"Plugins.Vayne.EEvadeMenu.{spellData.Champion}.{spellData.SpellSlot}.Enabled", new CheckBox("Enabled", spellData.EnabledByDefault));
+                }
+            }
+
+            public static TargetedSpell GetMenuData(Champion champion, SpellSlot slot)
+            {
+                if (!SpellsList.Any(x => x.Champion == champion && x.SpellSlot == slot))
+                    return null;
+
+                if (EEvadeMenu == null)
+                    return SpellsList.Find(x => x.Champion == champion && x.SpellSlot == slot);
+
+                var myMinHealth = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.MyMinHealth"];
+                var casterMinHealth = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.CasterMinHealth"];
+                var casterMinDistance = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.CasterMinDistance"];
+                var onlyInCombo = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.OnlyInCombo"];
+                var enabled = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.Enabled"];
+                var spellData = SpellsList.Find(x => x.Champion == champion && x.SpellSlot == slot);
+
+                var output = new TargetedSpell(champion, spellData.SpellName, slot, spellData.EnabledByDefault,
+                    myMinHealth?.Cast<Slider>().CurrentValue ?? spellData.MyHealthMinimumPercent,
+                    casterMinHealth?.Cast<Slider>().CurrentValue ?? spellData.CasterHealthMinimumPercent,
+                    casterMinDistance?.Cast<Slider>().CurrentValue ?? spellData.CasterMinimumDistanceToPlayer,
+                    onlyInCombo?.Cast<CheckBox>().CurrentValue ?? spellData.EnabledByDefault,
+                    enabled?.Cast<CheckBox>().CurrentValue ?? spellData.EnabledByDefault);
+
+                return output;
+            }
+
+
+            public class TargetedSpell
+            {
+                public Champion Champion { get; }
+                public string SpellName { get; }
+                public SpellSlot SpellSlot { get; }
+                public bool EnabledByDefault { get; }
+                public bool Enabled { get; }
+                public bool OnlyInCombo { get; }
+                public int MyHealthMinimumPercent { get; } = 100;
+                public int CasterHealthMinimumPercent { get; } = 100;
+                public int CasterMinimumDistanceToPlayer { get; } = 750;
+
+                public TargetedSpell(Champion champion, string spellName, SpellSlot spellSlot, bool enabledByDefault = true)
+                {
+                    Champion = champion;
+                    SpellName = spellName;
+                    SpellSlot = spellSlot;
+                    EnabledByDefault = enabledByDefault;
+                }
+
+                public TargetedSpell(Champion champion, string spellName, SpellSlot spellSlot, bool enabledByDefault,
+                    int myHealthMinimumPercent, int casterHealthMinimumPercent, int casterMinimumDistanceToPlayer = 750)
+                    : this(champion, spellName, spellSlot, enabledByDefault)
+                {
+                    Champion = champion;
+                    SpellName = spellName;
+                    SpellSlot = spellSlot;
+                    EnabledByDefault = enabledByDefault;
+                    MyHealthMinimumPercent = myHealthMinimumPercent;
+                    CasterHealthMinimumPercent = casterHealthMinimumPercent;
+                    CasterMinimumDistanceToPlayer = casterMinimumDistanceToPlayer;
+                }
+
+                public TargetedSpell(Champion champion, string spellName, SpellSlot spellSlot, bool enabledByDefault,
+                    int myHealthMinimumPercent, int casterHealthMinimumPercent, int casterMinimumDistanceToPlayer, bool onlyInCombo, bool enabled)
+                    : this(champion, spellName, spellSlot, enabledByDefault, myHealthMinimumPercent, casterHealthMinimumPercent, casterMinimumDistanceToPlayer)
+                {
+                    Champion = champion;
+                    SpellName = spellName;
+                    SpellSlot = spellSlot;
+                    EnabledByDefault = enabledByDefault;
+                    OnlyInCombo = onlyInCombo;
+                    Enabled = enabled;
+                    MyHealthMinimumPercent = myHealthMinimumPercent;
+                    CasterHealthMinimumPercent = casterHealthMinimumPercent;
+                    CasterMinimumDistanceToPlayer = casterMinimumDistanceToPlayer;
+                }
             }
         }
     }

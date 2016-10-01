@@ -42,8 +42,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
 
         public static void Execute()
         {
-            var laneMinions =
-                StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion,
+            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion,
                     x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange() + 300)).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
@@ -53,7 +52,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 !(Player.Instance.ManaPercent >= Settings.LaneClear.MinMana))
                 return;
 
-            var delay = (int)(Player.Instance.AttackDelay*100 + Player.Instance.AttackCastDelay*1000);
+            var delay = (int)(Orbwalker.AttackCastDelay*1000);
 
             var minion = laneMinions.Where(x=>
                         (Prediction.Health.GetPrediction(x, 250 + delay) <
@@ -67,17 +66,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 .IsInRangeCached(minion.First().Position.To2D(), Player.Instance.GetAutoAttackRange()) && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, e => Player.Instance.Position.Extend(Game.CursorPos, 299).IsInRangeCached(e.Position, e.IsMelee ? e.GetAutoAttackRange() * 2 : e.GetAutoAttackRange())).Any() == false)
             {
                 Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
-                return;
             }
-
-            var pos = SafeSpotFinder.PointsInRange(Player.Instance.Position.To2D(), 900, 100).Where(x=> StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, e => x.IsInRangeCached(e.Position, e.IsMelee ? e.GetAutoAttackRange() * 2 : e.GetAutoAttackRange())).Any() == false).ToList();
-
-            if (!pos.Any())
-                return;
-
-            var poss = Misc.SortVectorsByDistance(pos, minion.First().Position.To2D())[0];
-            
-            Q.Cast(poss.To3D().DistanceCached(Player.Instance.Position) > Q.Range ? Player.Instance.Position.Extend(poss, Q.Range).To3D() : poss.To3D());
         }
     }
 }
