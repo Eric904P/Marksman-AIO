@@ -61,6 +61,12 @@ namespace Marksman_Master
                 GameObject.OnCreate += GameObject_OnCreate;
             }
 
+            Chat.OnClientSideMessage += args =>
+            {
+                if (args.Message.Equals("reset spell", StringComparison.InvariantCultureIgnoreCase))
+                    args.Process = false;
+            };
+
             Game.OnTick += Game_OnTick;
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;

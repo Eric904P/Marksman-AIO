@@ -132,12 +132,6 @@ namespace Marksman_Master.Plugins.Vayne
             Obj_AI_Base.OnPlayAnimation += Obj_AI_Base_OnPlayAnimation;
             Messages.OnMessage += Messages_OnMessage;
 
-            Chat.OnClientSideMessage += args =>
-            {
-                if (args.Message.Equals("reset spell", StringComparison.InvariantCultureIgnoreCase))
-                    args.Process = false;
-            };
-
             Player.OnIssueOrder += Player_OnIssueOrder;
 
             var flashSlot = Player.Instance.GetSpellSlotFromName("summonerflash");
