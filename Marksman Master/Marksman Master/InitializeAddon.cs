@@ -48,7 +48,7 @@ namespace Marksman_Master
         public static bool Initialize()
         {
             LoadPlugin();
-            
+
             if (PluginInstance == null)
             {
                 Misc.PrintInfoMessage("<b><font color=\"#5ED43D\">" + Player.Instance.ChampionName +
@@ -91,19 +91,18 @@ namespace Marksman_Master
             var closestPoint = polygon.Points.OrderBy(x => x.Distance(ziggs.ServerPosition.To2D())).ToList()[0];
             var endPosition = ziggs.ServerPosition.Extend(closestPoint, 465).To3D();
 
-            var hp = MenuManager.MenuValues["MenuManager.GapcloserMenu." + ziggs.ChampionName + ".W.Hp", true];
-            var enemies = MenuManager.MenuValues["MenuManager.GapcloserMenu." + ziggs.ChampionName + ".W.Enemies", true];
+            var hp = MenuManager.MenuValues[$"MenuManager.GapcloserMenu.{ziggs.ChampionName}.W.Hp", true];
+            var enemies = MenuManager.MenuValues[$"MenuManager.GapcloserMenu.{ziggs.ChampionName}.W.Enemies", true];
 
-            if (MenuManager.MenuValues["MenuManager.GapcloserMenu." + ziggs.ChampionName + ".W.Enabled"] &&
+            if (MenuManager.MenuValues[$"MenuManager.GapcloserMenu.{ziggs.ChampionName}.W.Enabled"] &&
                 Player.Instance.HealthPercent <= hp &&
                 Player.Instance.CountEnemiesInRange(MenuManager.GapcloserScanRange) <= enemies)
             {
                 PluginInstance.OnGapcloser(ziggs,
                     new GapCloserEventArgs(null, SpellSlot.W, GapcloserTypes.Skillshot,
                         ziggs.Position, endPosition,
-                        MenuManager.MenuValues[
-                            "MenuManager.GapcloserMenu." + ziggs.ChampionName + ".W.Delay",
-                            true], enemies, hp, Game.Time*1000));
+                        MenuManager.MenuValues[$"MenuManager.GapcloserMenu.{ziggs.ChampionName}.W.Delay",
+                            true], enemies, hp, Core.GameTickCount));
             }
         }
 
@@ -133,29 +132,18 @@ namespace Marksman_Master
                         Utils.Interrupter.InterruptibleList.Where(
                             x => x.ChampionName == enemy.ChampionName && x.SpellSlot == args.Slot))
                     {
-                        var hp =
-                            menu[
-                                "MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot +
-                                ".Hp", true];
-                        var enemies =
-                            menu[
-                                "MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot +
-                                ".Enemies", true];
+                        var hp = menu[$"MenuManager.InterrupterMenu.{enemy.ChampionName}.{interruptibleSpell.SpellSlot}.Hp", true];
+                        var enemies = menu[$"MenuManager.InterrupterMenu.{enemy.ChampionName}.{interruptibleSpell.SpellSlot}.Enemies", true];
 
-                        if (
-                            menu[
-                                "MenuManager.InterrupterMenu." + enemy.ChampionName + "." + interruptibleSpell.SpellSlot +
-                                ".Enabled"] &&
+                        if (menu[$"MenuManager.InterrupterMenu.{enemy.ChampionName}.{interruptibleSpell.SpellSlot}.Enabled"] &&
                             Player.Instance.HealthPercent <= hp &&
                             Player.Instance.CountEnemiesInRange(MenuManager.GapcloserScanRange) <= enemies)
                         {
                             InterruptibleSpellsFound.Add(
                                 new InterrupterEventArgs(args.Target, args.Slot, interruptibleSpell.DangerLevel,
                                     interruptibleSpell.SpellName, args.Start, args.End,
-                                    menu[
-                                        "MenuManager.InterrupterMenu." + enemy.ChampionName + "." +
-                                        interruptibleSpell.SpellSlot + ".Delay", true],
-                                    enemies, hp, Game.Time*1000), enemy);
+                                    menu[$"MenuManager.InterrupterMenu.{enemy.ChampionName}.{interruptibleSpell.SpellSlot}.Delay", true],
+                                    enemies, hp, Core.GameTickCount), enemy);
                         }
                     }
                 }
@@ -177,7 +165,24 @@ namespace Marksman_Master
                 _flagPos.X = args.End.X;
                 _flagPos.Y = args.End.Y;
                 _flagPos.Z = NavMesh.GetHeightForPosition(args.End.X, args.End.Y);
-                _flagCreateTick = (int) Game.Time*1000;
+                _flagCreateTick = Core.GameTickCount;
+            }
+
+            if (args.SData.Name.Equals("shene", StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (CanInvoke(enemy.ChampionName, SpellSlot.E))
+                {
+                    var hp = menu[$"MenuManager.GapcloserMenu.{enemy.ChampionName}.E.Hp", true];
+                    var enemies = menu[$"MenuManager.GapcloserMenu.{enemy.ChampionName}.E.Enemies", true];
+
+                    PluginInstance.OnGapcloser(enemy,
+                            new GapCloserEventArgs(args.Target, args.Slot,
+                                args.Target == null ? GapcloserTypes.Skillshot : GapcloserTypes.Targeted,
+                                args.Start, GetGapcloserEndPosition(args.Start, args.End, "shene", Gapcloser.GapcloserType.Skillshot),
+                                menu[$"MenuManager.GapcloserMenu.{enemy.ChampionName}.E.Delay",true], enemies, hp, Core.GameTickCount));
+
+                    return;
+                }
             }
 
             foreach (
@@ -187,27 +192,18 @@ namespace Marksman_Master
                             x.ChampName == enemy.ChampionName &&
                             string.Equals(x.SpellName, args.SData.Name, StringComparison.InvariantCultureIgnoreCase)))
             {
-                var hp =
-                    menu["MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot + ".Hp", true];
-                var enemies =
-                    menu[
-                        "MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot + ".Enemies", true
-                        ];
-
-                if (menu["MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot + ".Enabled"] &&
-                    Player.Instance.HealthPercent <= hp &&
-                    Player.Instance.CountEnemiesInRange(MenuManager.GapcloserScanRange) <= enemies)
+                if (CanInvoke(enemy.ChampionName, args.Slot))
                 {
+                    var hp = menu[$"MenuManager.GapcloserMenu.{enemy.ChampionName}.{gapcloser.SpellSlot}.Hp", true];
+                    var enemies = menu[$"MenuManager.GapcloserMenu.{enemy.ChampionName}.{gapcloser.SpellSlot}.Enemies", true];
+
                     if (enemy.Hero == Champion.Nidalee && args.SData.Name.ToLowerInvariant() == "pounce")
                     {
                         PluginInstance.OnGapcloser(enemy,
                             new GapCloserEventArgs(args.Target, args.Slot,
                                 args.Target == null ? GapcloserTypes.Skillshot : GapcloserTypes.Targeted,
                                 args.Start, GetGapcloserEndPosition(args.Start, args.End, gapcloser.SpellName, gapcloser.SkillType),
-                                menu[
-                                    "MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot +
-                                    ".Delay",
-                                    true], enemies, hp, Game.Time*1000));
+                                menu[$"MenuManager.GapcloserMenu.{enemy.ChampionName}.{gapcloser.SpellSlot}.Delay",true], enemies, hp, Core.GameTickCount));
                     }
                     else if (enemy.Hero == Champion.JarvanIV &&
                              args.SData.Name.ToLower() == "jarvanivdragonstrike" && GetGapcloserEndPosition(args.Start, args.End, "jarvanivdragonstrike", Gapcloser.GapcloserType.Skillshot).Distance(Player.Instance.Position) < 1000)
@@ -225,27 +221,32 @@ namespace Marksman_Master
                                     new GapCloserEventArgs(args.Target, args.Slot,
                                         args.Target == null ? GapcloserTypes.Skillshot : GapcloserTypes.Targeted,
                                         args.Start, GetGapcloserEndPosition(args.Start, args.End, gapcloser.SpellName, gapcloser.SkillType),
-                                        menu["MenuManager.GapcloserMenu." + enemy.ChampionName + "." +
-                                             gapcloser.SpellSlot +
-                                             ".Delay",
-                                            true], enemies, hp, Game.Time*1000));
+                                        menu[$"MenuManager.GapcloserMenu.{enemy.ChampionName}.{gapcloser.SpellSlot}.Delay", true], enemies, hp, Core.GameTickCount));
                                 break;
                             }
                         }
                     }
-                    else if (enemy.Hero != Champion.Nidalee && enemy.Hero != Champion.JarvanIV)
+
+                    else if (enemy.Hero != Champion.Nidalee && enemy.Hero != Champion.JarvanIV && enemy.Hero != Champion.Shen)
                     {
                         PluginInstance.OnGapcloser(enemy,
                             new GapCloserEventArgs(args.Target, args.Slot,
                                 args.Target == null ? GapcloserTypes.Skillshot : GapcloserTypes.Targeted,
                                 args.Start, GetGapcloserEndPosition(args.Start, args.End, gapcloser.SpellName, gapcloser.SkillType),
-                                menu[
-                                    "MenuManager.GapcloserMenu." + enemy.ChampionName + "." + gapcloser.SpellSlot +
-                                    ".Delay",
-                                    true], enemies, hp, Game.Time*1000));
+                                menu[$"MenuManager.GapcloserMenu.{enemy.ChampionName}.{gapcloser.SpellSlot}.Delay",
+                                    true], enemies, hp, Core.GameTickCount));
                     }
                 }
             }
+        }
+
+        private static bool CanInvoke(string championName, SpellSlot slot)
+        {
+            return MenuManager.MenuValues[$"MenuManager.GapcloserMenu.{championName}.{slot}.Enabled"] &&
+                   (Player.Instance.HealthPercent <=
+                    MenuManager.MenuValues[$"MenuManager.GapcloserMenu.{championName}.{slot}.Hp", true]) &&
+                   (Player.Instance.CountEnemiesInRange(MenuManager.GapcloserScanRange) <=
+                    MenuManager.MenuValues[$"MenuManager.GapcloserMenu.{championName}.{slot}.Enemies", true]);
         }
 
         public static Vector3 GetGapcloserEndPosition(Vector3 start, Vector3 end, string spellName, Gapcloser.GapcloserType type)
@@ -368,9 +369,10 @@ namespace Marksman_Master
                 {
                     return start.Extend(end, 650).To3D();
                 }
-                case "shenshadowdash": // Shen E
+                case "shene": // Shen E
                 {
-                    return start.Extend(end, 620).To3D();
+                    var distance = start.Distance(end);
+                    return start.Extend(end, distance > 620 ? 620 : distance).To3D();
                 }
                 case "rocketjump": // Tristana W
                 {

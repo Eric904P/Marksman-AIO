@@ -100,14 +100,13 @@ namespace Marksman_Master.Utils
 
         private static void Obj_AI_Base_OnSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (!sender.IsMelee)
+            if (!sender.IsMelee || !args.IsAutoAttack())
                 return;
 
             OnPostBasicAttack?.Invoke(sender, new PostBasicAttackArgs(sender, args.Target, args.End, args.Start, sender.NetworkId, sender.Team));
         }
 
         private static readonly Dictionary<MissileClient, float> Missiles = new Dictionary<MissileClient, float>();
-
 
         private static void PostBasicAttackHandler(EventArgs args)
         {

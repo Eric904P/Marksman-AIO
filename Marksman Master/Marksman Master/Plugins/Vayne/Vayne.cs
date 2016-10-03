@@ -26,6 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -33,7 +34,6 @@ using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
-using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
@@ -132,6 +132,12 @@ namespace Marksman_Master.Plugins.Vayne
             Obj_AI_Base.OnPlayAnimation += Obj_AI_Base_OnPlayAnimation;
             Messages.OnMessage += Messages_OnMessage;
 
+            Chat.OnClientSideMessage += args =>
+            {
+                if (args.Message.Equals("reset spell", StringComparison.InvariantCultureIgnoreCase))
+                    args.Process = false;
+            };
+
             Player.OnIssueOrder += Player_OnIssueOrder;
 
             var flashSlot = Player.Instance.GetSpellSlotFromName("summonerflash");
@@ -157,7 +163,7 @@ namespace Marksman_Master.Plugins.Vayne
         {
             if (sender.IsMe && args.Animation == "Spell1")
             {
-                Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
+                //Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
                 Orbwalker.ResetAutoAttack();
             }
         }
@@ -511,7 +517,7 @@ namespace Marksman_Master.Plugins.Vayne
             if (sender == null || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.Hero == Champion.Rengar).Any())
                 return;
 
-            if (sender.Name != "Rengar_LeapSound.troy" || !E.IsReady() || Player.Instance.IsDead || Settings.Misc.EAntiRengar)
+            if (sender.Name != "Rengar_LeapSound.troy" || !E.IsReady() || Player.Instance.IsDead || !Settings.Misc.EAntiRengar)
                 return;
 
             foreach (var rengar in EntityManager.Heroes.Enemies.Where(x => x.ChampionName == "Rengar").Where(rengar => rengar.Distance(Player.Instance.Position) < 1000).Where(rengar => rengar.IsValidTarget(E.Range) && E.IsReady()))
@@ -1333,10 +1339,6 @@ namespace Marksman_Master.Plugins.Vayne
                     int myHealthMinimumPercent, int casterHealthMinimumPercent, int casterMinimumDistanceToPlayer = 750)
                     : this(champion, spellName, spellSlot, enabledByDefault)
                 {
-                    Champion = champion;
-                    SpellName = spellName;
-                    SpellSlot = spellSlot;
-                    EnabledByDefault = enabledByDefault;
                     MyHealthMinimumPercent = myHealthMinimumPercent;
                     CasterHealthMinimumPercent = casterHealthMinimumPercent;
                     CasterMinimumDistanceToPlayer = casterMinimumDistanceToPlayer;
@@ -1346,15 +1348,8 @@ namespace Marksman_Master.Plugins.Vayne
                     int myHealthMinimumPercent, int casterHealthMinimumPercent, int casterMinimumDistanceToPlayer, bool onlyInCombo, bool enabled)
                     : this(champion, spellName, spellSlot, enabledByDefault, myHealthMinimumPercent, casterHealthMinimumPercent, casterMinimumDistanceToPlayer)
                 {
-                    Champion = champion;
-                    SpellName = spellName;
-                    SpellSlot = spellSlot;
-                    EnabledByDefault = enabledByDefault;
                     OnlyInCombo = onlyInCombo;
                     Enabled = enabled;
-                    MyHealthMinimumPercent = myHealthMinimumPercent;
-                    CasterHealthMinimumPercent = casterHealthMinimumPercent;
-                    CasterMinimumDistanceToPlayer = casterMinimumDistanceToPlayer;
                 }
             }
         }
