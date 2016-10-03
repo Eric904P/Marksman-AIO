@@ -39,7 +39,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
     {
         public static void Execute()
         {
-            if (Q.IsReady() && Settings.Combo.UseQ)
+            if (Q.IsReady() && Settings.Combo.UseQ && !IsPreAttack)
             {
                 var target = TargetSelector.GetTarget(GetRealRocketLauncherRange(), DamageType.Physical);
 
@@ -124,23 +124,23 @@ namespace Marksman_Master.Plugins.Jinx.Modes
             if (!R.IsReady() || !Settings.Combo.UseR || Player.Instance.Position.IsVectorUnderEnemyTower())
                 return;
 
-            var t = TargetSelector.GetTarget(4500, DamageType.Physical);
+            //var t = TargetSelector.GetTarget(20000, DamageType.Physical);
 
-            if (t == null || t.HasUndyingBuffA() || (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 50) > 0) || ((t.Health < Player.Instance.GetAutoAttackDamageCached(t, true)*1.8f) && Player.Instance.IsInAutoAttackRange(t)))
-                return;
+            //if (t == null || t.HasUndyingBuffA() || (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 50) > 0) || ((t.Health < Player.Instance.GetAutoAttackDamageCached(t, true)*1.8f) && Player.Instance.IsInAutoAttackRange(t)))
+            //    return;
 
-            var health = t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t);
+            //var health = t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t);
 
-            if (health > 0 && (health < Damage.GetRDamage(t)) && R.GetHealthPrediction(t) > 0)
-            {
-                var rPrediction = R.GetPrediction(t);
+            //if (health > 0 && (health < Damage.GetRDamage(t)) && R.GetHealthPrediction(t) > 0)
+            //{
+            //    var rPrediction = R.GetPrediction(t);
 
-                if (rPrediction.HitChancePercent < 65)
-                    return;
+            //    if (rPrediction.HitChancePercent < 65)
+            //        return;
 
-                R.Cast(rPrediction.CastPosition);
-                Misc.PrintDebugMessage("KS ULT");
-            }
+            //    R.Cast(rPrediction.CastPosition);
+            //    Misc.PrintDebugMessage("KS ULT");
+            //}
             else
             {
                 R.CastIfItWillHit(4, 60);

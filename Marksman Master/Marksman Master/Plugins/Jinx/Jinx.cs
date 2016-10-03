@@ -27,6 +27,7 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
+using System.Drawing;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -34,6 +35,7 @@ using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
+using Marksman_Master.Cache.Modules;
 using Marksman_Master.Utils;
 using SharpDX;
 using Color = System.Drawing.Color;
@@ -87,6 +89,10 @@ namespace Marksman_Master.Plugins.Jinx
 
         protected static bool IsPreAttack { get; private set; }
 
+        private static readonly Text Text;
+
+        protected static Cache.Cache Cache { get; }
+
         static Jinx()
         {
             Q = new Spell.Active(SpellSlot.Q);
@@ -100,10 +106,14 @@ namespace Marksman_Master.Plugins.Jinx
                 AllowedCollisionCount = -1
             };
 
+            Cache = StaticCacheProvider.Cache;
+
             ColorPicker = new ColorPicker[2];
 
             ColorPicker[0] = new ColorPicker("JinxQ", new ColorBGRA(114, 171, 160, 255));
             ColorPicker[1] = new ColorPicker("JinxW", new ColorBGRA(255, 21, 95, 255));
+
+            Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
             Orbwalker.OnPostAttack += (target, args) => IsPreAttack = false;
@@ -157,6 +167,24 @@ namespace Marksman_Master.Plugins.Jinx
             if (Settings.Drawings.DrawW && (!Settings.Drawings.DrawSpellRangesWhenReady || W.IsReady()))
                 Circle.Draw(ColorPicker[1].Color, W.Range, Player.Instance);
 
+
+            if (!R.IsReady())
+                return;
+
+            foreach (var source in EntityManager.Heroes.Enemies.Where(
+                x => x.IsHPBarRendered && x.Position.IsOnScreen()))
+            {
+                var hpPosition = source.HPBarPosition;
+                hpPosition.Y = hpPosition.Y + 30;
+                var percentDamage = Math.Min(100, Damage.GetRDamage(source) / source.TotalHealthWithShields() * 100);
+
+                Text.X = (int)(hpPosition.X - 50);
+                Text.Y = (int)source.HPBarPosition.Y;
+                Text.Color =
+                    new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
+                Text.TextValue = percentDamage.ToString("F1")+"%";
+                Text.Draw();
+            }
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
@@ -211,8 +239,7 @@ namespace Marksman_Master.Plugins.Jinx
             ComboMenu.Add("Plugins.Jinx.ComboMenu.RKeybind", new KeyBind("R keybind", false, KeyBind.BindTypes.HoldActive, 'T'));
             ComboMenu.AddLabel("Fires R on best target in range when keybind is active.");
             ComboMenu.AddSeparator(5);
-            var keybindRange = ComboMenu.Add("Plugins.Jinx.ComboMenu.RRangeKeybind",
-                new Slider("Maximum range to enemy to cast R while keybind is active", 1100, 300, 5000));
+            var keybindRange = ComboMenu.Add("Plugins.Jinx.ComboMenu.RRangeKeybind", new Slider("Maximum range to enemy to cast R while keybind is active", 1100, 300, 5000));
             keybindRange.OnValueChange += (a, b) =>
             {
                 _changingkeybindRange = true;
@@ -280,6 +307,8 @@ namespace Marksman_Master.Plugins.Jinx
             MiscMenu.Add("Plugins.Jinx.MiscMenu.EnableInterrupter", new CheckBox("Cast E against interruptible spells", false));
             MiscMenu.Add("Plugins.Jinx.MiscMenu.EnableAntiGapcloser", new CheckBox("Cast E against gapclosers"));
             MiscMenu.Add("Plugins.Jinx.MiscMenu.WKillsteal", new CheckBox("Cast W to killsteal"));
+            MiscMenu.Add("Plugins.Jinx.MiscMenu.RKillsteal", new CheckBox("Cast R to killsteal"));
+            MiscMenu.Add("Plugins.Jinx.ComboMenu.RKillstealMaxRange", new Slider("Maximum range to enemy to cast R for killsteal", 8000, 0, 20000));
 
             DrawingsMenu = MenuManager.Menu.AddSubMenu("Drawings");
             DrawingsMenu.AddGroupLabel("Drawings settings for Jinx addon");
@@ -416,6 +445,10 @@ namespace Marksman_Master.Plugins.Jinx
                 public static bool EnableAntiGapcloser => MenuManager.MenuValues["Plugins.Jinx.MiscMenu.EnableAntiGapcloser"];
 
                 public static bool WKillsteal => MenuManager.MenuValues["Plugins.Jinx.MiscMenu.WKillsteal"];
+
+                public static bool RKillsteal => MenuManager.MenuValues["Plugins.Jinx.MiscMenu.RKillsteal"];
+
+                public static int RKillstealMaxRange => MenuManager.MenuValues["Plugins.Jinx.MiscMenu.RKillstealMaxRange", true];
             }
 
             internal static class Drawings
@@ -430,27 +463,43 @@ namespace Marksman_Master.Plugins.Jinx
 
         protected static class Damage
         {
+            private static CustomCache<int, float> RDamages { get; } = Cache.Resolve<CustomCache<int, float>>();
+
             public static int[] RMinimalDamage { get; } = {0, 25, 35, 45};
             public static float RBonusAdDamageMod { get; } = 0.15f;
             public static float[] RMissingHealthBonusDamage { get; } = {0, 0.25f, 0.3f, 0.35f};
 
             public static float GetRDamage(Obj_AI_Base target)
             {
-                //var distance = Player.Instance.Distance(target) > 1500 ? 1499 : Player.Instance.Distance(target);
-                //distance = distance < 100 ? 100 : distance;
+                if (MenuManager.IsCacheEnabled && RDamages.Exist(target.NetworkId))
+                {
+                    return RDamages.Get(target.NetworkId);
+                }
 
-                //var baseDamage = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
-                //    RMinimalDamage[R.Level],
-                //    RMinimalDamage[R.Level]*10);
-                //var bonusAd = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
-                //    RBonusAdDamageMod,
-                //    RBonusAdDamageMod*10);
-                //var percentDamage = (target.MaxHealth - target.Health)*RMissingHealthBonusDamage[R.Level];
+                RDamages.RefreshRate = 500;
 
-                //return Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
-                //    (float) (baseDamage + percentDamage + Player.Instance.FlatPhysicalDamageMod*bonusAd));
+                var distance = Player.Instance.Distance(target) > 1500 ? 1499 : Player.Instance.Distance(target);
+                distance = distance < 100 ? 100 : distance;
 
-                return Player.Instance.GetSpellDamageCached(target, SpellSlot.R);
+                var baseDamage = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
+                    RMinimalDamage[R.Level],
+                    RMinimalDamage[R.Level] * 10);
+                var bonusAd = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
+                    RBonusAdDamageMod,
+                    RBonusAdDamageMod * 10);
+                var percentDamage = (target.MaxHealth - target.Health) * RMissingHealthBonusDamage[R.Level];
+
+                var finalDamage = Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
+                    (float) (baseDamage + percentDamage + Player.Instance.FlatPhysicalDamageMod*bonusAd));
+
+                if (MenuManager.IsCacheEnabled)
+                {
+                    RDamages.Add(target.NetworkId, finalDamage);
+                }
+
+                return finalDamage;
+
+                //return Player.Instance.GetSpellDamageCached(target, SpellSlot.R);
             }
         }
     }

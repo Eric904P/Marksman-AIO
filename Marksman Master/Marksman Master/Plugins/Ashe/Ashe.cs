@@ -92,6 +92,12 @@ namespace Marksman_Master.Plugins.Ashe
 
             ChampionTracker.Initialize(ChampionTrackerFlags.VisibilityTracker);
 
+            Obj_AI_Base.OnProcessSpellCast += (sender, args) =>
+            {
+                if(sender.IsMe && args.Slot == SpellSlot.Q)
+                    Orbwalker.ResetAutoAttack();
+            };
+
             Orbwalker.OnPreAttack += (a,b) => IsPreAttack = true;
             Orbwalker.OnPostAttack += (a, b) => { IsPreAttack = false; IsAfterAttack = true; };
             Game.OnPostTick += args => IsAfterAttack = false;

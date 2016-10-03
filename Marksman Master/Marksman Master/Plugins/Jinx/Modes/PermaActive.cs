@@ -87,21 +87,44 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                     }
                 }
             }
-            if (R.IsReady() && Settings.Combo.UseR)
+            if (R.IsReady() && Settings.Combo.UseR && !Player.Instance.Position.IsVectorUnderEnemyTower())
             {
                 var target = TargetSelector.GetTarget(Settings.Combo.RRangeKeybind, DamageType.Physical);
 
-                if (target == null || !Settings.Combo.RKeybind)
-                    return;
-
-                var rPrediciton = R.GetPrediction(target);
-                if (rPrediciton.HitChance == HitChance.High)
+                if (target != null && Settings.Combo.RKeybind)
                 {
-                    R.Cast(rPrediciton.CastPosition);
+                    var rPrediciton = R.GetPrediction(target);
+                    if (rPrediciton.HitChance == HitChance.High)
+                    {
+                        R.Cast(rPrediciton.CastPosition);
+                        return;
+                    }
+                }
+
+                var t = TargetSelector.GetTarget(Settings.Misc.RKillstealMaxRange, DamageType.Physical);
+
+                if (t != null && !t.HasUndyingBuffA() &&
+                    (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 50) == 0))
+                {
+                    if ((t.Health < Player.Instance.GetAutoAttackDamageCached(t, true)*1.8f) &&
+                        Player.Instance.IsInAutoAttackRange(t))
+                        return;
+
+                    var health = t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t);
+
+                    if (health > 0 && (health < Damage.GetRDamage(t)) && R.GetHealthPrediction(t) > 0)
+                    {
+                        var rPrediction = R.GetPrediction(t);
+
+                        if (rPrediction.HitChancePercent < 65)
+                            return;
+
+                        R.Cast(rPrediction.CastPosition);
+                        Misc.PrintDebugMessage("KS ULT");
+                    }
                 }
             }
-
-
+            
             if (!E.IsReady() || !Settings.Combo.AutoE || !(Player.Instance.Mana - 50 > 100))
                 return;
 
