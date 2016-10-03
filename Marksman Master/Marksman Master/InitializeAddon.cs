@@ -61,9 +61,11 @@ namespace Marksman_Master
                 GameObject.OnCreate += GameObject_OnCreate;
             }
 
+            var blacklistedStrings = new[] {"reset spell", "reset animation"};
+
             Chat.OnClientSideMessage += args =>
             {
-                if (args.Message.Equals("reset spell", StringComparison.InvariantCultureIgnoreCase))
+                if (blacklistedStrings.Any(x => x.Equals(args.Message, StringComparison.InvariantCultureIgnoreCase)))
                     args.Process = false;
             };
 
