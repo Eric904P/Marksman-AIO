@@ -366,8 +366,8 @@ namespace Marksman_Master.Plugins.Jhin
 
             ComboMenu.AddLabel("Curtain Call (R) settings :");
             ComboMenu.Add("Plugins.Jhin.ComboMenu.UseR", new CheckBox("Use R"));
-            ComboMenu.Add("Plugins.Jhin.ComboMenu.RDelay", new Slider("Delay between shots", 0,  0, 2500));
             ComboMenu.Add("Plugins.Jhin.ComboMenu.EnableFowPrediction", new CheckBox("Enable FoW prediction"));
+            ComboMenu.Add("Plugins.Jhin.ComboMenu.RDelay", new Slider("Delay between shots", 0,  0, 2500));
             ComboMenu.Add("Plugins.Jhin.ComboMenu.RMode", new ComboBox("R mode", 0, "In Combo mode", "KeyBind", "Automatic"));
             ComboMenu.Add("Plugins.Jhin.ComboMenu.RKeybind", new KeyBind("R keybind", false, KeyBind.BindTypes.HoldActive, 'T'));
             ComboMenu.AddSeparator(5);
