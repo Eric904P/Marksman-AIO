@@ -39,7 +39,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
     {
         public static void Execute()
         {
-            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+            var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).ToList();
 
             if (!jungleMinions.Any())
                 return;
@@ -52,15 +52,22 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
             };
 
             if (!Q.IsReady() || !Settings.LaneClear.UseQInJungleClear || Player.Instance.HasSheenBuff() ||
-                jungleMinions.Count(x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase)) < 1 ||
-                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
+                (jungleMinions.Count(x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase)) < 1) ||
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaQ))
                 return;
 
             {
-                foreach (var minion in from minion in jungleMinions.Where(x => x.IsValidTarget(Q.Range) && allowedMonsters.Any(k=> k.Contains(x.BaseSkinName)) && Q.GetPrediction(x).HitChance == HitChance.High) let health = Prediction.Health.GetPrediction(minion, (int)((minion.Distance(Player.Instance) + Q.CastDelay) / Q.Speed * 1000)) where health > 10 select minion)
+                foreach (var minion in 
+                    from minion in
+                        jungleMinions.Where(
+                            x => x.IsValidTargetCached(Q.Range) && allowedMonsters.Any(k => k.Contains(x.BaseSkinName)) &&
+                                Q.GetPrediction(x).HitChance == HitChance.High)
+                    let health = Prediction.Health.GetPrediction(minion, (int) ((minion.DistanceCached(Player.Instance) + Q.CastDelay)/Q.Speed*1000))
+                    where health > 10
+                    select minion)
                 {
                     if (Orbwalker.LastTarget != null && Orbwalker.LastTarget.NetworkId == minion.NetworkId &&
-                        Player.Instance.GetAutoAttackDamage(minion, true) < minion.Health && !IsPreAttack)
+                        (Player.Instance.GetAutoAttackDamageCached(minion, true) < minion.Health) && !IsPreAttack)
                     {
                         Q.Cast(minion);
                         return;
@@ -70,6 +77,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                         continue;
 
                     Q.Cast(minion);
+
                     return;
                 }
             }

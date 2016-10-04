@@ -166,8 +166,7 @@ namespace Marksman_Master.Plugins.Jinx
 
             if (Settings.Drawings.DrawW && (!Settings.Drawings.DrawSpellRangesWhenReady || W.IsReady()))
                 Circle.Draw(ColorPicker[1].Color, W.Range, Player.Instance);
-
-
+            
             if (!R.IsReady())
                 return;
 
@@ -182,7 +181,7 @@ namespace Marksman_Master.Plugins.Jinx
                 Text.Y = (int)source.HPBarPosition.Y;
                 Text.Color =
                     new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
-                Text.TextValue = percentDamage.ToString("F1")+"%";
+                Text.TextValue = percentDamage.ToString("F1") + "%";
                 Text.Draw();
             }
         }

@@ -26,7 +26,10 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
+using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -35,8 +38,10 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
+using Marksman_Master.Cache.Modules;
 using Marksman_Master.PermaShow.Values;
 using Marksman_Master.Utils;
+using Color = SharpDX.Color;
 
 namespace Marksman_Master.Plugins.Ezreal
 {
@@ -63,17 +68,20 @@ namespace Marksman_Master.Plugins.Ezreal
         protected static bool IsPostAttack { get; private set; }
 
         protected static bool HasPassiveBuff
-            => Player.Instance.Buffs.Any(b => b.IsActive && b.Name.ToLowerInvariant() == "ezrealrisingspellforce");
+            => Player.Instance.Buffs.Any(b => b.IsActive && b.Name.Equals("ezrealrisingspellforce", StringComparison.CurrentCultureIgnoreCase));
 
         protected static BuffInstance GetPassiveBuff
-            => Player.Instance.Buffs.Find(b => b.IsActive && b.Name.ToLowerInvariant() == "ezrealrisingspellforce");
+            => Player.Instance.Buffs.Find(b => b.IsActive && b.Name.Equals("ezrealrisingspellforce", StringComparison.CurrentCultureIgnoreCase));
 
         protected static int GetPassiveBuffAmount
             => HasPassiveBuff ? Player.Instance.Buffs.Find(
-                        b => b.IsActive && b.Name.ToLowerInvariant() == "ezrealrisingspellforce").Count : 0;
+                        b => b.IsActive && b.Name.Equals("ezrealrisingspellforce", StringComparison.CurrentCultureIgnoreCase)).Count : 0;
 
-        private static readonly Dictionary<int, Dictionary<float, float>> Damages =
-            new Dictionary<int, Dictionary<float, float>>();
+        protected static Cache.Cache Cache => StaticCacheProvider.Cache;
+
+        protected static CustomCache<int, float> ComboDamages { get; }
+
+        private static readonly Text Text;
 
         static Ezreal()
         {
@@ -88,6 +96,8 @@ namespace Marksman_Master.Plugins.Ezreal
                 AllowedCollisionCount = int.MaxValue
             };
 
+            ComboDamages = Cache.Resolve<CustomCache<int, float>>(1000);
+
             ColorPicker = new ColorPicker[4];
 
             ColorPicker[0] = new ColorPicker("EzrealQ", new ColorBGRA(10, 106, 138, 255));
@@ -99,6 +109,10 @@ namespace Marksman_Master.Plugins.Ezreal
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
+
+            Obj_AI_Base.OnBasicAttack += Obj_AI_Base_OnBasicAttack;
+
+            Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 
             ColorPicker[3].OnColorChange +=
                 (a, b) =>
@@ -116,9 +130,62 @@ namespace Marksman_Master.Plugins.Ezreal
 
                 IsPreAttack = true;
             };
-            Orbwalker.OnPostAttack += (a, b) => { IsPreAttack = false; IsPostAttack = true; };
+
+            Orbwalker.OnPostAttack += (a, b) =>
+            {
+                IsPreAttack = false;
+                IsPostAttack = true;
+            };
 
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
+            ChampionTracker.OnPostBasicAttack += ChampionTracker_OnPostBasicAttack;
+        }
+
+        private static void ChampionTracker_OnPostBasicAttack(object sender, PostBasicAttackArgs e)
+        {
+            if (!e.Sender.IsMe)
+                return;
+
+            if (!Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+                return;
+
+            if (!Q.IsReady() || !Settings.Combo.UseQ || Player.Instance.HasSheenBuff())
+                return;
+
+            var possibleTargets =
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x =>
+                        x.IsValidTargetCached(Q.Range) &&
+                        !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(k =>
+                            k.IsValidTargetCached(Q.Range - 80) &&
+                            !k.HasSpellShield() &&
+                            !k.HasUndyingBuffA() &&
+                            (k.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(k, SpellSlot.Q))) &&
+                        (Q.GetPrediction(x).HitChancePercent > 65) &&
+                        !x.HasSpellShield() && !x.HasUndyingBuffA()).ToList();
+
+            if (!possibleTargets.Any())
+                return;
+
+            var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+            if (target != null && !Player.Instance.HasSheenBuff() && !IsPreAttack)
+            {
+                Q.CastMinimumHitchance(target, 65);
+            }
+        }
+
+        private static void Obj_AI_Base_OnBasicAttack(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if (sender.IsMe || sender.IsEnemy || !Settings.Misc.WToPushTowers)
+                return;
+
+            if (W.IsReady() && sender.IsValidTargetCached(W.Range) && args.Target != null && args.Target.IsValid &&
+                (args.Target.Type == GameObjectType.obj_AI_Turret ||
+                 args.Target.Type == GameObjectType.obj_BarracksDampener || args.Target.Type == GameObjectType.obj_HQ))
+            {
+                W.CastMinimumHitchance(sender, 85);
+            }
         }
 
         private static void ChampionTracker_OnLongSpellCast(object sender, OnLongSpellCastEventArgs e)
@@ -131,7 +198,7 @@ namespace Marksman_Master.Plugins.Ezreal
             {
                 Q.CastMinimumHitchance(e.Sender, 65);
             }
-            else if (Settings.Harass.IsAutoHarassEnabledFor(e.Sender) && Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ &&
+            else if (Settings.Harass.IsAutoHarassEnabledFor(e.Sender) && Q.IsReady() && Settings.Harass.UseQ && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ) &&
                      !Player.Instance.HasSheenBuff())
             {
                 Q.CastMinimumHitchance(e.Sender, 65);
@@ -155,28 +222,32 @@ namespace Marksman_Master.Plugins.Ezreal
 
         protected static float GetComboDamage(Obj_AI_Base unit)
         {
-            if (Damages.ContainsKey(unit.NetworkId) &&
-                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200))) //
-                return Damages[unit.NetworkId].Values.FirstOrDefault();
+            if (MenuManager.IsCacheEnabled && ComboDamages.Exist(unit.NetworkId))
+            {
+                return ComboDamages.Get(unit.NetworkId);
+            }
 
             var damage = 0f;
 
-            if (Q.IsReady() && unit.IsValidTarget(Q.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
+            if (Q.IsReady() && unit.IsValidTargetCached(Q.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.Q);
 
-            if (W.IsReady() && unit.IsValidTarget(W.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.W);
+            if (W.IsReady() && unit.IsValidTargetCached(W.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.W);
 
-            if (E.IsReady() && unit.IsValidTarget(E.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.E);
+            if (E.IsReady() && unit.IsValidTargetCached(E.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.E);
 
-            if (R.IsReady() && unit.IsValidTarget(R.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.R);
+            if (R.IsReady() && unit.IsValidTargetCached(R.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.R);
 
             if (Player.Instance.IsInAutoAttackRange(unit))
-                damage += Player.Instance.GetAutoAttackDamage(unit);
+                damage += Player.Instance.GetAutoAttackDamageCached(unit, true);
 
-            Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
+            if (MenuManager.IsCacheEnabled)
+            {
+                ComboDamages.Add(unit.NetworkId, damage);
+            }
 
             return damage;
         }
@@ -193,6 +264,23 @@ namespace Marksman_Master.Plugins.Ezreal
                 Circle.Draw(ColorPicker[1].Color, W.Range, Player.Instance);
             if (Settings.Drawings.DrawE && (!Settings.Drawings.DrawSpellRangesWhenReady || E.IsReady()))
                 Circle.Draw(ColorPicker[2].Color, E.Range, Player.Instance);
+            
+            if (!R.IsReady() || !Settings.Drawings.DrawDamageIndicator)
+                return;
+
+            foreach (var source in EntityManager.Heroes.Enemies.Where(
+                x => x.IsHPBarRendered && x.Position.IsOnScreen()))
+            {
+                var hpPosition = source.HPBarPosition;
+                hpPosition.Y = hpPosition.Y + 30;
+                var percentDamage = Math.Min(100, Player.Instance.GetSpellDamageCached(source, SpellSlot.R) / source.TotalHealthWithShields() * 100);
+
+                Text.X = (int)(hpPosition.X - 80);
+                Text.Y = (int)source.HPBarPosition.Y;
+                Text.Color = new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
+                Text.TextValue = $"R : {percentDamage.ToString("F1")}%";
+                Text.Draw();
+            }
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
@@ -280,8 +368,16 @@ namespace Marksman_Master.Plugins.Ezreal
             MiscMenu.Add("Plugins.Ezreal.MiscMenu.KeepPassiveStacks", new CheckBox("Keep passive stacks if possible"));
             MiscMenu.AddSeparator(5);
 
+            MiscMenu.AddLabel("Essence Flux (W) settings :");
+            MiscMenu.Add("Plugins.Ezreal.MiscMenu.WToPushTowers", new CheckBox("Use W on allies to push towers"));
+            MiscMenu.AddSeparator(5);
+
             MiscMenu.AddLabel("Arcane Shift (E) settings :");
             MiscMenu.Add("Plugins.Ezreal.MiscMenu.EAntiMelee", new CheckBox("Use E against melee champions"));
+            MiscMenu.AddSeparator(5);
+
+            MiscMenu.AddLabel("Trueshot Barrage (R) settings :");
+            MiscMenu.Add("Plugins.Ezreal.MiscMenu.MaxRRangeKillsteal", new Slider("Max R range to enemy for killsteal", 8000, 0, 20000));
             MiscMenu.AddSeparator(5);
 
             MiscMenu.AddLabel("Tear Stacker settings :");
@@ -368,10 +464,8 @@ namespace Marksman_Master.Plugins.Ezreal
             TearStacker.Enabled = Settings.Misc.EnableTearStacker;
             TearStacker.OnlyInFountain = Settings.Misc.StackOnlyInFountain;
             TearStacker.MinimumManaPercent = Settings.Misc.MinimalManaPercentTearStacker;
-
-
-            AutoHarassItem = MenuManager.PermaShow.AddItem("Ezreal.AutoHarass",
-                new BoolItem("Auto harass with Q", Settings.Harass.UseQ));
+            
+            AutoHarassItem = MenuManager.PermaShow.AddItem("Ezreal.AutoHarass", new BoolItem("Auto harass with Q", Settings.Harass.UseQ));
         }
 
         protected override void PermaActive()
@@ -462,9 +556,13 @@ namespace Marksman_Master.Plugins.Ezreal
 
                 public static bool EAntiMelee => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.EAntiMelee"];
 
-                public static bool EnableTearStacker => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.EnableTearStacker"];
+                public static int MaxRRangeKillsteal => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.MaxRRangeKillsteal", true];
 
+                public static bool EnableTearStacker => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.EnableTearStacker"];
+                
                 public static bool StackOnlyInFountain => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.StackOnlyInFountain"];
+
+                public static bool WToPushTowers => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.WToPushTowers"];
 
                 public static int MinimalManaPercentTearStacker => MenuManager.MenuValues["Plugins.Ezreal.MiscMenu.MinimalManaPercentTearStacker", true];
             }

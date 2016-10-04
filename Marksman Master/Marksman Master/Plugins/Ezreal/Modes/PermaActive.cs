@@ -39,21 +39,23 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
         {
             if (Settings.Misc.EnableKillsteal)
             {
-                var enemies = EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(Q.Range) && x.HealthPercent < 20 && !x.HasUndyingBuffA() &&
-                        !x.HasSpellShield()).ToList();
+                var enemies =
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x => x.IsValidTarget(Q.Range) && (x.HealthPercent < 20) && !x.HasUndyingBuffA() &&
+                             !x.HasSpellShield()).ToList();
 
-                if (enemies.Any())
+                if (enemies.Any() && !IsPreAttack)
                 {
                     if (Q.IsReady())
                     {
-                        foreach (var enemy in enemies.Where(x=> x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                        foreach (var enemy in enemies.Where(x=> x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.Q)))
                         {
                             Q.CastMinimumHitchance(enemy, 65);
                             return;
                         }
                     } else if (W.IsReady())
                     {
-                        foreach (var enemy in enemies.Where(x => x.TotalHealthWithShields(true) < Player.Instance.GetSpellDamage(x, SpellSlot.W)))
+                        foreach (var enemy in enemies.Where(x => x.TotalHealthWithShields(true) < Player.Instance.GetSpellDamageCached(x, SpellSlot.W)))
                         {
                             W.CastMinimumHitchance(enemy, 65);
                             return;
@@ -62,49 +64,45 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 }
             }
 
-            if (Q.IsReady() && !Player.Instance.IsRecalling() && Settings.Misc.KeepPassiveStacks && GetPassiveBuffAmount >= 4 && GetPassiveBuff.EndTime - Game.Time < 1.5f && GetPassiveBuff.EndTime - Game.Time > 0.3f && Player.Instance.Mana > 350 && !EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(Q.Range)))
+            if (Q.IsReady() && !Player.Instance.IsRecalling() && !IsPreAttack && Settings.Misc.KeepPassiveStacks && (GetPassiveBuffAmount >= 4) && (GetPassiveBuff.EndTime - Game.Time < 1.5f) && (GetPassiveBuff.EndTime - Game.Time > 0.3f) && (Player.Instance.ManaPercent > 25) && !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x=>x.IsValidTargetCached(Q.Range)))
             {
-                foreach (var minion in EntityManager.MinionsAndMonsters.CombinedAttackable.Where(x=>x.IsValidTarget(Q.Range)))
+                foreach (var minion in StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions, x=>x.IsValidTarget(Q.Range)))
                 {
                     Q.Cast(minion);
                     return;
                 }
             }
 
-            if (Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ &&
-                !Player.Instance.HasSheenBuff() && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0)
+            if (Q.IsReady() && Settings.Harass.UseQ && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ) &&
+                !Player.Instance.HasSheenBuff() && (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0))
             {
-                var immobileEnemies = EntityManager.Heroes.Enemies.Where(
-                    x =>
-                        Settings.Harass.IsAutoHarassEnabledFor(x) && x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() &&
-                        !x.HasSpellShield() && x.GetMovementBlockedDebuffDuration() > 0.3f).ToList();
+                var immobileEnemies = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => Settings.Harass.IsAutoHarassEnabledFor(x) && x.IsValidTargetCached(Q.Range) && !x.HasUndyingBuffA() &&
+                        !x.HasSpellShield() && (x.GetMovementBlockedDebuffDuration() > 0.3f)).ToList();
 
-                if (immobileEnemies.Any())
+                if (immobileEnemies.Any() && !IsPreAttack)
                 {
                     foreach (
-                        var immobileEnemy in
-                            immobileEnemies.OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                        var qPrediction in
+                            from immobileEnemy in immobileEnemies.OrderByDescending(
+                                    x => Player.Instance.GetSpellDamageCached(x, SpellSlot.Q))
+                            where (immobileEnemy.GetMovementBlockedDebuffDuration() > Player.Instance.Distance(immobileEnemy)/Q.Speed + 0.25f) &&
+                                  !Player.Instance.HasSheenBuff()
+                            select Q.GetPrediction(immobileEnemy)
+                            into qPrediction
+                            where qPrediction.HitChancePercent > 60
+                            select qPrediction)
                     {
-                        if ((immobileEnemy.GetMovementBlockedDebuffDuration() >
-                             Player.Instance.Distance(immobileEnemy)/Q.Speed + 0.25f) && !Player.Instance.HasSheenBuff())
-                        {
-                            var qPrediction = Q.GetPrediction(immobileEnemy);
-                            if (qPrediction.HitChancePercent > 60)
-                            {
-                                Q.Cast(qPrediction.CastPosition);
-                                return;
-                            }
-                        }
-
+                        Q.Cast(qPrediction.CastPosition);
+                        return;
                     }
                 }
-                else if(!Player.Instance.IsRecalling() && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+
+                else if(!Player.Instance.IsRecalling() && !IsPreAttack && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 {
-                    foreach (var target in
-                        EntityManager.Heroes.Enemies.Where(x =>
-                            Settings.Harass.IsAutoHarassEnabledFor(x) && x.IsValidTarget(Q.Range) &&
-                            !x.HasUndyingBuffA() &&
-                            !x.HasSpellShield()).OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                    foreach (var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
+                            Settings.Harass.IsAutoHarassEnabledFor(x) && x.IsValidTargetCached(Q.Range) &&
+                            !x.HasUndyingBuffA() && !x.HasSpellShield()).OrderByDescending(x => Player.Instance.GetSpellDamageCached(x, SpellSlot.Q)))
                     {
                         Q.CastMinimumHitchance(target, 75);
                         return;
@@ -115,7 +113,29 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
             if (!R.IsReady() || !Settings.Combo.UseR)
                 return;
 
-            var t = TargetSelector.GetTarget(1500, DamageType.Physical);
+            if (Player.Instance.CountEnemyHeroesInRangeWithPrediction(
+                (int) (Player.Instance.GetAutoAttackRange() + 100), R.CastDelay) == 0)
+            {
+                
+                var rKillable = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x =>
+                        x.IsValidTarget(Settings.Misc.MaxRRangeKillsteal) && !x.HasUndyingBuffA() && !x.HasSpellShield())
+                    .ToList();
+
+                foreach (var rPrediction in
+                    from targ in rKillable
+                    let health = targ.TotalHealthWithShields(true) - IncomingDamage.GetIncomingDamage(targ)
+                    where health < Player.Instance.GetSpellDamageCached(targ, SpellSlot.R)
+                    select R.GetPrediction(targ)
+                    into rPrediction
+                    where rPrediction.HitChancePercent >= 65
+                    select rPrediction)
+                {
+                    R.Cast(rPrediction.CastPosition);
+                }
+            }
+
+            var t = TargetSelector.GetTarget(2500, DamageType.Physical);
 
             if (t == null || !Settings.Combo.RKeybind)
                 return;

@@ -27,14 +27,12 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using EloBuddy;
-using Marksman_Master.Cache.Modules;
-
 namespace Marksman_Master.Cache
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using EloBuddy;
     using Interfaces;
     using Utils;
 
@@ -85,7 +83,7 @@ namespace Marksman_Master.Cache
 
             try
             {
-                resolvedType = (T) System.Activator.CreateInstance(typeof (T));
+                resolvedType = (T) Activator.CreateInstance(typeof (T));
             }
             catch (Exception ex)
             {

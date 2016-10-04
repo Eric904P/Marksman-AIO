@@ -525,8 +525,6 @@ namespace Marksman_Master.Plugins.Caitlyn
                     HeadShotDamages.Add(unit.NetworkId, damage);
                 }
 
-                Chat.Print(HeadShotDamages.RefreshRate);
-
                 return damage;
             }
 
