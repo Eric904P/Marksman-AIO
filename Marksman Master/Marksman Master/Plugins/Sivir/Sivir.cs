@@ -412,6 +412,7 @@ namespace Marksman_Master.Plugins.Sivir
                 new BlockableSpellData(Champion.Singed, "[E] Fling", SpellSlot.E),
                 new BlockableSpellData(Champion.Skarner, "[R] Impale", SpellSlot.R),
                 new BlockableSpellData(Champion.Swain, "[E] Torment", SpellSlot.E),
+                new BlockableSpellData(Champion.Syndra, "[R] Unleashed Power", SpellSlot.R),
                 new BlockableSpellData(Champion.TahmKench, "[W] Devour", SpellSlot.W),
                 new BlockableSpellData(Champion.Teemo, "[Q] Blinding Dart", SpellSlot.Q),
                 new BlockableSpellData(Champion.Tristana, "[E] Explosive Charge", SpellSlot.E)
@@ -568,7 +569,7 @@ namespace Marksman_Master.Plugins.Sivir
                     return;
                 }
 
-                var enemy = (AIHeroClient)sender;
+                var enemy = sender as AIHeroClient;
 
                 if (enemy == null)
                     return;
