@@ -81,7 +81,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 foreach (var owner in ga.Select(objGeneralParticleEmitter => StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     x => x.DistanceCached(objGeneralParticleEmitter) < 20).FirstOrDefault()).Where(owner => owner != null))
                 {
-                    E.Cast(owner.ServerPosition);
+                    W.Cast(owner.ServerPosition);
                     break;
                 }
             }

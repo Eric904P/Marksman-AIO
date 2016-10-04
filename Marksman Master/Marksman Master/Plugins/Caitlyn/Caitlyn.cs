@@ -143,7 +143,7 @@ namespace Marksman_Master.Plugins.Caitlyn
             if (args.Slot == SpellSlot.W)
             {
                 Orbwalker.ResetAutoAttack();
-                _lastWCastTime = Game.Time * 1000;
+                _lastWCastTime = Core.GameTickCount;
             }
             else if (args.Slot == SpellSlot.E)
             {
@@ -523,6 +523,7 @@ namespace Marksman_Master.Plugins.Caitlyn
                 if (MenuManager.IsCacheEnabled)
                 {
                     HeadShotDamages.Add(unit.NetworkId, damage);
+                    HeadShotDamages.RefreshRate = 1000;
                 }
 
                 return damage;
@@ -542,6 +543,7 @@ namespace Marksman_Master.Plugins.Caitlyn
                 if (MenuManager.IsCacheEnabled)
                 {
                     RDamages.Add(unit.NetworkId, damage);
+                    RDamages.RefreshRate = 1000;
                 }
 
                 return damage;
