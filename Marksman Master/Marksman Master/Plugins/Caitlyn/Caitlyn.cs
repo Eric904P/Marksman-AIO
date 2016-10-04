@@ -68,16 +68,30 @@ namespace Marksman_Master.Plugins.Caitlyn
         private static readonly Dictionary<int, Dictionary<float, float>> Damages =
             new Dictionary<int, Dictionary<float, float>>();
 
+        protected static bool HasItemFirecanon
+            => Player.Instance.InventoryItems.Any(x => x.Id == ItemId.Rapid_Firecannon);
+
+        protected static bool HasFirecanonStackedUp
+            => Player.Instance.Buffs.Any(x => HasItemFirecanon && x.Name.ToLowerInvariant() == "itemstatikshankcharge" && x.Count == 100);
+
+        protected static float BasicAttackRange => HasFirecanonStackedUp ? 900 : 750;
+
         protected static bool IsPreAttack { get; private set; }
 
         static Caitlyn()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 1250, SkillShotType.Linear, 700, 2000, 70);
+            Q = new Spell.Skillshot(SpellSlot.Q, 1250, SkillShotType.Linear, 700, 2000, 70)
+            {
+                AllowedCollisionCount = -1
+            };
             W = new Spell.Skillshot(SpellSlot.W, 800, SkillShotType.Circular, 1400)
             {
                 Width = 20
             };
-            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Linear, 250, 2000, 70);
+            E = new Spell.Skillshot(SpellSlot.E, 820, SkillShotType.Linear, 250, 2000, 70)
+            {
+                AllowedCollisionCount = 0
+            };
             R = new Spell.Targeted(SpellSlot.R, 2000);
 
             ColorPicker = new ColorPicker[4];
@@ -116,16 +130,23 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (sender.IsMe && args.Slot == SpellSlot.W)
+            if (!sender.IsMe)
+                return;
+
+            switch (args.Slot)
             {
-                _lastWCastTime = Game.Time * 1000;
+                case SpellSlot.W:
+                    _lastWCastTime = Game.Time * 1000;
+                    break;
+                case SpellSlot.E:
+                    Orbwalker.ResetAutoAttack();
+                    break;
             }
         }
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
-            if (args.Slot == SpellSlot.W &&
-                (GetTrapsInRange(args.EndPosition, 200).Any() || Game.Time*1000 - _lastWCastTime < 2000))
+            if (args.Slot == SpellSlot.W && (GetTrapsInRange(args.EndPosition, 200).Any() || (Game.Time*1000 - _lastWCastTime < 1000)))
             {
                 args.Process = false;
             }
@@ -201,7 +222,7 @@ namespace Marksman_Master.Plugins.Caitlyn
                 return;
 
             foreach (var source in EntityManager.Heroes.Enemies.Where(
-                x => x.IsHPBarRendered && x.IsInRange(Player.Instance, R.Range)))
+                x => x.IsHPBarRendered && x.Position.IsOnScreen() && x.IsInRange(Player.Instance, R.Range)))
             {
                 var hpPosition = source.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 30;

@@ -37,7 +37,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
     {
         public static void Execute()
         {
-            if (Settings.Misc.EnableKillsteal && !IsPreAttack && Q.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower())
+            if (Settings.Misc.EnableKillsteal && (Player.Instance.CountEnemyHeroesInRangeWithPrediction((int)Player.Instance.GetAutoAttackRange(), 1000) <= 1) && !IsPreAttack && Q.IsReady() && !Player.Instance.Position.IsVectorUnderEnemyTower())
             {
                 foreach (
                     var target in
@@ -45,7 +45,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                             x =>
                                 x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
                                 (x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q)) &&
-                                !(x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(x, true) && (x.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange()))))
+                                !(x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(x, true) && Player.Instance.IsInAutoAttackRange(x))))
                 {
                     Q.CastMinimumHitchance(target, 60);
                     break;
