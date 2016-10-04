@@ -177,7 +177,7 @@ namespace Marksman_Master.Plugins.Ezreal
 
         private static void Obj_AI_Base_OnBasicAttack(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (sender.IsMe || sender.IsEnemy || !Settings.Misc.WToPushTowers)
+            if (sender.IsMe || sender.GetType() != typeof(AIHeroClient) || sender.IsEnemy || !Settings.Misc.WToPushTowers)
                 return;
 
             if (W.IsReady() && sender.IsValidTargetCached(W.Range) && args.Target != null && args.Target.IsValid &&
