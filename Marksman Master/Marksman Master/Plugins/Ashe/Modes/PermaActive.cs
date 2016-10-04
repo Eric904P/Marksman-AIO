@@ -41,7 +41,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
     {
         public static void Execute()
         {
-            if (R.IsReady() && Settings.Combo.UseR && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(Settings.Combo.RMaximumRange) && x.HealthPercent < 50 && !x.HasSpellShield() && !x.HasUndyingBuffA()).Any())
+            if (R.IsReady() && Settings.Combo.UseR && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(Settings.Combo.RMaximumRange) && (x.HealthPercent < 50) && !x.HasSpellShield() && !x.HasUndyingBuffA()).Any())
             {
                 foreach (var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(Settings.Combo.RMaximumRange)).OrderBy(TargetSelector.GetPriority))
                 {
@@ -60,43 +60,45 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                     if(target.TotalHealthWithShields(true) < Player.Instance.GetAutoAttackDamageCached(target, true)*2 && Player.Instance.IsInAutoAttackRange(target))
                         continue;
 
-                    if (target.TotalHealthWithShields(true) < damage)
-                    {
-                        var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
-                        {
-                            CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
-                            Delay = 500,
-                            From = Player.Instance.Position,
-                            Radius = 120,
-                            Range = Settings.Combo.RMaximumRange,
-                            RangeCheckFrom = Player.Instance.Position,
-                            Speed = R.Speed,
-                            Target = target,
-                            Type = SkillShotType.Linear
-                        });
+                    if (target.TotalHealthWithShields(true) > damage)
+                        continue;
 
-                        if (rPrediction.HitChance >= HitChance.High)
-                        {
-                            Misc.PrintDebugMessage($"Casting R on : {target.Hero} to killsteal ! v 1");
-                            R.Cast(rPrediction.CastPosition);
-                            break;
-                        }
-                    }
+                    var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                    {
+                        CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
+                        Delay = .5f,
+                        From = Player.Instance.Position,
+                        Radius = 120,
+                        Range = Settings.Combo.RMaximumRange,
+                        RangeCheckFrom = Player.Instance.Position,
+                        Speed = R.Speed,
+                        Target = target,
+                        Type = SkillShotType.Linear
+                    });
+
+                    if (rPrediction.HitChance < HitChance.High)
+                        continue;
+
+                    Misc.PrintDebugMessage($"Casting R on : {target.Hero} to killsteal ! v 1");
+                    R.Cast(rPrediction.CastPosition);
+                    break;
                 }
             }
 
-            if (W.IsReady() && Settings.Combo.UseW)
-            {
-                foreach (var source in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>x.IsValidTargetCached(W.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() && x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.W)))
-                {
-                    var wPrediction = GetWPrediction(source);
+            if (!W.IsReady() || !Settings.Combo.UseW)
+                return;
 
-                    if (wPrediction != null && wPrediction.HitChance >= HitChance.Medium)
-                    {
-                        W.Cast(wPrediction.CastPosition);
-                        break;
-                    }
-                }
+            foreach (
+                var wPrediction in
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x =>
+                            x.IsValidTargetCached(W.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
+                            x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.W))
+                        .Select(GetWPrediction)
+                        .Where(wPrediction => wPrediction != null && wPrediction.HitChance >= HitChance.Medium))
+            {
+                W.Cast(wPrediction.CastPosition);
+                break;
             }
         }
     }

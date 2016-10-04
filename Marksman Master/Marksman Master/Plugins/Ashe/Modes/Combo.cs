@@ -107,7 +107,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                     var damage = 0f;
                     var wPred = GetWPrediction(target);
 
-                    if (Player.Instance.Mana > 200 && target.IsValidTargetCached(W.Range))
+                    if ((Player.Instance.Mana > 200) && target.IsValidTargetCached(W.Range))
                     {
                         damage = Player.Instance.GetSpellDamageCached(target, SpellSlot.R) +
                                  (wPred != null && wPred.HitChance >= HitChance.Medium ? Player.Instance.GetSpellDamageCached(target, SpellSlot.W) : 0) +
@@ -120,7 +120,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                    var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {
                         CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
-                        Delay = 500,
+                        Delay = .5f,
                         From = Player.Instance.Position,
                         Radius = 120,
                         Range = Settings.Combo.RMaximumRange,

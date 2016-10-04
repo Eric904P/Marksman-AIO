@@ -125,7 +125,7 @@ namespace Marksman_Master.Plugins.Ashe
             var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
                 CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
-                Delay = 250,
+                Delay = .5f,
                 From = Player.Instance.Position,
                 Radius = 120,
                 Range = Settings.Combo.RMaximumRange,
@@ -144,7 +144,7 @@ namespace Marksman_Master.Plugins.Ashe
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (R.IsReady() && args.End.DistanceCached(Player.Instance.Position) < 400)
+            if (R.IsReady() && (args.End.DistanceCached(Player.Instance.Position) < 400))
             {
                 R.CastMinimumHitchance(sender, 65);
             }
@@ -165,15 +165,15 @@ namespace Marksman_Master.Plugins.Ashe
                 var qPred = Prediction.Position.PredictLinearMissile(unit, 1100, 20, 25, 1200, 0,
                     Player.Instance.Position.Extend(poly[i], 20).To3D());
 
-                if (!qPred.CollisionObjects.Any() && qPred.HitChance >= HitChance.High)
-                {
-                    if (MenuManager.IsCacheEnabled)
-                    {
-                        CachedWPrediction.Add(unit.NetworkId, qPred);
-                    }
+                if (qPred.CollisionObjects.Any() || (qPred.HitChance < HitChance.High))
+                    continue;
 
-                    return qPred;
+                if (MenuManager.IsCacheEnabled)
+                {
+                    CachedWPrediction.Add(unit.NetworkId, qPred);
                 }
+
+                return qPred;
             }
             return null;
         }
