@@ -508,8 +508,8 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         protected internal static class Damage
         {
-            private static CustomCache<int, float> HeadShotDamages => Cache.Resolve<CustomCache<int, float>>();
-            private static CustomCache<int, float> RDamages => Cache.Resolve<CustomCache<int, float>>();
+            private static CustomCache<int, float> HeadShotDamages => Cache.Resolve<CustomCache<int, float>>(1000);
+            private static CustomCache<int, float> RDamages => Cache.Resolve<CustomCache<int, float>>(1000);
 
             public static float GetHeadShotDamage(AIHeroClient unit)
             {
@@ -523,8 +523,9 @@ namespace Marksman_Master.Plugins.Caitlyn
                 if (MenuManager.IsCacheEnabled)
                 {
                     HeadShotDamages.Add(unit.NetworkId, damage);
-                    HeadShotDamages.RefreshRate = 1000;
                 }
+
+                Chat.Print(HeadShotDamages.RefreshRate);
 
                 return damage;
             }
@@ -543,7 +544,6 @@ namespace Marksman_Master.Plugins.Caitlyn
                 if (MenuManager.IsCacheEnabled)
                 {
                     RDamages.Add(unit.NetworkId, damage);
-                    RDamages.RefreshRate = 1000;
                 }
 
                 return damage;

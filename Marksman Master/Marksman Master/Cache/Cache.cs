@@ -31,6 +31,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
+using Marksman_Master.Cache.Modules;
 
 namespace Marksman_Master.Cache
 {
@@ -73,7 +74,7 @@ namespace Marksman_Master.Cache
         /// </summary>
         /// <typeparam name="T">Type</typeparam>
         /// <returns></returns>
-        internal T Resolve<T>() where T : ICachable
+        internal T Resolve<T>(int? refreshRate = null) where T : ICachable
         {
             if (typeof (T).GetConstructors().All(x => x.GetParameters().Length > 0))
             {
@@ -94,6 +95,11 @@ namespace Marksman_Master.Cache
             {
                 if (resolvedType != null)
                 {
+                    if (refreshRate.HasValue)
+                    {
+                        resolvedType.RefreshRate = refreshRate.Value;
+                    }
+
                     resolvedType.Load();
 
                     Objects.Add(resolvedType);
