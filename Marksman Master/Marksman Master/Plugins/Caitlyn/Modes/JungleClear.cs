@@ -29,6 +29,7 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Caitlyn.Modes
 {
@@ -37,10 +38,10 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
         public static void Execute()
         {
             if (!Settings.LaneClear.UseQInJungleClear || !Q.IsReady() ||
-                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaQ))
                 return;
 
-            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+            var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).ToList();
 
             if (!jungleMinions.Any())
                 return;
@@ -52,19 +53,13 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 "SRU_Dragon_Water", "SRU_Baron"
             };
 
-            var farmLocation = EntityManager.MinionsAndMonsters.GetLineFarmLocation(jungleMinions, 90, 1250,
-                Player.Instance.ServerPosition.To2D());
-
-            if (farmLocation.HitNumber > 2)
-            {
-                Q.Cast(farmLocation.CastPosition);
-                return;
-            }
-
             if (jungleMinions.Count == 1 && jungleMinions.Any(b => allowedMonsters.Any(x => x.Contains(b.BaseSkinName))))
             {
                 Q.Cast(jungleMinions.First());
+                return;
             }
+
+            Q.CastOnBestFarmPosition(2);
         }
     }
 }

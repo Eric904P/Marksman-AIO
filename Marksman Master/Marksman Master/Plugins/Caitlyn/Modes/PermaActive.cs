@@ -26,6 +26,8 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
+using System;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -41,11 +43,11 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
             {
                 foreach (
                     var target in
-                        EntityManager.Heroes.Enemies.Where(
+                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, 
                             x =>
-                                x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
-                                (x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q)) &&
-                                !(x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(x, true) && Player.Instance.IsInAutoAttackRange(x))))
+                                x.IsValidTargetCached(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
+                                (x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.Q)) &&
+                                !(x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(x, true) && Player.Instance.IsInAutoAttackRange(x))))
                 {
                     Q.CastMinimumHitchance(target, 60);
                     break;
@@ -56,51 +58,52 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 return;
 
             var immobileEnemies =
-                EntityManager.Heroes.Enemies.Where(
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     x =>
-                        x.IsValidTarget(W.Range) && !x.HasSpellShield() &&
+                        x.IsValidTargetCached(W.Range) && !x.HasSpellShield() &&
                         x.GetMovementBlockedDebuffDuration() > 1.5f).ToList();
 
             foreach (var immobileEnemy in immobileEnemies)
             {
                 W.Cast(immobileEnemy.ServerPosition);
-                break;
+                return;
+            }
+
+            var ga =
+                ObjectManager.Get<Obj_GeneralParticleEmitter>()
+                    .Where(
+                        x =>
+                            x.Name == "LifeAura.troy")
+                    .ToList();
+
+            if (ga.Any())
+            {
+                foreach (var owner in ga.Select(objGeneralParticleEmitter => StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => x.DistanceCached(objGeneralParticleEmitter) < 20).FirstOrDefault()).Where(owner => owner != null))
+                {
+                    E.Cast(owner.ServerPosition);
+                    break;
+                }
             }
 
             foreach (
                 var enemy in
-                    EntityManager.Heroes.Enemies.Where(
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         x =>
-                            x.IsValidTarget(W.Range) && x.Buffs.Any(
-                                m =>
-                                    m.Name.ToLowerInvariant() == "zhonyasringshield" ||
-                                    m.Name.ToLowerInvariant() == "bardrstasis")))
+                            x.IsValidTargetCached(W.Range) && x.Buffs.Any(
+                                m => m.Name.Equals("zhonyasringshield", StringComparison.CurrentCultureIgnoreCase) ||
+                                     m.Name.Equals("bardrstasis", StringComparison.CurrentCultureIgnoreCase))))
             {
+                var buffTime =
+                    enemy.Buffs.FirstOrDefault(
+                        m => m.Name.Equals("zhonyasringshield", StringComparison.CurrentCultureIgnoreCase) ||
+                             m.Name.Equals("bardrstasis", StringComparison.CurrentCultureIgnoreCase));
 
-                var buffTime = enemy.Buffs.FirstOrDefault(m => m.Name.ToLowerInvariant() == "zhonyasringshield" ||
-                                                               m.Name.ToLowerInvariant() == "bardrstasis");
-                if (buffTime != null && buffTime.EndTime - Game.Time > 1.45f)
-                {
-                    W.Cast(enemy.ServerPosition);
-                    break;
-                }
-
-                var ga =
-                    ObjectManager.Get<Obj_GeneralParticleEmitter>()
-                        .Where(
-                            x =>
-                                x.Name == "LifeAura.troy" && W.IsInRange(x.Position) &&
-                                x.Team != Player.Instance.Team)
-                        .ToList();
-
-                if (!ga.Any())
+                if (buffTime == null || (buffTime.EndTime - Game.Time < 1.25f))
                     continue;
 
-                foreach (var objGeneralParticleEmitter in ga)
-                {
-                    W.Cast(objGeneralParticleEmitter.Position);
-                    break;
-                }
+                W.Cast(enemy.ServerPosition);
+                break;
             }
         }
     }

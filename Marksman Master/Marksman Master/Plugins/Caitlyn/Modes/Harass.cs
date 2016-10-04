@@ -26,7 +26,6 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
@@ -38,13 +37,12 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
     {
         public static void Execute()
         {
-            if (!Settings.Harass.UseQ || !Q.IsReady() || (!(Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)) ||
-                Player.Instance.Position.IsVectorUnderEnemyTower() || HasAutoAttackRangeBuffOnChamp || Player.Instance.CountEnemiesInRange(650) != 0)
+            if (!Settings.Harass.UseQ || !Q.IsReady() || (Player.Instance.ManaPercent < Settings.Harass.MinManaQ) ||
+                Player.Instance.Position.IsVectorUnderEnemyTower() || HasAutoAttackRangeBuffOnChamp || Player.Instance.CountEnemiesInRange(BasicAttackRange) != 0)
                 return;
 
             var possibleTargets =
-                EntityManager.Heroes.Enemies.Where(
-                    x => x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
 
             var qTarget = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 

@@ -37,6 +37,7 @@ using EloBuddy.SDK.Rendering;
 using SharpDX;
 using System.Drawing;
 using EloBuddy.SDK.Menu.Values;
+using Marksman_Master.Cache.Modules;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Caitlyn
@@ -65,9 +66,6 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         private static readonly Text Text;
 
-        private static readonly Dictionary<int, Dictionary<float, float>> Damages =
-            new Dictionary<int, Dictionary<float, float>>();
-
         protected static bool HasItemFirecanon
             => Player.Instance.InventoryItems.Any(x => x.Id == ItemId.Rapid_Firecannon);
 
@@ -77,6 +75,8 @@ namespace Marksman_Master.Plugins.Caitlyn
         protected static float BasicAttackRange => HasFirecanonStackedUp ? 900 : 750;
 
         protected static bool IsPreAttack { get; private set; }
+
+        protected static Cache.Cache Cache => StaticCacheProvider.Cache;
 
         static Caitlyn()
         {
@@ -130,23 +130,30 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
+            if (sender.IsEnemy && args.SData.Name.Equals("SummonerFlash", StringComparison.CurrentCultureIgnoreCase) && (sender.Position.Extend(args.End, sender.Distance(args.End) >= 475 ? 475 : sender.Distance(args.End)).Distance(Player.Instance) <= 300))
+            {
+                E.Cast(
+                    sender.Position.Extend(args.End, sender.Distance(args.End) >= 475 ? 475 : sender.Distance(args.End))
+                        .To3D());
+            }
+
             if (!sender.IsMe)
                 return;
 
-            switch (args.Slot)
+            if (args.Slot == SpellSlot.W)
             {
-                case SpellSlot.W:
-                    _lastWCastTime = Game.Time * 1000;
-                    break;
-                case SpellSlot.E:
-                    Orbwalker.ResetAutoAttack();
-                    break;
+                Orbwalker.ResetAutoAttack();
+                _lastWCastTime = Game.Time * 1000;
+            }
+            else if (args.Slot == SpellSlot.E)
+            {
+                Orbwalker.ResetAutoAttack();
             }
         }
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
-            if (args.Slot == SpellSlot.W && (GetTrapsInRange(args.EndPosition, 200).Any() || (Game.Time*1000 - _lastWCastTime < 1000)))
+            if (args.Slot == SpellSlot.W && (GetTrapsInRange(args.EndPosition, 200).Any() || (Core.GameTickCount - _lastWCastTime < 1000)))
             {
                 args.Process = false;
             }
@@ -179,28 +186,22 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         protected static float GetComboDamage(Obj_AI_Base unit)
         {
-            if (Damages.ContainsKey(unit.NetworkId) &&
-                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200))) //
-                return Damages[unit.NetworkId].Values.FirstOrDefault();
-
             var damage = 0f;
 
-            if (unit.IsValidTarget(Q.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
+            if (unit.IsValidTargetCached(Q.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.Q);
 
-            if (unit.IsValidTarget(W.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.W);
+            if (unit.IsValidTargetCached(W.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.W);
 
-            if (unit.IsValidTarget(E.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.E);
+            if (unit.IsValidTargetCached(E.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.E);
 
-            if (unit.IsValidTarget(R.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.R);
+            if (unit.IsValidTargetCached(R.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.R);
 
             if (Player.Instance.IsInAutoAttackRange(unit))
-                damage += Player.Instance.GetAutoAttackDamage(unit);
-
-            Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
+                damage += Player.Instance.GetAutoAttackDamageCached(unit);
 
             return damage;
         }
@@ -221,17 +222,16 @@ namespace Marksman_Master.Plugins.Caitlyn
             if (!Settings.Drawings.DrawDamageIndicator || !R.IsReady())
                 return;
 
-            foreach (var source in EntityManager.Heroes.Enemies.Where(
-                x => x.IsHPBarRendered && x.Position.IsOnScreen() && x.IsInRange(Player.Instance, R.Range)))
+            foreach (var source in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                x => x.IsHPBarRendered && x.Position.IsOnScreen() && x.IsInRangeCached(Player.Instance, R.Range)))
             {
                 var hpPosition = source.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 30;
-                var percentDamage = Math.Min(100, Player.Instance.GetSpellDamage(source, SpellSlot.R) / source.TotalHealthWithShields() * 100);
+                var percentDamage = Math.Min(100, Player.Instance.GetSpellDamageCached(source, SpellSlot.R) / source.TotalHealthWithShields() * 100);
 
                 Text.X = (int) (hpPosition.X - 50);
                 Text.Y = (int) source.HPBarPosition.Y;
-                Text.Color =
-                    new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
+                Text.Color = new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
                 Text.TextValue = percentDamage.ToString("F1");
                 Text.Draw();
             }
@@ -246,6 +246,16 @@ namespace Marksman_Master.Plugins.Caitlyn
             if (Settings.Misc.WAgainstGapclosers && W.IsReady() && W.IsInRange(args.End))
             {
                 W.Cast(args.End);
+            }
+
+            if (args.GapcloserType != GapcloserTypes.Targeted || !E.IsReady() || !Settings.Misc.EAgainstGapclosers)
+                return;
+
+            var ePrediction = E.GetPrediction(sender);
+
+            if (ePrediction.HitChancePercent >= 65 && !GetDashEndPosition(ePrediction.CastPosition).IsVectorUnderEnemyTower())
+            {
+                Core.DelayAction(() => E.Cast(sender), args.Delay);
             }
         }
 
@@ -314,6 +324,9 @@ namespace Marksman_Master.Plugins.Caitlyn
 
             MiscMenu.AddLabel("Yordle Snap Trap (W) settings :");
             MiscMenu.Add("Plugins.Caitlyn.MiscMenu.WAgainstGapclosers", new CheckBox("Use W against gapclosers"));
+            
+            MiscMenu.AddLabel("90 Caliber Net (E) settings :");
+            MiscMenu.Add("Plugins.Caitlyn.MiscMenu.EAgainstGapclosers", new CheckBox("Use E against gapclosers"));
 
             MenuManager.BuildAntiGapcloserMenu();
 
@@ -382,7 +395,7 @@ namespace Marksman_Master.Plugins.Caitlyn
             return
                 ObjectManager.Get<Obj_GeneralParticleEmitter>()
                     .Where(
-                        x => x.Name == "Caitlyn_Base_W_Indicator_SizeRing.troy" && x.Position.Distance(position) < range);
+                        x => x.Name.Equals("Caitlyn_Base_W_Indicator_SizeRing.troy", StringComparison.InvariantCultureIgnoreCase) && (x.DistanceCached(position) < range));
         }
 
         protected static Vector3 GetDashEndPosition(Vector3 castPosition)
@@ -475,6 +488,8 @@ namespace Marksman_Master.Plugins.Caitlyn
                 public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.Caitlyn.MiscMenu.EnableKillsteal"];
 
                 public static bool WAgainstGapclosers => MenuManager.MenuValues["Plugins.Caitlyn.MiscMenu.WAgainstGapclosers"];
+
+                public static bool EAgainstGapclosers => MenuManager.MenuValues["Plugins.Caitlyn.MiscMenu.EAgainstGapclosers"];
             }
 
             internal static class Drawings
@@ -493,27 +508,21 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         protected internal static class Damage
         {
-            private static readonly Dictionary<int, Dictionary<float, float>> HeadShotDamages =
-                new Dictionary<int, Dictionary<float, float>>();
-
-            private static readonly Dictionary<int, Dictionary<float, float>> RDamages =
-                new Dictionary<int, Dictionary<float, float>>();
+            private static CustomCache<int, float> HeadShotDamages => Cache.Resolve<CustomCache<int, float>>();
+            private static CustomCache<int, float> RDamages => Cache.Resolve<CustomCache<int, float>>();
 
             public static float GetHeadShotDamage(AIHeroClient unit)
             {
-                if (HeadShotDamages.ContainsKey(unit.NetworkId) &&
-                    !HeadShotDamages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
-                    return HeadShotDamages[unit.NetworkId].Values.FirstOrDefault();
+                if (MenuManager.IsCacheEnabled && HeadShotDamages.Exist(unit.NetworkId))
+                {
+                    return HeadShotDamages.Get(unit.NetworkId);
+                }
 
                 var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, Player.Instance.TotalAttackDamage * (1 + (0.5f + Player.Instance.FlatCritChanceMod * (1 + 0.5f * (Player.Instance.HasItem(ItemId.Infinity_Edge) ? 0.5f : 0)))), false, true) + (IsUnitImmobilizedByTrap(unit) ? GetTrapAdditionalHeadShotDamage(unit) : 0);
 
-                if (!HeadShotDamages.ContainsKey(unit.NetworkId))
+                if (MenuManager.IsCacheEnabled)
                 {
-                    HeadShotDamages.Add(unit.NetworkId, new Dictionary<float, float> { { Game.Time * 1000, damage } });
-                }
-                else
-                {
-                    HeadShotDamages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
+                    HeadShotDamages.Add(unit.NetworkId, damage);
                 }
 
                 return damage;
@@ -521,21 +530,18 @@ namespace Marksman_Master.Plugins.Caitlyn
 
             public static float GetTrapAdditionalHeadShotDamage(AIHeroClient unit)
             {
-                if (RDamages.ContainsKey(unit.NetworkId) &&
-                    !RDamages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200)))
-                    return RDamages[unit.NetworkId].Values.FirstOrDefault();
+                if (MenuManager.IsCacheEnabled && RDamages.Exist(unit.NetworkId))
+                {
+                    return RDamages.Get(unit.NetworkId);
+                }
 
                 int[] additionalDamage = {0, 30, 70, 110, 150, 190};
 
                 var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, additionalDamage[W.Level] + Player.Instance.TotalAttackDamage * 0.7f);
 
-                if (!RDamages.ContainsKey(unit.NetworkId))
+                if (MenuManager.IsCacheEnabled)
                 {
-                    RDamages.Add(unit.NetworkId, new Dictionary<float, float> { { Game.Time * 1000, damage } });
-                }
-                else
-                {
-                    RDamages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
+                    RDamages.Add(unit.NetworkId, damage);
                 }
 
                 return damage;

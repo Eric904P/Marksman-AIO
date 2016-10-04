@@ -29,6 +29,7 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Caitlyn.Modes
 {
@@ -37,18 +38,17 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
         public static bool CanILaneClear()
         {
             return !Settings.LaneClear.EnableIfNoEnemies ||
-                   Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <=
+                   Player.Instance.CountEnemiesInRangeCached(Settings.LaneClear.ScanRange) <=
                    Settings.LaneClear.AllowedEnemies;
         }
 
         public static void Execute()
         {
             if (!Settings.LaneClear.UseQInLaneClear || !Q.IsReady() ||
-                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaQ))
                 return;
 
-            var laneMinions = EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
-                Player.Instance.Position, Q.Range).ToList();
+            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTargetCached(Q.Range)).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
@@ -59,7 +59,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                         Player.Instance.Position.Extend(objAiMinion.Position, Q.Range).To3D(), 90)
                 where
                     laneMinions.Count(
-                        x => polygon.IsInside(x) && x.Health < Player.Instance.GetSpellDamage(x, SpellSlot.Q)) >=
+                        x => polygon.IsInside(x) && (x.Health < Player.Instance.GetSpellDamageCached(x, SpellSlot.Q))) >=
                     Settings.LaneClear.MinMinionsKilledForQ
                 select objAiMinion)
             {

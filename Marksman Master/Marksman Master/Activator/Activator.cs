@@ -434,6 +434,10 @@ namespace Marksman_Master.Activator
                  Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) ||
                 !MenuManager.MenuValues["Activator.ItemsMenu.OnlyInCombo"])
             {
+                Items[ItemsEnum.ElixirofIron]?.UseItem();
+                Items[ItemsEnum.ElixirofSorcery]?.UseItem();
+                Items[ItemsEnum.ElixirofWrath]?.UseItem();
+
                 foreach (var enumValues in from enumValues in Enum.GetValues(typeof (ItemsEnum)).Cast<ItemsEnum>()
                     where
                         Items[enumValues] != null && Items[enumValues].ItemUsageWhen == ItemUsageWhen.AfterAttack &&
@@ -454,14 +458,6 @@ namespace Marksman_Master.Activator
                     Items[enumValues].ToItem().Cast(target as AIHeroClient);
                 }
             }
-
-            if (Items[ItemsEnum.ElixirofIron] == null || Items[ItemsEnum.ElixirofSorcery] == null ||
-                Items[ItemsEnum.ElixirofWrath] == null)
-                return;
-
-            Items[ItemsEnum.ElixirofIron]?.UseItem();
-            Items[ItemsEnum.ElixirofSorcery]?.UseItem();
-            Items[ItemsEnum.ElixirofWrath]?.UseItem();
         }
 
         private static void Obj_AI_Base_OnDamage(AttackableUnit sender, AttackableUnitDamageEventArgs args)
