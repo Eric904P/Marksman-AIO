@@ -116,7 +116,6 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
             if (Player.Instance.CountEnemyHeroesInRangeWithPrediction(
                 (int) (Player.Instance.GetAutoAttackRange() + 100), R.CastDelay) == 0)
             {
-                
                 var rKillable = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     x =>
                         x.IsValidTarget(Settings.Misc.MaxRRangeKillsteal) && !x.HasUndyingBuffA() && !x.HasSpellShield())

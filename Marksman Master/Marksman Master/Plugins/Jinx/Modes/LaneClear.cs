@@ -29,6 +29,7 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Jinx.Modes
 {
@@ -52,25 +53,25 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                 return;
 
             var rocketsLanuncherMinions = laneMinions.Where(x =>
-                x.IsValidTarget(GetRealRocketLauncherRange()) && 
+                x.IsValidTarget(GetRealRocketLauncherRange()) &&
                 ((laneMinions.Count(k =>
                     k.Distance(x) <= 150 &&
-                    (Prediction.Health.GetPrediction(k, 350) < Player.Instance.GetAutoAttackDamage(k)*1.1f)) > 2) ||
-                    (Player.Instance.Distance(x) > GetRealMinigunRange() && Prediction.Health.GetPrediction(x, 350) < Player.Instance.GetAutoAttackDamage(x)*1.1f))).ToList();
-                
+                    (Prediction.Health.GetPrediction(k, 350) < Player.Instance.GetAutoAttackDamage(k) * 1.1f)) > 2) ||
+                    (Player.Instance.Distance(x) > GetRealMinigunRange() && Prediction.Health.GetPrediction(x, 350) < Player.Instance.GetAutoAttackDamage(x) * 1.1f))).ToList();
+
 
             if (HasMinigun)
             {
                 if (!(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ) || !rocketsLanuncherMinions.Any() || !CanILaneClear())
                     return;
 
-                foreach (var objAiMinion in rocketsLanuncherMinions.OrderBy(x=>x.Health))
+                foreach (var objAiMinion in rocketsLanuncherMinions.OrderBy(x => x.Health))
                 {
                     Q.Cast();
                     Orbwalker.ForcedTarget = objAiMinion;
                 }
             }
-            else if(HasRocketLauncher && !rocketsLanuncherMinions.Any())
+            else if (HasRocketLauncher && !rocketsLanuncherMinions.Any())
             {
                 if (!IsPreAttack)
                 {

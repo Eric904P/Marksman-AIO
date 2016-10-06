@@ -26,31 +26,35 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-
 namespace Marksman_Master.Plugins.Jinx.Modes
 {
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using Utils;
+
     internal class JungleClear : Jinx
     {
         public static void Execute()
         {
-            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+            var jungleMinions =
+                StaticCacheProvider.GetMinions(CachedEntityType.Monsters,
+                    x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).ToList();
 
             if (!jungleMinions.Any())
                 return;
 
-            if (Settings.LaneClear.UseQInJungleClear)
+            if (!Settings.LaneClear.UseQInJungleClear || Player.Instance.ManaPercent < Settings.LaneClear.MinManaQ)
+                return;
+
+            if (HasMinigun && (jungleMinions.Count > 1) && !IsPreAttack &&
+                (jungleMinions.Count(x => Orbwalker.GetTarget()?.DistanceCached(x) < 150) > 1))
             {
-                if (HasMinigun && jungleMinions.Count > 1 && !IsPreAttack && jungleMinions.Count(x=> Orbwalker.GetTarget()?.Distance(x) < 150) > 1 &&
-                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ)
-                {
-                    Q.Cast();
-                } else if (HasRocketLauncher)
-                {
-                    Q.Cast();
-                }
+                Q.Cast();
+            }
+            else if (HasRocketLauncher)
+            {
+                Q.Cast();
             }
         }
     }

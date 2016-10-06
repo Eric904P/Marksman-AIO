@@ -27,14 +27,13 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-using Marksman_Master.Utils;
-
 namespace Marksman_Master.Plugins.Jinx.Modes
 {
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Enumerations;
+    using Utils;
+
     internal class Combo : Jinx
     {
         public static void Execute()
@@ -45,21 +44,22 @@ namespace Marksman_Master.Plugins.Jinx.Modes
 
                 if (target != null)
                 {
-                    if (target.Distance(Player.Instance) < GetRealMinigunRange() && HasRocketLauncher &&
-                        target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(target, true)*2.2f)
+                    if (Player.Instance.IsInRangeCached(target, GetRealMinigunRange()) && HasRocketLauncher &&
+                        (target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamageCached(target)*2.2f))
                     {
                         Q.Cast();
                         return;
                     }
 
-                    if (target.Distance(Player.Instance) > GetRealMinigunRange() &&
-                        target.Distance(Player.Instance) < GetRealRocketLauncherRange() && !HasRocketLauncher)
+                    if (!Player.Instance.IsInRangeCached(target, GetRealMinigunRange()) &&
+                        Player.Instance.IsInRangeCached(target, GetRealRocketLauncherRange()) && !HasRocketLauncher)
                     {
                         Q.Cast();
                         return;
                     }
-                    if (HasMinigun && GetMinigunStacks >= 2 &&
-                        target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(target, true)*2.2f && target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(target, true) * 2f)
+                    if (HasMinigun && (GetMinigunStacks >= 2) &&
+                        (target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(target)*2.2f) &&
+                        (target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamageCached(target)*2f))
                     {
                         Q.Cast();
                         return;
@@ -68,26 +68,25 @@ namespace Marksman_Master.Plugins.Jinx.Modes
             }
 
             if (W.IsReady() && Settings.Combo.UseW &&
-                Player.Instance.CountEnemiesInRangeCached(Settings.Combo.WMinDistanceToTarget) == 0 &&
+                (Player.Instance.CountEnemiesInRangeCached(Settings.Combo.WMinDistanceToTarget) == 0) &&
                 !Player.Instance.Position.IsVectorUnderEnemyTower() &&
                 (Player.Instance.Mana - (50 + 10*(W.Level - 1)) > (R.IsReady() ? 100 : 50)))
             {
-                var target =
-                    EntityManager.Heroes.Enemies.Where(
-                        x =>
-                            x.IsValidTarget(W.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
-                            x.Distance(Player.Instance) > Settings.Combo.WMinDistanceToTarget)
-                        .OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.W)).FirstOrDefault();
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => x.IsValidTargetCached(W.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
                 var orbwalkerTarget = Orbwalker.GetTarget();
 
                 if (orbwalkerTarget != null && orbwalkerTarget.GetType() == typeof (AIHeroClient))
                 {
                     var wt = orbwalkerTarget as AIHeroClient;
-                    if (wt != null && wt.IsValidTarget(W.Range) && !wt.HasUndyingBuffA() && !wt.HasSpellShield() &&
-                        wt.Distance(Player.Instance) > Settings.Combo.WMinDistanceToTarget)
+
+                    if (wt != null && wt.IsValidTargetCached(W.Range) && !wt.HasUndyingBuffA() && !wt.HasSpellShield())
                     {
                         var wPrediction = W.GetPrediction(wt);
+
                         if (wPrediction.HitChance == HitChance.High)
                         {
                             W.Cast(wPrediction.CastPosition);
@@ -98,6 +97,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                 else if (target != null)
                 {
                     var wPrediction = W.GetPrediction(target);
+
                     if (wPrediction.HitChance == HitChance.High)
                     {
                         W.Cast(wPrediction.CastPosition);
@@ -106,14 +106,16 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                 }
             }
 
-            if (E.IsReady() && Settings.Combo.UseE && Player.Instance.Mana - 50 > 100)
+            if (E.IsReady() && Settings.Combo.UseE && (Player.Instance.Mana - 50 > 100))
             {
                 var target = TargetSelector.GetTarget(E.Range, DamageType.Physical);
 
                 if (target != null)
                 {
                     var ePrediction = E.GetPrediction(target);
-                    if (ePrediction.HitChance == HitChance.High && ePrediction.CastPosition.Distance(target) > 125)
+
+                    if (ePrediction.HitChance == HitChance.High &&
+                        (ePrediction.CastPosition.DistanceCached(target) > 125))
                     {
                         E.Cast(ePrediction.CastPosition);
                         return;
@@ -124,35 +126,9 @@ namespace Marksman_Master.Plugins.Jinx.Modes
             if (!R.IsReady() || !Settings.Combo.UseR || Player.Instance.Position.IsVectorUnderEnemyTower())
                 return;
 
-            //var t = TargetSelector.GetTarget(20000, DamageType.Physical);
+            R.CastIfItWillHit(4, 60);
 
-            //if (t == null || t.HasUndyingBuffA() || (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 50) > 0) || ((t.Health < Player.Instance.GetAutoAttackDamageCached(t, true)*1.8f) && Player.Instance.IsInAutoAttackRange(t)))
-            //    return;
-
-            //var health = t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t);
-
-            //if (health > 0 && (health < Damage.GetRDamage(t)) && R.GetHealthPrediction(t) > 0)
-            //{
-            //    var rPrediction = R.GetPrediction(t);
-
-            //    if (rPrediction.HitChancePercent < 65)
-            //        return;
-
-            //    R.Cast(rPrediction.CastPosition);
-            //    Misc.PrintDebugMessage("KS ULT");
-            //}
-            else
-            {
-                R.CastIfItWillHit(4, 60);
-
-                //var rPrediction = R.GetPrediction(t);
-
-                //if (t.CountEnemiesInRange(225) < 5 || rPrediction.HitChancePercent < 65)
-                //    return;
-
-                //R.Cast(rPrediction.CastPosition);
-                Misc.PrintDebugMessage("AOE ULT");
-            }
+            Misc.PrintDebugMessage("AOE ULT");
         }
     }
 }

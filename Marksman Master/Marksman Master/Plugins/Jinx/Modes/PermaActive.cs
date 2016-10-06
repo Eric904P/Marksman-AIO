@@ -27,58 +27,49 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-using Marksman_Master.Utils;
-
 namespace Marksman_Master.Plugins.Jinx.Modes
 {
+    using System;
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Enumerations;
+    using Utils;
+
     internal class PermaActive : Jinx
     {
         public static void Execute()
         {
-            if (W.IsReady() && Settings.Misc.WKillsteal && Player.Instance.Mana - 90 > 100 &&
-                !Player.Instance.Position.IsVectorUnderEnemyTower())
+            if (W.IsReady() && Settings.Misc.WKillsteal && (Player.Instance.Mana - 90 > (R.IsReady() ? 130 : 30)) &&
+                !Player.Instance.Position.IsVectorUnderEnemyTower() &&
+                (Player.Instance.CountEnemiesInRangeCached(Settings.Combo.WMinDistanceToTarget) == 0))
             {
-                if (EntityManager.Heroes.Enemies.Any(
+                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(
                     x =>
-                        x.IsValidTarget(W.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA() &&
-                        x.Distance(Player.Instance) > Settings.Combo.WMinDistanceToTarget))
+                        x.IsValidTargetCached(W.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA()))
                 {
                     foreach (
-                        var enemy in
-                            EntityManager.Heroes.Enemies.Where(
-                                x =>
-                                    x.IsValidTarget(W.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA() &&
-                                    x.Distance(Player.Instance) > Settings.Combo.WMinDistanceToTarget))
+                        var wPrediction in 
+                        from enemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                            x => x.IsValidTargetCached(W.Range) && !x.HasSpellShield() && !x.HasUndyingBuffA())
+                            let health = enemy.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(enemy)
+                            let wDamage = Player.Instance.GetSpellDamageCached(enemy, SpellSlot.W)
+                            let wPrediction = W.GetPrediction(enemy)
+                            where (health <= wDamage) && wPrediction.HitChance == HitChance.High
+                            select wPrediction)
                     {
-                        var health = enemy.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(enemy);
-                        var wDamage = Player.Instance.GetSpellDamage(enemy, SpellSlot.W);
-                        var wPrediction = W.GetPrediction(enemy);
-
-                        if (health < wDamage && wPrediction.HitChance == HitChance.High)
-                        {
-                            W.Cast(wPrediction.CastPosition);
-                            return;
-                        }
-
-                        if (!(health < wDamage + Damage.GetRDamage(enemy)) || !R.IsReady() ||
-                            !(R.GetPrediction(enemy).HitChancePercent > 70) || !(wPrediction.HitChancePercent > 65))
-                            continue;
-
                         W.Cast(wPrediction.CastPosition);
-                        return;
                     }
                 }
-                if (Settings.Harass.UseW && Player.Instance.ManaPercent >= Settings.Harass.MinManaW && !IsPreAttack)
+
+                if (Settings.Harass.UseW && !IsPreAttack && (Player.Instance.ManaPercent >= Settings.Harass.MinManaW) &&
+                    (Player.Instance.CountEnemiesInRangeCached(Settings.Combo.WMinDistanceToTarget) == 0))
                 {
-                    foreach (var wPrediction in EntityManager.Heroes.Enemies.Where(
+                    foreach (var wPrediction in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         x =>
-                            x.IsValidTarget(W.Range) && Settings.Harass.IsWHarassEnabledFor(x) &&
+                            x.IsValidTargetCached(W.Range) && Settings.Harass.IsWHarassEnabledFor(x) &&
                             x.Distance(Player.Instance) > GetRealRocketLauncherRange())
-                        .Where(enemy => enemy.IsValidTarget(W.Range))
+                        .Where(enemy => enemy.IsValidTargetCached(W.Range))
                         .Select(enemy => W.GetPrediction(enemy))
                         .Where(wPrediction => wPrediction.HitChancePercent > 70))
                     {
@@ -87,38 +78,48 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                     }
                 }
             }
+
             if (R.IsReady() && Settings.Combo.UseR && !Player.Instance.Position.IsVectorUnderEnemyTower())
             {
-                var target = TargetSelector.GetTarget(Settings.Combo.RRangeKeybind, DamageType.Physical);
-
-                if (target != null && Settings.Combo.RKeybind)
+                if (Settings.Combo.RKeybind)
                 {
-                    var rPrediciton = R.GetPrediction(target);
-                    if (rPrediciton.HitChance == HitChance.High)
+                    var target = TargetSelector.GetTarget(Settings.Combo.RRangeKeybind, DamageType.Physical);
+
+                    if (target != null)
                     {
-                        R.Cast(rPrediciton.CastPosition);
-                        return;
+                        var rPrediciton = R.GetPrediction(target);
+
+                        if (rPrediciton.HitChance == HitChance.High)
+                        {
+                            R.Cast(rPrediciton.CastPosition);
+                            return;
+                        }
                     }
                 }
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x =>
+                    {
+                        if (((x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(x, true)*1.8f) &&
+                             x.IsValidTarget(Player.Instance.GetAutoAttackRange())) ||
+                            ((x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.W)) &&
+                             x.IsValidTarget(W.Range)))
+                        {
+                            return false;
+                        }
+                        return x.IsValidTarget(Settings.Misc.RKillstealMaxRange) && (x.TotalHealthWithShields() < Damage.GetRDamage(x));
+                    });
 
-                var t = TargetSelector.GetTarget(Settings.Misc.RKillstealMaxRange, DamageType.Physical);
+                var t = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-                if (t != null && !t.HasUndyingBuffA() &&
-                    (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 50) == 0))
+                if (t != null && !t.HasUndyingBuffA() && (Player.Instance.CountEnemiesInRangeCached(550) == 0))
                 {
-                    if ((t.Health < Player.Instance.GetAutoAttackDamageCached(t, true)*1.8f) &&
-                        Player.Instance.IsInAutoAttackRange(t))
+                    if(t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t) <= 50)
                         return;
 
-                    var health = t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t);
+                    var rPrediction = R.GetPrediction(t);
 
-                    if (health > 0 && (health < Damage.GetRDamage(t)))
+                    if (rPrediction.HitChancePercent >= 65)
                     {
-                        var rPrediction = R.GetPrediction(t);
-
-                        if (rPrediction.HitChancePercent < 65)
-                            return;
-
                         R.Cast(rPrediction.CastPosition);
                         Misc.PrintDebugMessage("KS ULT");
                     }
@@ -129,26 +130,26 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                 return;
 
             foreach (
-                var enemy in
-                    EntityManager.Heroes.Enemies.Where(
+                var enemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         x =>
-                            x.IsValidTarget(E.Range) &&
-                            (x.GetMovementBlockedDebuffDuration() > 0.7f ||
+                            x.IsValidTargetCached(E.Range) &&
+                            ((x.GetMovementBlockedDebuffDuration() > 0.7f) ||
                              x.Buffs.Any(
                                  m =>
-                                     m.Name.ToLowerInvariant() == "zhonyasringshield" ||
-                                     m.Name.ToLowerInvariant() == "bardrstasis"))))
+                                     m.Name.Equals("zhonyasringshield", StringComparison.CurrentCultureIgnoreCase) ||
+                                     m.Name.Equals("bardrstasis", StringComparison.CurrentCultureIgnoreCase)))))
             {
-                if (enemy.Buffs.Any(m => m.Name.ToLowerInvariant() == "zhonyasringshield" ||
-                                         m.Name.ToLowerInvariant() == "bardrstasis"))
+                if (enemy.Buffs.Any(m => m.Name.Equals("zhonyasringshield", StringComparison.CurrentCultureIgnoreCase) ||
+                                         m.Name.Equals("bardrstasis", StringComparison.CurrentCultureIgnoreCase)))
                 {
-                    var buffTime = enemy.Buffs.FirstOrDefault(m => m.Name.ToLowerInvariant() == "zhonyasringshield" ||
-                                                                   m.Name.ToLowerInvariant() == "bardrstasis");
-                    if (buffTime != null && buffTime.EndTime - Game.Time < 1 && buffTime.EndTime - Game.Time > 0.3 && enemy.IsValidTarget(E.Range))
+                    var buffTime = enemy.Buffs.FirstOrDefault(m => m.Name.Equals("zhonyasringshield", StringComparison.CurrentCultureIgnoreCase) ||
+                                                                   m.Name.Equals("bardrstasis", StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buffTime != null && (buffTime.EndTime - Game.Time < 1) && (buffTime.EndTime - Game.Time > .3f) && enemy.IsValidTargetCached(E.Range))
                     {
                         E.Cast(enemy.ServerPosition);
                     }
-                } else if (enemy.IsValidTarget(E.Range))
+                } else if (enemy.IsValidTargetCached(E.Range))
                 {
                     E.Cast(enemy.ServerPosition);
                 }

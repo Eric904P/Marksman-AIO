@@ -29,6 +29,7 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Jinx.Modes
 {
@@ -41,14 +42,14 @@ namespace Marksman_Master.Plugins.Jinx.Modes
 
             if (HasMinigun)
             {
-                foreach (var source in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(GetRealRocketLauncherRange()) && !Player.Instance.IsInAutoAttackRange(x)).Where(source => IsPreAttack && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ))
+                foreach (var source in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(GetRealRocketLauncherRange()) && !Player.Instance.IsInAutoAttackRange(x)).Where(source => IsPreAttack && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)))
                 {
                     Q.Cast();
                     Orbwalker.ForcedTarget = source;
                     return;
                 }
             }
-            else if(!EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(GetRealRocketLauncherRange()) && !Player.Instance.IsInAutoAttackRange(x)) && HasRocketLauncher)
+            else if(!StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.IsValidTargetCached(GetRealRocketLauncherRange()) && !Player.Instance.IsInAutoAttackRange(x)) && HasRocketLauncher)
             {
                 Q.Cast();
                 Orbwalker.ForcedTarget = null;

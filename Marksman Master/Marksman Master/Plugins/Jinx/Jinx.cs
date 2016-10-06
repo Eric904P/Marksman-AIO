@@ -91,7 +91,7 @@ namespace Marksman_Master.Plugins.Jinx
 
         private static readonly Text Text;
 
-        protected static Cache.Cache Cache { get; }
+        protected static Cache.Cache Cache => StaticCacheProvider.Cache;
 
         static Jinx()
         {
@@ -106,8 +106,6 @@ namespace Marksman_Master.Plugins.Jinx
                 AllowedCollisionCount = -1
             };
 
-            Cache = StaticCacheProvider.Cache;
-
             ColorPicker = new ColorPicker[2];
 
             ColorPicker[0] = new ColorPicker("JinxQ", new ColorBGRA(114, 171, 160, 255));
@@ -117,6 +115,12 @@ namespace Marksman_Master.Plugins.Jinx
 
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
             Orbwalker.OnPostAttack += (target, args) => IsPreAttack = false;
+
+            Obj_AI_Base.OnProcessSpellCast += (sender, args) =>
+            {
+                if(sender.IsMe && args.Slot == SpellSlot.Q)
+                    Orbwalker.ResetAutoAttack();
+            };
 
             ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
@@ -131,13 +135,13 @@ namespace Marksman_Master.Plugins.Jinx
             {
                 Core.DelayAction(() =>
                 {
-                    if (E.IsReady() && e.EndPosition.Distance(Player.Instance) <= E.Range)
+                    if (E.IsReady() && e.EndPosition.DistanceCached(Player.Instance) <= E.Range)
                     {
                         E.Cast(e.EndPosition);
                     }
                 }, 3500);
             }
-            else if(e.Sender.IsValidTarget(E.Range))
+            else if(e.Sender.IsValidTargetCached(E.Range))
             {
                 E.Cast(e.Sender.ServerPosition);
             }
@@ -147,8 +151,7 @@ namespace Marksman_Master.Plugins.Jinx
         {
             IsPreAttack = true;
 
-            if (Orbwalker.ForcedTarget != null &&
-                !Orbwalker.ForcedTarget.IsValidTarget(Player.Instance.GetAutoAttackRange()))
+            if (Orbwalker.ForcedTarget != null && !Orbwalker.ForcedTarget.IsValidTarget(Player.Instance.GetAutoAttackRange()))
                 args.Process = false;
         }
 
@@ -166,11 +169,11 @@ namespace Marksman_Master.Plugins.Jinx
 
             if (Settings.Drawings.DrawW && (!Settings.Drawings.DrawSpellRangesWhenReady || W.IsReady()))
                 Circle.Draw(ColorPicker[1].Color, W.Range, Player.Instance);
-            
+
             if (!R.IsReady())
                 return;
 
-            foreach (var source in EntityManager.Heroes.Enemies.Where(
+            foreach (var source in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                 x => x.IsHPBarRendered && x.Position.IsOnScreen()))
             {
                 var hpPosition = source.HPBarPosition;
@@ -188,7 +191,7 @@ namespace Marksman_Master.Plugins.Jinx
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
         {
-            if (!Settings.Misc.EnableInterrupter || !(args.End.Distance(Player.Instance) < 350) || !E.IsReady() ||
+            if (!Settings.Misc.EnableInterrupter || !E.IsReady() || (args.End.Distance(Player.Instance) > 350) ||
                 !sender.IsValidTarget(E.Range))
                 return;
 
@@ -197,12 +200,11 @@ namespace Marksman_Master.Plugins.Jinx
                 E.Cast(E.GetPrediction(sender).CastPosition);
             }
             else Core.DelayAction(() => E.Cast(E.GetPrediction(sender).CastPosition), args.Delay);
-
         }
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (!Settings.Misc.EnableAntiGapcloser || !(args.End.Distance(Player.Instance) < 350) || !E.IsReady() ||
+            if (!Settings.Misc.EnableAntiGapcloser || !E.IsReady() || (args.End.Distance(Player.Instance) > 350) ||
                 !sender.IsValidTarget(E.Range))
                 return;
 
@@ -307,7 +309,7 @@ namespace Marksman_Master.Plugins.Jinx
             MiscMenu.Add("Plugins.Jinx.MiscMenu.EnableAntiGapcloser", new CheckBox("Cast E against gapclosers"));
             MiscMenu.Add("Plugins.Jinx.MiscMenu.WKillsteal", new CheckBox("Cast W to killsteal"));
             MiscMenu.Add("Plugins.Jinx.MiscMenu.RKillsteal", new CheckBox("Cast R to killsteal"));
-            MiscMenu.Add("Plugins.Jinx.ComboMenu.RKillstealMaxRange", new Slider("Maximum range to enemy to cast R for killsteal", 8000, 0, 20000));
+            MiscMenu.Add("Plugins.Jinx.MiscMenu.RKillstealMaxRange", new Slider("Maximum range to enemy to cast R for killsteal", 8000, 0, 20000));
 
             DrawingsMenu = MenuManager.Menu.AddSubMenu("Drawings");
             DrawingsMenu.AddGroupLabel("Drawings settings for Jinx addon");
@@ -497,8 +499,6 @@ namespace Marksman_Master.Plugins.Jinx
                 }
 
                 return finalDamage;
-
-                //return Player.Instance.GetSpellDamageCached(target, SpellSlot.R);
             }
         }
     }
