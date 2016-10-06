@@ -31,6 +31,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.Remoting.Metadata;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
@@ -599,7 +600,7 @@ namespace Marksman_Master.Plugins.Ezreal
                 var objects = ObjectManager
                         .Get<Obj_AI_Base>().Count(x => x.NetworkId != target.NetworkId && x.IsEnemy &&
                             x.IsValidTarget(Player.Instance.Distance(target)) &&
-                            new Geometry.Polygon.Circle(x.Position, x.BoundingRadius).Points.Any(
+                            new Geometry.Polygon.Circle(Prediction.Position.PredictUnitPosition(x, R.CastDelay + (int)(x.DistanceCached(Player.Instance) / R.Speed)*1000), x.BoundingRadius).Points.Any(
                                 p => polygon.IsInside(p)));
 
                 var damage = Player.Instance.GetSpellDamageCached(target, SpellSlot.R);

@@ -115,11 +115,15 @@ namespace Marksman_Master.Plugins.Jinx
 
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
             Orbwalker.OnPostAttack += (target, args) => IsPreAttack = false;
-
-            Obj_AI_Base.OnProcessSpellCast += (sender, args) =>
+            
+            Obj_AI_Base.OnBuffGain += (sender, args) =>
             {
-                if(sender.IsMe && args.Slot == SpellSlot.Q)
-                    Orbwalker.ResetAutoAttack();
+                if (sender.IsMe &&
+                    (args.Buff.Name.Equals("jinxq", StringComparison.CurrentCultureIgnoreCase) ||
+                     args.Buff.Name.Equals("jinxqicon", StringComparison.CurrentCultureIgnoreCase)))
+                {
+                    Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                }
             };
 
             ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
