@@ -155,7 +155,7 @@ namespace Marksman_Master.Utils
                     return;
 
                 Player.Instance.Spellbook.CastSpell(spell.Key,
-                    Player.Instance.Position.Extend(Game.CursorPos, new Random().Next(200)).To3D());
+                    Player.Instance.Position.Extend(Game.CursorPos, new Random().Next(200, 1000)).To3D());
 
                 LastCastTime[spell.Key] = Game.Time*1000;
             }
