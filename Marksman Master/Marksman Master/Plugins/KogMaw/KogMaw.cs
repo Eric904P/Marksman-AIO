@@ -81,16 +81,16 @@ namespace Marksman_Master.Plugins.KogMaw
 
         static KogMaw()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 1000, SkillShotType.Linear, 250, 1800, 50)
+            Q = new Spell.Skillshot(SpellSlot.Q, 1200, SkillShotType.Linear, 250, 1650, 70)
             {
                 AllowedCollisionCount = 0
             };
             W = new Spell.Active(SpellSlot.W);
-            E = new Spell.Skillshot(SpellSlot.E, 1200, SkillShotType.Linear, 250, 1350, 120)
+            E = new Spell.Skillshot(SpellSlot.E, 1500, SkillShotType.Linear, 250, 1350, 120)
             {
                 AllowedCollisionCount = int.MaxValue
             };
-            R = new Spell.Skillshot(SpellSlot.R, 1800, SkillShotType.Circular, 1450, int.MaxValue, 230)
+            R = new Spell.Skillshot(SpellSlot.R, 1800, SkillShotType.Circular, 1250, int.MaxValue, 230)
             {
                 AllowedCollisionCount = int.MaxValue
             };

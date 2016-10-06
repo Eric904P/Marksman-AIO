@@ -79,17 +79,17 @@ namespace Marksman_Master.Plugins.Graves
 
         static Graves()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 950, SkillShotType.Linear, 500, 2500, 50)
+            Q = new Spell.Skillshot(SpellSlot.Q, 825, SkillShotType.Linear, 250, 3000, 40)
             {
                 AllowedCollisionCount = int.MaxValue
             };
-            W = new Spell.Skillshot(SpellSlot.W, 950, SkillShotType.Circular, 250, 1200, 250);
+            W = new Spell.Skillshot(SpellSlot.W, 900, SkillShotType.Circular, 250, 1500, 225);
             E = new Spell.Skillshot(SpellSlot.E, 440, SkillShotType.Linear);
-            R = new Spell.Skillshot(SpellSlot.R, 1000, SkillShotType.Linear, 250, 2000, 110)
+            R = new Spell.Skillshot(SpellSlot.R, 1100, SkillShotType.Linear, 250, 2100, 100)
             {
                 AllowedCollisionCount = -1
             };
-            RCone = new Spell.Skillshot(SpellSlot.R, 800, SkillShotType.Cone, 250, 2000, 110)
+            RCone = new Spell.Skillshot(SpellSlot.R, 700, SkillShotType.Cone, 0, 2000, 110)
             {
                 ConeAngleDegrees = (int) (Math.PI/180*70)
             };

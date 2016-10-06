@@ -61,7 +61,7 @@ namespace Marksman_Master.Plugins.Sivir
 
         static Sivir()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 1200, SkillShotType.Linear, 250, 1250, 90)
+            Q = new Spell.Skillshot(SpellSlot.Q, 1200, SkillShotType.Linear, 250, 1350, 90)
             {
                 AllowedCollisionCount = int.MaxValue
             };

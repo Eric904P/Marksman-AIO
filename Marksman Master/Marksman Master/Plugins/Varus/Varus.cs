@@ -71,13 +71,13 @@ namespace Marksman_Master.Plugins.Varus
 
         static Varus()
         {
-            Q = new Spell.Chargeable(SpellSlot.Q, 1000, 1600, 1500, 250, 2000, 60)
+            Q = new Spell.Chargeable(SpellSlot.Q, 1000, 1600, 1500, 0, 1900, 70)
             {
                 AllowedCollisionCount = int.MaxValue
             };
             W = new Spell.Active(SpellSlot.W);
-            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 250, 1500, 180);
-            R = new Spell.Skillshot(SpellSlot.R, 1100, SkillShotType.Linear, 250, 2000, 115);
+            E = new Spell.Skillshot(SpellSlot.E, 925, SkillShotType.Circular, 250, 1500, 235);
+            R = new Spell.Skillshot(SpellSlot.R, 1250, SkillShotType.Linear, 250, 1950, 120);
 
             ColorPicker = new ColorPicker[4];
 

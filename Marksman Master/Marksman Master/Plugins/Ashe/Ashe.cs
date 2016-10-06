@@ -67,17 +67,17 @@ namespace Marksman_Master.Plugins.Ashe
         static Ashe()
         {
             Q = new Spell.Active(SpellSlot.Q);
-            W = new Spell.Skillshot(SpellSlot.W, 1225, SkillShotType.Cone)
+            W = new Spell.Skillshot(SpellSlot.W, 1250, SkillShotType.Cone)
             {
-                AllowedCollisionCount = -1,
+                AllowedCollisionCount = 0,
                 CastDelay = 250,
                 ConeAngleDegrees = (int) (Math.PI/180*40),
-                Speed = 2000,
-                Range = 1225,
+                Speed = 1500,
+                Range = 1250,
                 Width = 20
             };
             E = new Spell.Skillshot(SpellSlot.E, 30000, SkillShotType.Linear);
-            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 250, 1600, 120)
+            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 250, 1600, 130)
             {
                 AllowedCollisionCount = 0
             };
@@ -125,9 +125,9 @@ namespace Marksman_Master.Plugins.Ashe
             var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
                 CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
-                Delay = .5f,
+                Delay = .25f,
                 From = Player.Instance.Position,
-                Radius = 120,
+                Radius = 130,
                 Range = Settings.Combo.RMaximumRange,
                 RangeCheckFrom = Player.Instance.Position,
                 Speed = R.Speed,
@@ -158,11 +158,11 @@ namespace Marksman_Master.Plugins.Ashe
             }
 
             var poly = new Geometry.Polygon.Sector(Player.Instance.Position, Game.CursorPos,
-                (float) (Math.PI/180*40), 950, 9).Points.ToArray();
+                (float) (Math.PI/180*40), 1250, 9).Points.ToArray();
 
             for (var i = 1; i < 10; i++)
             {
-                var qPred = Prediction.Position.PredictLinearMissile(unit, 1100, 20, 25, 1200, 0,
+                var qPred = Prediction.Position.PredictLinearMissile(unit, 1250, 20, 250, 1500, 0,
                     Player.Instance.Position.Extend(poly[i], 20).To3D());
 
                 if (qPred.CollisionObjects.Any() || (qPred.HitChance < HitChance.High))

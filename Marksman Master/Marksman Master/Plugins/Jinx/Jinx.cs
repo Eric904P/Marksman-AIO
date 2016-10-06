@@ -96,12 +96,12 @@ namespace Marksman_Master.Plugins.Jinx
         static Jinx()
         {
             Q = new Spell.Active(SpellSlot.Q);
-            W = new Spell.Skillshot(SpellSlot.W, 1500, SkillShotType.Linear, 700, 3200, 60)
+            W = new Spell.Skillshot(SpellSlot.W, 1500, SkillShotType.Linear, 600, 3300, 60)
             {
                 AllowedCollisionCount = 0
             };
-            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 1100, 1300, 100);
-            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 1000, 1500, 130)
+            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 1100, 1100, 120);
+            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 600, 1500, 140)
             {
                 AllowedCollisionCount = -1
             };

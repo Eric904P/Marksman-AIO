@@ -108,7 +108,7 @@ namespace Marksman_Master.Plugins.Corki
 
         static Corki()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 825, SkillShotType.Circular, 300, 1000, 250)
+            Q = new Spell.Skillshot(SpellSlot.Q, 825, SkillShotType.Circular, 250, 1000, 250)
             {
                 AllowedCollisionCount = int.MaxValue
             };
@@ -117,7 +117,7 @@ namespace Marksman_Master.Plugins.Corki
                 AllowedCollisionCount = int.MaxValue
             };
             E = new Spell.Active(SpellSlot.E, 1000);
-            R = new Spell.Skillshot(SpellSlot.R, 1225, SkillShotType.Linear, 250, 1950, 50)
+            R = new Spell.Skillshot(SpellSlot.R, 1300, SkillShotType.Linear, 175, 2000, 40)
             {
                 AllowedCollisionCount = 0
             };
@@ -383,6 +383,8 @@ namespace Marksman_Master.Plugins.Corki
 
         protected override void PermaActive()
         {
+            R.Range = HasBigRMissile ? (uint)1500 : 1300;
+
             Modes.PermaActive.Execute();
         }
 

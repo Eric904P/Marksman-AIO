@@ -27,6 +27,7 @@
 // ---------------------------------------------------------------------
 #endregion
 
+using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -102,17 +103,16 @@ namespace Marksman_Master.Plugins.Draven.Modes
 
             if (Player.Instance.CountEnemiesInRange(1500) > Player.Instance.CountAlliesInRange(1500))
                 return;
-
-
-            foreach (var rPrediction in EntityManager.Heroes.Enemies.Where(unit => unit.IsValidTarget(1500)).Select(enemy => Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+            
+            foreach (var rPrediction in EntityManager.Heroes.Enemies.Where(unit => unit.IsValidTarget(3000)).Select(enemy => Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
-                CollisionTypes = {CollisionType.ObjAiMinion},
-                Delay = 250,
+                CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
+                Delay = .5f,
                 From = Player.Instance.Position,
-                Range = 1500,
+                Range = 3000,
                 Radius = 160,
                 RangeCheckFrom = Player.Instance.Position,
-                Speed = 1900,
+                Speed = 2000,
                 Target = enemy,
                 Type = SkillShotType.Linear
             })).Where(rPrediction => rPrediction.RealHitChancePercent >= 60).Where(rPrediction => rPrediction.GetCollisionObjects<AIHeroClient>().Length >= 2))

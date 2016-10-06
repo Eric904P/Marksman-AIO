@@ -85,8 +85,8 @@ namespace Marksman_Master.Plugins.Ezreal
 
         static Ezreal()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 1150, SkillShotType.Linear, 250, 2000, 60);
-            W = new Spell.Skillshot(SpellSlot.W, 1000, SkillShotType.Linear, 250, 1550, 70)
+            Q = new Spell.Skillshot(SpellSlot.Q, 1200, SkillShotType.Linear, 250, 2000, 60);
+            W = new Spell.Skillshot(SpellSlot.W, 1050, SkillShotType.Linear, 250, 1600, 80)
             {
                 AllowedCollisionCount = int.MaxValue
             };

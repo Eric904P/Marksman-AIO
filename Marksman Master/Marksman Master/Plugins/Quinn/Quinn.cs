@@ -80,7 +80,7 @@ namespace Marksman_Master.Plugins.Quinn
 
         static Quinn()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 1025, SkillShotType.Linear, 250, 1500, 75)
+            Q = new Spell.Skillshot(SpellSlot.Q, 1025, SkillShotType.Linear, 250, 1550, 60)
             {
                 AllowedCollisionCount = 0
             };

@@ -44,7 +44,7 @@ namespace Marksman_Master.Plugins.Urgot
     internal class Urgot : ChampionPlugin
     {
         protected static Spell.Skillshot Q { get; }
-        protected static Spell.Skillshot SecoundQ { get; }
+        protected static Spell.Skillshot SecondQ { get; }
         protected static Spell.Active W { get; }
         protected static Spell.Skillshot E { get; }
         protected static Spell.Targeted R { get; }
@@ -69,14 +69,14 @@ namespace Marksman_Master.Plugins.Urgot
 
         static Urgot()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 900, SkillShotType.Linear, 250, 1550, 60);
-            SecoundQ = new Spell.Skillshot(SpellSlot.Q, 1200, SkillShotType.Linear, 250, 1550, 60)
+            Q = new Spell.Skillshot(SpellSlot.Q, 900, SkillShotType.Linear, 150, 1600, 60);
+            SecondQ = new Spell.Skillshot(SpellSlot.Q, 1200, SkillShotType.Linear, 250, 1600, 60)
             {
                 AllowedCollisionCount = int.MaxValue
             };
 
             W = new Spell.Active(SpellSlot.W);
-            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 250, 1550, 250);
+            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 250, 1500, 250);
             R = new Spell.Targeted(SpellSlot.R, 500);
 
             ColorPicker = new ColorPicker[4];

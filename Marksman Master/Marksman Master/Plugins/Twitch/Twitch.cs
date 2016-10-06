@@ -73,7 +73,7 @@ namespace Marksman_Master.Plugins.Twitch
         static Twitch()
         {
             Q = new Spell.Active(SpellSlot.Q);
-            W = new Spell.Skillshot(SpellSlot.W, 950, SkillShotType.Circular, 250, 1400, 260)
+            W = new Spell.Skillshot(SpellSlot.W, 900, SkillShotType.Circular, 250, 1400, 275)
             {
                 AllowedCollisionCount = int.MaxValue
             };

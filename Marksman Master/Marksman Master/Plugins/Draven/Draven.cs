@@ -92,11 +92,11 @@ namespace Marksman_Master.Plugins.Draven
         {
             Q = new Spell.Active(SpellSlot.Q);
             W = new Spell.Active(SpellSlot.W);
-            E = new Spell.Skillshot(SpellSlot.E, 950, SkillShotType.Linear, 250, 1300, 100)
+            E = new Spell.Skillshot(SpellSlot.E, 950, SkillShotType.Linear, 250, 1400, 130)
             {
-                AllowedCollisionCount = int.MaxValue
+                AllowedCollisionCount = -1
             };
-            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 300, 1900, 160)
+            R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 500, 2000, 160)
             {
                 AllowedCollisionCount = int.MaxValue
             };

@@ -58,18 +58,16 @@ namespace Marksman_Master.Plugins.Varus.Modes
                     var rPrediciton = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {
                         CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
-                        Delay = 0.55f,
+                        Delay = .25f,
                         From = Player.Instance.Position,
-                        Radius = 115,
-                        Range = 1150,
+                        Radius = R.Width,
+                        Range = R.Range,
                         RangeCheckFrom = Player.Instance.Position,
-                        Speed = 1800,
+                        Speed = R.Speed,
                         Target = target,
                         Type = SkillShotType.Linear
-                    }); 
-
-                   // var rPrediction = R.GetPrediction(target);
-
+                    });
+                    
                     if (rPrediciton.HitChancePercent >= 60)
                     {
                         R.Cast(rPrediciton.CastPosition);
@@ -84,24 +82,16 @@ namespace Marksman_Master.Plugins.Varus.Modes
                     {
                         var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                         {
-                            CollisionTypes =
-                                new HashSet<CollisionType>
-                                {
-                                    Prediction.Manager.PredictionSelected == "ICPrediction"
-                                        ? CollisionType.AiHeroClient
-                                        : CollisionType.ObjAiMinion
-                                },
-                            Delay = 0.55f,
+                            CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
+                            Delay = .25f,
                             From = Player.Instance.Position,
-                            Radius = 115,
-                            Range = 1150,
+                            Radius = R.Width,
+                            Range = R.Range,
                             RangeCheckFrom = Player.Instance.Position,
-                            Speed = 1800,
+                            Speed = R.Speed,
                             Target = t,
                             Type = SkillShotType.Linear
                         });
-
-                        // var rPrediction = R.GetPrediction(t);
 
                         if (rPrediction.HitChancePercent >= 60)
                         {

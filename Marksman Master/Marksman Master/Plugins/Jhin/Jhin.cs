@@ -118,12 +118,12 @@ namespace Marksman_Master.Plugins.Jhin
         static Jhin()
         {
             Q = new Spell.Targeted(SpellSlot.Q, 600);
-            W = new Spell.Skillshot(SpellSlot.W, 2500, SkillShotType.Linear, 1000, null, 40)
+            W = new Spell.Skillshot(SpellSlot.W, 2500, SkillShotType.Linear, 750, int.MaxValue, 40)
             {
                 AllowedCollisionCount = -1
             };
             E = new Spell.Skillshot(SpellSlot.E, 750, SkillShotType.Circular, 750, null, 120);
-            R = new Spell.Skillshot(SpellSlot.R, 3500, SkillShotType.Linear, 300, 5000, 80)
+            R = new Spell.Skillshot(SpellSlot.R, 3500, SkillShotType.Linear, 200, 5000, 80)
             {
                 AllowedCollisionCount = -1
             };

@@ -80,15 +80,15 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         static Caitlyn()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 1250, SkillShotType.Linear, 700, 2000, 70)
+            Q = new Spell.Skillshot(SpellSlot.Q, 1300, SkillShotType.Linear, 625, 2200, 90)
             {
                 AllowedCollisionCount = -1
             };
-            W = new Spell.Skillshot(SpellSlot.W, 800, SkillShotType.Circular, 1400)
+            W = new Spell.Skillshot(SpellSlot.W, 800, SkillShotType.Circular, 1600)
             {
                 Width = 20
             };
-            E = new Spell.Skillshot(SpellSlot.E, 820, SkillShotType.Linear, 250, 2000, 70)
+            E = new Spell.Skillshot(SpellSlot.E, 800, SkillShotType.Linear, 150, 1600, 80)
             {
                 AllowedCollisionCount = 0
             };

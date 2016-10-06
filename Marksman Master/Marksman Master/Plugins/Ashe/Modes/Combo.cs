@@ -48,7 +48,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                 Q.Cast();
             }
 
-            if (W.IsReady() && Settings.Combo.UseW && Player.Instance.Mana - 50 > 100)
+            if (W.IsReady() && Settings.Combo.UseW && (Player.Instance.Mana - 50 > (R.IsReady() ? 140 : 40)))
             {
                 var possibleTargets =
                     StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
@@ -120,7 +120,7 @@ namespace Marksman_Master.Plugins.Ashe.Modes
                    var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {
                         CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
-                        Delay = .5f,
+                        Delay = .25f,
                         From = Player.Instance.Position,
                         Radius = 120,
                         Range = Settings.Combo.RMaximumRange,

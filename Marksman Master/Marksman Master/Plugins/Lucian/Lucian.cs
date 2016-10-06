@@ -75,7 +75,7 @@ namespace Marksman_Master.Plugins.Lucian
         static Lucian()
         {
             Q = new Spell.Targeted(SpellSlot.Q, 650);
-            W = new Spell.Skillshot(SpellSlot.W, 1000, SkillShotType.Circular, 250, 1500, 80);
+            W = new Spell.Skillshot(SpellSlot.W, 1000, SkillShotType.Circular, 320, 1600, 100);
             E = new Spell.Skillshot(SpellSlot.E, 475, SkillShotType.Linear);
             R = new Spell.Skillshot(SpellSlot.R, 1150, SkillShotType.Linear, 250, 2000, 110);
 
