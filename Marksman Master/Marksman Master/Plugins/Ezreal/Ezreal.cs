@@ -273,7 +273,7 @@ namespace Marksman_Master.Plugins.Ezreal
             {
                 var hpPosition = source.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 30;
-                var percentDamage = Math.Min(100, Player.Instance.GetSpellDamageCached(source, SpellSlot.R) / source.TotalHealthWithShields() * 100);
+                var percentDamage = Math.Min(100, Damage.GetRDamage(source) / source.TotalHealthWithShields() * 100);
 
                 Text.X = (int)(hpPosition.X - 80);
                 Text.Y = (int)source.HPBarPosition.Y;
@@ -311,6 +311,7 @@ namespace Marksman_Master.Plugins.Ezreal
 
             ComboMenu.AddLabel("Trueshot Barrage (R) settings :");
             ComboMenu.Add("Plugins.Ezreal.ComboMenu.UseR", new CheckBox("Use R"));
+            ComboMenu.Add("Plugins.Ezreal.ComboMenu.UseRToKillsteal", new CheckBox("Use R only to killsteal"));
             ComboMenu.Add("Plugins.Ezreal.ComboMenu.RMinEnemiesHit", new Slider("Use R if will hit {0} or more enemies", 3, 1, 5));
             ComboMenu.Add("Plugins.Ezreal.ComboMenu.RKeybind", new KeyBind("R keybind", false, KeyBind.BindTypes.HoldActive, 'T'));
 
@@ -509,13 +510,15 @@ namespace Marksman_Master.Plugins.Ezreal
             {
                 public static bool UseQ => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseQ"];
 
-                public static bool UseQOnImmobile => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseQOnImmobile"];
+                public static bool UseQOnImmobile => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseQOnImmobile"]; 
 
                 public static bool UseW => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseW"];
 
                 public static bool UseE => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseE"];
 
                 public static bool UseR => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseR"];
+
+                public static bool UseROnlyToKillsteal => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseRToKillsteal"];
 
                 public static int RMinEnemiesHit => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.RMinEnemiesHit", true];
 
@@ -578,6 +581,40 @@ namespace Marksman_Master.Plugins.Ezreal
                 public static bool DrawE => MenuManager.MenuValues["Plugins.Ezreal.DrawingsMenu.DrawE"];
                 
                 public static bool DrawDamageIndicator => MenuManager.MenuValues["Plugins.Ezreal.DrawingsMenu.DrawDamageIndicator"];
+            }
+        }
+
+        protected static class Damage
+        {
+            private static CustomCache<int, float> RDamages => Cache.Resolve<CustomCache<int, float>>(1000);
+
+            public static float GetRDamage(Obj_AI_Base target)
+            {
+                if (MenuManager.IsCacheEnabled && RDamages.Exist(target.NetworkId))
+                {
+                    return RDamages.Get(target.NetworkId);
+                }
+
+                var polygon = new Geometry.Polygon.Rectangle(Player.Instance.Position, target.Position, 160);
+                var objects = ObjectManager
+                        .Get<Obj_AI_Base>().Count(x => x.NetworkId != target.NetworkId && x.IsEnemy &&
+                            x.IsValidTarget(Player.Instance.Distance(target)) &&
+                            new Geometry.Polygon.Circle(x.Position, x.BoundingRadius).Points.Any(
+                                p => polygon.IsInside(p)));
+
+                var damage = Player.Instance.GetSpellDamageCached(target, SpellSlot.R);
+                
+                for (var i = 1; i <= (objects > 7 ? 7 : objects); i++)
+                {
+                    damage *= 0.9f;
+                }
+
+                if (MenuManager.IsCacheEnabled)
+                {
+                    RDamages.Add(target.NetworkId, damage);
+                }
+
+                return damage;
             }
         }
     }

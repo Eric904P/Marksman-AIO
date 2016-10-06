@@ -26,6 +26,8 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
+using System;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -124,7 +126,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 foreach (var rPrediction in
                     from targ in rKillable
                     let health = targ.TotalHealthWithShields(true) - IncomingDamage.GetIncomingDamage(targ)
-                    where health < Player.Instance.GetSpellDamageCached(targ, SpellSlot.R)
+                    where health < Damage.GetRDamage(targ)
                     select R.GetPrediction(targ)
                     into rPrediction
                     where rPrediction.HitChancePercent >= 65

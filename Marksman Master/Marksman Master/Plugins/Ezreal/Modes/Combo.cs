@@ -170,18 +170,10 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 }
             }
 
-            if (!R.IsReady() || !Settings.Combo.UseR || Player.Instance.Position.IsVectorUnderEnemyTower())
+            if (!R.IsReady() || Settings.Combo.UseROnlyToKillsteal || !Settings.Combo.UseR || Player.Instance.Position.IsVectorUnderEnemyTower())
                 return;
 
             {
-                var killable = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                    x =>
-                        x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
-                        (Player.Instance.GetSpellDamageCached(x, SpellSlot.Q) > x.TotalHealthWithShields())).ToList();
-
-                if (killable.Any() && Q.IsReady())
-                    return;
-
                 if (Player.Instance.CountEnemyHeroesInRangeWithPrediction(
                     (int) (Player.Instance.GetAutoAttackRange() + 100), R.CastDelay) != 0)
                     return;
