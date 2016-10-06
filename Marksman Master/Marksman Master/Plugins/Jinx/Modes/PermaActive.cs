@@ -102,7 +102,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                         if (((x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(x, true)*1.8f) &&
                              x.IsValidTarget(Player.Instance.GetAutoAttackRange())) ||
                             ((x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.W)) &&
-                             x.IsValidTarget(W.Range)))
+                             x.IsValidTarget(W.Range) && W.IsReady()))
                         {
                             return false;
                         }
