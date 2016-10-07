@@ -195,7 +195,7 @@ namespace Marksman_Master
 
         internal static void BuildAntiGapcloserMenu()
         {
-            if (!EntityManager.Heroes.Enemies.Any(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName) || x.Hero == Champion.Rengar))
+            if (!EntityManager.Heroes.Enemies.Any(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName) || x.Hero != Champion.Rengar))
             {
                 return;
             }

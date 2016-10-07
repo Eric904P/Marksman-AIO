@@ -667,7 +667,6 @@ namespace Marksman_Master.Plugins.Sivir
                 SpellBlockerMenu = MenuManager.Menu.AddSubMenu("Spell blocker");
                 SpellBlockerMenu.AddGroupLabel("Spell blocker settings for Sivir addon");
                 SpellBlockerMenu.Add("Plugins.Sivir.SpellBlockerMenu.Enabled", new CheckBox("Enable Spell blocker"));
-                SpellBlockerMenu.Add("Plugins.Sivir.SpellBlockerMenu.EnableSkillshots", new CheckBox("Enable Spell blocker for skillshots", false));
 
                 SpellBlockerMenu.AddLabel("Spell blocker enabled for :");
                 SpellBlockerMenu.AddSeparator(5);
@@ -1006,6 +1005,15 @@ namespace Marksman_Master.Plugins.Sivir
                                         (int)
                                             Math.Max(
                                                 enemy.Distance(Player.Instance)/args.SData.MissileSpeed*1000 + 500, 0));
+                                }
+                                break;
+                            }
+                            case Champion.Gnar:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    enemy.IsInRangeCached(Player.Instance, 590))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
                                 }
                                 break;
                             }
