@@ -59,6 +59,8 @@ namespace Marksman_Master.Plugins.Sivir
 
         protected static bool IsPostAttack { get; private set; }
 
+        protected static MissileClient QMissileClient { get; private set; }
+
         static Sivir()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 1200, SkillShotType.Linear, 250, 1350, 90)
@@ -81,6 +83,26 @@ namespace Marksman_Master.Plugins.Sivir
             Orbwalker.OnPostAttack += (s, a) => IsPostAttack = true;
 
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
+
+            GameObject.OnCreate += (sender, args) =>
+            {
+                var missile = sender as MissileClient;
+
+                if (missile != null && missile.SpellCaster.IsMe && (missile.SData.Name.Equals("SivirQMissile", StringComparison.CurrentCultureIgnoreCase) || missile.SData.Name.Equals("SivirQMissileReturn", StringComparison.CurrentCultureIgnoreCase)))
+                {
+                    QMissileClient = missile;
+                }
+            };
+
+            GameObject.OnDelete += (sender, args) =>
+            {
+                var missile = sender as MissileClient;
+
+                if (missile != null && missile.SpellCaster.IsMe && (missile.SData.Name.Equals("SivirQMissile", StringComparison.CurrentCultureIgnoreCase) || missile.SData.Name.Equals("SivirQMissileReturn", StringComparison.CurrentCultureIgnoreCase)))
+                {
+                    QMissileClient = null;
+                }
+            };
         }
 
         private static void ChampionTracker_OnLongSpellCast(object sender, OnLongSpellCastEventArgs e)
@@ -111,6 +133,12 @@ namespace Marksman_Master.Plugins.Sivir
 
             if (Settings.Drawings.DrawQ && (!Settings.Drawings.DrawSpellRangesWhenReady || Q.IsReady()))
                 Circle.Draw(ColorPicker[0].Color, Q.Range, Player.Instance);
+
+            if (QMissileClient != null && Settings.Drawings.DrawQMissile)
+            {
+                new Geometry.Polygon.Rectangle(Player.Instance.Position, QMissileClient.GetMissileFixedYPosition(), 145).Draw(System.Drawing.Color.White, 3);
+                new Geometry.Polygon.Rectangle(Player.Instance.Position, QMissileClient.GetMissileFixedYPosition(), 90).Draw(System.Drawing.Color.YellowGreen, 2);
+            }
         }
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
         {
@@ -190,6 +218,7 @@ namespace Marksman_Master.Plugins.Sivir
 
             DrawingsMenu.AddLabel("Boomerang Blade (Q) settings :");
             DrawingsMenu.Add("Plugins.Sivir.DrawingsMenu.DrawQ", new CheckBox("Draw Q range", false));
+            DrawingsMenu.Add("Plugins.Sivir.DrawingsMenu.DrawQMissile", new CheckBox("Draw Q missile"));
             DrawingsMenu.Add("Plugins.Twitch.DrawingsMenu.DrawQColor", new CheckBox("Change color", false)).OnValueChange += (a, b) =>
             {
                 if (!b.NewValue)
@@ -281,8 +310,10 @@ namespace Marksman_Master.Plugins.Sivir
             internal static class Drawings
             {
                 public static bool DrawSpellRangesWhenReady => MenuManager.MenuValues["Plugins.Sivir.DrawingsMenu.DrawSpellRangesWhenReady"];
-                
+
                 public static bool DrawQ => MenuManager.MenuValues["Plugins.Sivir.DrawingsMenu.DrawQ"];
+
+                public static bool DrawQMissile => MenuManager.MenuValues["Plugins.Sivir.DrawingsMenu.DrawQMissile"];
             }
         }
 
@@ -299,20 +330,30 @@ namespace Marksman_Master.Plugins.Sivir
                 new BlockableSpellData(Champion.Annie, "[Q] Disintegrate", SpellSlot.Q),
                 new BlockableSpellData(Champion.Azir, "[R] Emperor's Divide", SpellSlot.R) {NeedsAdditionalLogics = true},
                 new BlockableSpellData(Champion.Bard, "[R] Tempered Fate", SpellSlot.R) {NeedsAdditionalLogics = true},
-                new BlockableSpellData(Champion.Blitzcrank, "[R] Power Fist", SpellSlot.E)
+                new BlockableSpellData(Champion.Blitzcrank, "[Q] Rocket Grab", SpellSlot.Q) {NeedsAdditionalLogics = true},
+                new BlockableSpellData(Champion.Blitzcrank, "[E] Power Fist", SpellSlot.E)
                 {
                     NeedsAdditionalLogics = true,
                     AdditionalBuffName = "powerfistattack"
                 },
+                new BlockableSpellData(Champion.Blitzcrank, "[R] Static Field", SpellSlot.R) {NeedsAdditionalLogics = true},
                 new BlockableSpellData(Champion.Brand, "[R] Pyroclasm", SpellSlot.R),
-                new BlockableSpellData(Champion.Braum, "[Passive] Concussive Blows", SpellSlot.Unknown) {NeedsAdditionalLogics = true, AdditionalBuffName = "braumbasicattackpassiveoverride"},
+                new BlockableSpellData(Champion.Braum, "[Passive] Concussive Blows", SpellSlot.Unknown)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "braumbasicattackpassiveoverride"
+                },
                 new BlockableSpellData(Champion.Caitlyn, "[R] Ace in the Hole", SpellSlot.R) {NeedsAdditionalLogics = true},
+                new BlockableSpellData(Champion.Cassiopeia, "[R] Petrifying Gaze", SpellSlot.R) {NeedsAdditionalLogics = true},
                 new BlockableSpellData(Champion.Chogath, "[R] Feast", SpellSlot.R),
                 new BlockableSpellData(Champion.Darius, "[R] Noxian Guillotine", SpellSlot.R),
                 new BlockableSpellData(Champion.Diana, "[E] Moonfall", SpellSlot.E) {NeedsAdditionalLogics = true},
                 new BlockableSpellData(Champion.Diana, "[R] Lunar Rush", SpellSlot.R),
+                new BlockableSpellData(Champion.Evelynn, "[E] Ravage", SpellSlot.E),
+                new BlockableSpellData(Champion.Evelynn, "[R] Agony's Embrace", SpellSlot.R) {NeedsAdditionalLogics = true},
                 new BlockableSpellData(Champion.FiddleSticks, "[Q] Terrify", SpellSlot.Q),
                 new BlockableSpellData(Champion.Fiora, "[R] Grand Challenge", SpellSlot.R),
+                new BlockableSpellData(Champion.Fizz, "[Q] Urchin Strike", SpellSlot.Q),
                 new BlockableSpellData(Champion.Galio, "[R] Idol of Durand", SpellSlot.R),
                 new BlockableSpellData(Champion.Gangplank, "[Q] Parrrley", SpellSlot.Q),
                 new BlockableSpellData(Champion.Garen, "[Q] Decisive Strike", SpellSlot.Q)
@@ -321,23 +362,54 @@ namespace Marksman_Master.Plugins.Sivir
                     AdditionalBuffName = "garenqattack"
                 },
                 new BlockableSpellData(Champion.Garen, "[R] Demacian Justice", SpellSlot.R),
+                new BlockableSpellData(Champion.Gnar, "[R] GNAR!", SpellSlot.R),
                 new BlockableSpellData(Champion.Gragas, "[W] Drunken Rage", SpellSlot.W)
                 {
                     NeedsAdditionalLogics = true,
                     AdditionalBuffName = "drunkenrage"
+                },
+                new BlockableSpellData(Champion.Graves, "[R] Collateral Damage", SpellSlot.R)
+                {
+                    NeedsAdditionalLogics = true
                 },
                 new BlockableSpellData(Champion.Hecarim, "[E] Devastating Charge", SpellSlot.E)
                 {
                     NeedsAdditionalLogics = true,
                     AdditionalBuffName = "hecarimrampattack"
                 },
-                //new BlockableSpellData(Champion.Illaoi, "", SpellSlot.W),
+                new BlockableSpellData(Champion.Hecarim, "[R] Onslaught of Shadows", SpellSlot.R)
+                {
+                    NeedsAdditionalLogics = true
+                },
+                new BlockableSpellData(Champion.Illaoi, "[W] Harsh Lesson", SpellSlot.W)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "illaoiwattack"
+                },
                 new BlockableSpellData(Champion.Irelia, "[E] Equilibrium Strike", SpellSlot.E),
                 new BlockableSpellData(Champion.Janna, "[W] Zephyr", SpellSlot.W),
+                new BlockableSpellData(Champion.Janna, "[R] Monsoon", SpellSlot.R) {NeedsAdditionalLogics = true},
+                new BlockableSpellData(Champion.JarvanIV, "[E-Q] Demacian Standard => Dragon Strike combo", SpellSlot.Q) {NeedsAdditionalLogics = true},
                 new BlockableSpellData(Champion.JarvanIV, "[R] Cataclysm", SpellSlot.R),
+                new BlockableSpellData(Champion.Jax, "[Q] Leap Strike", SpellSlot.Q),
+                new BlockableSpellData(Champion.Jax, "[W] Empower", SpellSlot.W)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "jaxempowertwo"
+                },
+                new BlockableSpellData(Champion.Jayce, "[Q] To The Skies!", SpellSlot.Q),
                 new BlockableSpellData(Champion.Jayce, "[E] Thundering Blow", SpellSlot.E),
+                new BlockableSpellData(Champion.Jhin, "[Passive] 4th auto attack", SpellSlot.Unknown)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "jhinpassiveattack"
+                },
                 new BlockableSpellData(Champion.Jhin, "[Q] Dancing Grenade", SpellSlot.Q),
-                new BlockableSpellData(Champion.Kalista, "[E] Rend", SpellSlot.E) {NeedsAdditionalLogics = true},
+                new BlockableSpellData(Champion.Kalista, "[E] Rend", SpellSlot.E)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "kalistaexpungemarker"
+                },
                 //new BlockableSpellData(Champion.Karma, "", SpellSlot.W)
                 //{
                     //NeedsAdditionalLogics = true,
@@ -349,11 +421,31 @@ namespace Marksman_Master.Plugins.Sivir
                     AdditionalDelay = 2800
                 },
                 new BlockableSpellData(Champion.Kassadin, "[Q] Null Sphere", SpellSlot.Q),
+                new BlockableSpellData(Champion.Kassadin, "[W] Nether Blade", SpellSlot.W)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "netherblade"
+                },
                 new BlockableSpellData(Champion.Katarina, "[Q] Bouncing Blades", SpellSlot.Q),
+                new BlockableSpellData(Champion.Katarina, "[Q] Bouncing Blades => Empowered auto attack", SpellSlot.Unknown)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "katarinaqmark"
+                },
                 new BlockableSpellData(Champion.Kayle, "[Q] Reckoning", SpellSlot.Q),
+                new BlockableSpellData(Champion.Kennen, "[Passive] Mark of the Storm", SpellSlot.Unknown)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "kennenmegaproc"
+                },
                 new BlockableSpellData(Champion.Kennen, "[W] Electrical Surge", SpellSlot.W),
                 new BlockableSpellData(Champion.Khazix, "[Q] Taste Their Fear", SpellSlot.Q),
                 new BlockableSpellData(Champion.Kindred, "[E] Mounting Dread", SpellSlot.E),
+                new BlockableSpellData(Champion.Kled, "[Q] Beartrap on a Rope", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "kledqmark"
+                },
                 new BlockableSpellData(Champion.KogMaw, "[Passive] Icathian Surprise", SpellSlot.Unknown)
                 {
                     NeedsAdditionalLogics = true,
@@ -366,14 +458,43 @@ namespace Marksman_Master.Plugins.Sivir
                     NeedsAdditionalLogics = true,
                     AdditionalBuffName = "leonashieldofdaybreakattack"
                 },
+                new BlockableSpellData(Champion.Lissandra, "[W] Ring of Frost", SpellSlot.W)
+                {
+                    NeedsAdditionalLogics = true
+                },
+                new BlockableSpellData(Champion.Lissandra, "[R] Frozen Tomb", SpellSlot.R),
                 new BlockableSpellData(Champion.Lucian, "[Q] Piercing Light", SpellSlot.Q),
+                new BlockableSpellData(Champion.Lulu, "[W] Whimsy (polymorph)", SpellSlot.W),
                 new BlockableSpellData(Champion.Malphite, "[Q] Seismic Shard", SpellSlot.Q),
-                new BlockableSpellData(Champion.Malzahar, "[R] Malefic Visions", SpellSlot.E),
+                new BlockableSpellData(Champion.Malphite, "[R] Unstoppable Force", SpellSlot.R)
+                {
+                    NeedsAdditionalLogics = true
+                },
+                new BlockableSpellData(Champion.Malzahar, "[R] Malefic Visions", SpellSlot.R),
                 new BlockableSpellData(Champion.Maokai, "[W] Twisted Advance", SpellSlot.W),
                 new BlockableSpellData(Champion.MasterYi, "[Q] Alpha Strike", SpellSlot.Q),
                 new BlockableSpellData(Champion.MissFortune, "[Q] Double Up", SpellSlot.Q),
+                new BlockableSpellData(Champion.Mordekaiser, "[Q] => 1st attack ", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "mordekaiserqattack"
+                },
+                new BlockableSpellData(Champion.Mordekaiser, "[Q] => 2nd attack ", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "mordekaiserqattack1"
+                },
+                new BlockableSpellData(Champion.Mordekaiser, "[Q] => 3rd attack ", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "mordekaiserqattack2"
+                },
                 new BlockableSpellData(Champion.Mordekaiser, "[R] Children of the Grave", SpellSlot.R),
-                new BlockableSpellData(Champion.Morgana, "[R] Soul Shackles", SpellSlot.R),
+                new BlockableSpellData(Champion.Morgana, "[R] Soul Shackles", SpellSlot.R)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "soulshackles"
+                },
                 new BlockableSpellData(Champion.Nautilus, "[R] Depth Charge", SpellSlot.R) {NeedsAdditionalLogics = true},
                 new BlockableSpellData(Champion.Nasus, "[Q] Siphoning Strike", SpellSlot.Q)
                 {
@@ -381,12 +502,19 @@ namespace Marksman_Master.Plugins.Sivir
                     AdditionalBuffName = "nasusqattack"
                 },
                 new BlockableSpellData(Champion.Nasus, "[W] Wither", SpellSlot.W),
+                new BlockableSpellData(Champion.Nami, "[W] Ebb and Flow", SpellSlot.W),
                 new BlockableSpellData(Champion.Nidalee, "[Q] Takedown", SpellSlot.Q)
                 {
                     NeedsAdditionalLogics = true,
                     AdditionalBuffName = "nidaleetakedownattack"
                 },
+                new BlockableSpellData(Champion.Nocturne, "[E] Unspeakable Horror", SpellSlot.E)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "nocturneunspeakablehorror"
+                },
                 new BlockableSpellData(Champion.Nunu, "[E] Ice Blast", SpellSlot.E),
+                new BlockableSpellData(Champion.Olaf, "[E] Reckless Swing", SpellSlot.E),
                 new BlockableSpellData(Champion.Pantheon, "[W] Aegis of Zeonia", SpellSlot.W),
                 new BlockableSpellData(Champion.Poppy, "[E] Heroic Charge", SpellSlot.E),
                 new BlockableSpellData(Champion.Quinn, "[E] Vault", SpellSlot.E),
@@ -401,8 +529,22 @@ namespace Marksman_Master.Plugins.Sivir
                     NeedsAdditionalLogics = true,
                     AdditionalBuffName = "renektonsuperexecute"
                 },
+                new BlockableSpellData(Champion.Rengar, "[Q] Savagery", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "rengarqbase"
+                },
+                new BlockableSpellData(Champion.Rengar, "[Q] Savagery => Empowered", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "rengarqemp"
+                },
                 new BlockableSpellData(Champion.Ryze, "[W] Rune Prison", SpellSlot.W),
-                new BlockableSpellData(Champion.Sejuani, "[E] Flail of the Northern Winds", SpellSlot.E),
+                new BlockableSpellData(Champion.Sejuani, "[E] Flail of the Northern Winds", SpellSlot.E)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "sejuanifrost"
+                },
                 new BlockableSpellData(Champion.Shaco, "[E] Two-Shiv Poison", SpellSlot.E),
                 new BlockableSpellData(Champion.Shyvana, "[Q] Twin Bite", SpellSlot.Q)
                 {
@@ -410,10 +552,24 @@ namespace Marksman_Master.Plugins.Sivir
                     AdditionalBuffName = "shyvanadoubleattackhit"
                 },
                 new BlockableSpellData(Champion.Singed, "[E] Fling", SpellSlot.E),
+                new BlockableSpellData(Champion.Skarner, "[E] Fracture => Empowered auto attack", SpellSlot.E)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "skarnerpassiveattack"
+                },
                 new BlockableSpellData(Champion.Skarner, "[R] Impale", SpellSlot.R),
                 new BlockableSpellData(Champion.Swain, "[E] Torment", SpellSlot.E),
+                new BlockableSpellData(Champion.Sona, "[Q] Hymn of Valor", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true
+                },
                 new BlockableSpellData(Champion.Syndra, "[R] Unleashed Power", SpellSlot.R),
                 new BlockableSpellData(Champion.TahmKench, "[W] Devour", SpellSlot.W),
+                new BlockableSpellData(Champion.Talon, "[Q] Noxian Diplomacy", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "talonnoxiandiplomacyattack"
+                },
                 new BlockableSpellData(Champion.Teemo, "[Q] Blinding Dart", SpellSlot.Q),
                 new BlockableSpellData(Champion.Tristana, "[E] Explosive Charge", SpellSlot.E)
                 {
@@ -421,6 +577,11 @@ namespace Marksman_Master.Plugins.Sivir
                     AdditionalDelay = 3800
                 },
                 new BlockableSpellData(Champion.Tristana, "[R] Buster Shot", SpellSlot.R),
+                new BlockableSpellData(Champion.Trundle, "[Q] Chomp", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "trundleq"
+                },
                 new BlockableSpellData(Champion.Trundle, "[R] Subjugate", SpellSlot.R),
                 new BlockableSpellData(Champion.TwistedFate, "[W] Pick A Card", SpellSlot.W)
                 {
@@ -437,6 +598,12 @@ namespace Marksman_Master.Plugins.Sivir
                 new BlockableSpellData(Champion.Vayne, "[E] Condemn", SpellSlot.E),
                 new BlockableSpellData(Champion.Veigar, "[R] Primordial Burst", SpellSlot.R),
                 new BlockableSpellData(Champion.Vi, "[R] Assault and Battery", SpellSlot.R) {NeedsAdditionalLogics = true},
+                new BlockableSpellData(Champion.Viktor, "[Q] Siphon Power", SpellSlot.Q),
+                new BlockableSpellData(Champion.Viktor, "[Q] Siphon Power => Empowered auto attack", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "viktorqbuff"
+                },
                 new BlockableSpellData(Champion.Vladimir, "[Q] Transfusion", SpellSlot.Q),
                 new BlockableSpellData(Champion.Volibear, "[Q] Rolling Thunder", SpellSlot.Q)
                 {
@@ -450,7 +617,30 @@ namespace Marksman_Master.Plugins.Sivir
                     AdditionalBuffName = "xenzhaothrust3"
                 },
                 new BlockableSpellData(Champion.XinZhao, "[R] Crescent Sweep", SpellSlot.R),
-                new BlockableSpellData(Champion.Zed, "[R] Death Mark", SpellSlot.R) {NeedsAdditionalLogics = true, AdditionalDelay = 200}
+                new BlockableSpellData(Champion.MonkeyKing, "[Q] Crushing Blow", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "monkeykingqattack"
+                },
+                new BlockableSpellData(Champion.MonkeyKing, "[E] Nimbus Strike", SpellSlot.E),
+                new BlockableSpellData(Champion.Warwick, "[Q] Hungering Strike", SpellSlot.Q),
+                new BlockableSpellData(Champion.Warwick, "[R] Infinite Duress", SpellSlot.R)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "infiniteduresschannel"
+                },
+                new BlockableSpellData(Champion.Yasuo, "[E-Q] Sweeping Blade => Steel Tempest combo", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "yasuoq3w"
+                },
+                new BlockableSpellData(Champion.Yorick, "[Q] Last Rites", SpellSlot.Q)
+                {
+                    NeedsAdditionalLogics = true,
+                    AdditionalBuffName = "yorickqattack"
+                },
+                new BlockableSpellData(Champion.Zed, "[R] Death Mark", SpellSlot.R) {NeedsAdditionalLogics = true, AdditionalDelay = 200},
+                new BlockableSpellData(Champion.Zilean, "[E] Time Warp", SpellSlot.E)
             };
 
             public delegate void OnBlockableSpellEvent(AIHeroClient sender, OnBlockableSpellEventArgs args);
@@ -477,27 +667,40 @@ namespace Marksman_Master.Plugins.Sivir
                 SpellBlockerMenu = MenuManager.Menu.AddSubMenu("Spell blocker");
                 SpellBlockerMenu.AddGroupLabel("Spell blocker settings for Sivir addon");
                 SpellBlockerMenu.Add("Plugins.Sivir.SpellBlockerMenu.Enabled", new CheckBox("Enable Spell blocker"));
+                SpellBlockerMenu.Add("Plugins.Sivir.SpellBlockerMenu.EnableSkillshots", new CheckBox("Enable Spell blocker for skillshots", false));
 
                 SpellBlockerMenu.AddLabel("Spell blocker enabled for :");
                 SpellBlockerMenu.AddSeparator(5);
 
-                foreach (var enemy in EntityManager.Heroes.Enemies.Where(x=> BlockableSpellsHashSet.Any(k=>k.ChampionName == x.Hero)))
+                foreach (var enemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x=> BlockableSpellsHashSet.Any(k=>k.ChampionName == x.Hero)))
                 {
                     SpellBlockerMenu.AddLabel(enemy.ChampionName + " :");
 
                     foreach (var spell in BlockableSpellsHashSet.Where(x => x.ChampionName == enemy.Hero))
                     {
                         SpellBlockerMenu.Add(
-                            "Plugins.Sivir.SpellBlockerMenu.Enabled." + spell.ChampionName + "." + spell.SpellSlot,
+                            $"Plugins.Sivir.SpellBlockerMenu.Enabled.{spell.ChampionName}.{spell.SpellSlot}{spell.AdditionalBuffName}",
                             new CheckBox(spell.ChampionName + " | " + spell.SpellName));
                     }
                     SpellBlockerMenu.AddSeparator(2);
                 }
             }
 
-            public static bool IsEnabledFor(AIHeroClient unit, SpellSlot slot)
-                => MenuManager.MenuValues["Plugins.Sivir.SpellBlockerMenu.Enabled"] &&
-                   MenuManager.MenuValues["Plugins.Sivir.SpellBlockerMenu.Enabled." + unit.ChampionName + "." + slot];
+            public static bool IsEnabledFor(AIHeroClient unit, SpellSlot slot, string additionalName)
+                =>
+                    SpellBlockerMenu != null &&
+                    SpellBlockerMenu["Plugins.Sivir.SpellBlockerMenu.Enabled"].Cast<CheckBox>().CurrentValue
+                    && SpellBlockerMenu[$"Plugins.Sivir.SpellBlockerMenu.Enabled.{unit.ChampionName}.{slot}{additionalName}"] != null &&
+                    SpellBlockerMenu[
+                        $"Plugins.Sivir.SpellBlockerMenu.Enabled.{unit.ChampionName}.{slot}{additionalName}"]
+                        .Cast<CheckBox>().CurrentValue;
+
+            private static void Invoke(AIHeroClient sender, SpellSlot spellSlot, string additionalName, bool isAutoAttack, float additionalDelay)
+            {
+                OnBlockableSpell?.Invoke(sender,
+                    new OnBlockableSpellEventArgs(sender.Hero, spellSlot, IsEnabledFor(sender, spellSlot, additionalName),
+                        isAutoAttack, additionalDelay));
+            }
             
             private static void Obj_AI_Base_OnBasicAttack(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
             {
@@ -508,56 +711,214 @@ namespace Marksman_Master.Plugins.Sivir
 
                 if (enemy.Hero == Champion.Tristana)
                 {
-                    var trist = EntityManager.Heroes.Enemies.Find(x => x.Hero == Champion.Tristana);
-                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "tristanaecharge");
+                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals("tristanaecharge", StringComparison.CurrentCultureIgnoreCase));
+
                     if (buff != null && buff.Count >= 3)
                     {
-                        OnBlockableSpell?.Invoke(trist,
-                            new OnBlockableSpellEventArgs(trist.Hero, SpellSlot.E, IsEnabledFor(trist, SpellSlot.E),
-                                false, 0));
+                        Invoke(enemy, SpellSlot.E, string.Empty, false, 0);
+                        return;
                     }
                 }
 
-                foreach (var blockableSpellData in BlockableSpellsHashSet.Where(x => x.ChampionName == enemy.Hero && !string.IsNullOrWhiteSpace(x.AdditionalBuffName) && x.AdditionalBuffName == args.SData.Name.ToLowerInvariant()))
+                if (enemy.Hero == Champion.Kennen && args.IsAutoAttack())
                 {
+                    var data = BlockableSpellsHashSet.FirstOrDefault(x => x.ChampionName == Champion.Kennen && x.SpellSlot == SpellSlot.Unknown);
 
-                    OnBlockableSpell?.Invoke(enemy,
-                        new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), true,
-                            blockableSpellData.AdditionalDelay));
+                    if (data == null)
+                        return;
+
+                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals("kennenmarkofstorm", StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff != null && (buff.Count == 2) && args.SData.Name.Equals(data.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        Invoke(enemy, data.SpellSlot, data.AdditionalBuffName, true, data.AdditionalDelay);
+                        return;
+                    }
+                }
+
+                if (enemy.Hero == Champion.Katarina && args.IsAutoAttack())
+                {
+                    var data = BlockableSpellsHashSet.FirstOrDefault(x => x.ChampionName == Champion.Katarina && x.SpellSlot == SpellSlot.Unknown);
+
+                    if (data == null)
+                        return;
+
+                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals(data.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff != null)
+                    {
+                        Invoke(enemy, data.SpellSlot, data.AdditionalBuffName, true, data.AdditionalDelay);
+                        return;
+                    }
+                }
+
+                if (enemy.Hero == Champion.Jax && args.IsAutoAttack())
+                {
+                    var data = BlockableSpellsHashSet.FirstOrDefault(x => x.ChampionName == Champion.Jax && x.SpellSlot == SpellSlot.W);
+
+                    if (data == null)
+                        return;
+
+                    var buff = enemy.Buffs.FirstOrDefault(x => x.Name.Equals(data.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff != null)
+                    {
+                        Invoke(enemy, data.SpellSlot, data.AdditionalBuffName, true, data.AdditionalDelay);
+                        return;
+                    }
+                }
+                
+                if (enemy.Hero == Champion.Renekton && args.IsAutoAttack())
+                {
+                    foreach (var data in
+                            from data in
+                                BlockableSpellsHashSet.Where(
+                                    x => x.ChampionName == Champion.Renekton && x.SpellSlot == SpellSlot.W)
+                            let buff = enemy.Buffs.FirstOrDefault(
+                                    x =>
+                                        x.Name.Equals(data.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase))
+                            where buff != null
+                            select data)
+                    {
+                        Invoke(enemy, data.SpellSlot, data.AdditionalBuffName, true, data.AdditionalDelay);
+                        return;
+                    }
+                }
+
+                if (enemy.Hero == Champion.Rengar && args.IsAutoAttack())
+                {
+                    foreach (
+                        var data in
+                            from data in BlockableSpellsHashSet.Where(
+                                    x => x.ChampionName == Champion.Rengar && x.SpellSlot == SpellSlot.Q)
+                            let buff =
+                                enemy.Buffs.Find(
+                                    x =>
+                                        x.Name.Equals(data.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase))
+                            where buff != null
+                            select data)
+                    {
+                        Invoke(enemy, data.SpellSlot, data.AdditionalBuffName, true, data.AdditionalDelay);
+                        return;
+                    }
+                }
+
+                if (enemy.Hero == Champion.Kassadin && args.IsAutoAttack())
+                {
+                    var data = BlockableSpellsHashSet.FirstOrDefault(x => x.ChampionName == Champion.Kassadin && x.SpellSlot == SpellSlot.W);
+
+                    if (data == null)
+                        return;
+
+                    var buff = enemy.Buffs.FirstOrDefault(x => x.Name.Equals(data.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff != null)
+                    {
+                        Invoke(enemy, data.SpellSlot, data.AdditionalBuffName, true, data.AdditionalDelay);
+                        return;
+                    }
+                }
+
+                foreach (var blockableSpellData in BlockableSpellsHashSet.Where(x => x.ChampionName == enemy.Hero && !string.IsNullOrWhiteSpace(x.AdditionalBuffName) && args.SData.Name.Equals(x.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase)))
+                {
+                    Invoke(enemy, blockableSpellData.SpellSlot, blockableSpellData.AdditionalBuffName, true, blockableSpellData.AdditionalDelay);
                 }
             }
 
             private static void Game_OnTick(EventArgs args)
             {
-                if (EntityManager.Heroes.Enemies.Any(x => x.Hero == Champion.KogMaw))
+                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.Hero == Champion.KogMaw))
                 {
-                    var enemy = EntityManager.Heroes.Enemies.Find(x => x.Hero == Champion.KogMaw);
-                    var buff = enemy.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "kogmawicathiansurprise");
-                    if (buff != null && (buff.EndTime - Game.Time) * 1000 < 300 && enemy.Distance(Player.Instance) < 370)
+                    var enemy = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).FirstOrDefault(x => x.Hero == Champion.KogMaw);
+
+                    if(enemy == null)
+                        return;
+
+                    var buff = enemy.Buffs.FirstOrDefault(x => x.Name.Equals("kogmawicathiansurprise", StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff != null && ((buff.EndTime - Game.Time) * 1000 < 350) && (enemy.Distance(Player.Instance) < 370))
                     {
-                        OnBlockableSpell?.Invoke(enemy,
-                        new OnBlockableSpellEventArgs(enemy.Hero, SpellSlot.Unknown, IsEnabledFor(enemy, SpellSlot.Unknown), false, 0));
+                        Invoke(enemy, SpellSlot.Unknown, string.Empty, false, 0);
                     }
                 }
-                if (EntityManager.Heroes.Enemies.Any(x => x.Hero == Champion.Karthus))
+                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.Hero == Champion.Karthus))
                 {
-                    var enemy = EntityManager.Heroes.Enemies.Find(x => x.Hero == Champion.Karthus);
-                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "karthusfallenonetarget");
-                    if (buff != null && (buff.EndTime - Game.Time) * 1000 < 300)
+                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals("karthusfallenonetarget", StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff != null && buff.Caster.GetType() == typeof(AIHeroClient) && (buff.EndTime - Game.Time) * 1000 < 350)
                     {
-                        OnBlockableSpell?.Invoke(enemy,
-                            new OnBlockableSpellEventArgs(enemy.Hero, SpellSlot.R, IsEnabledFor(enemy, SpellSlot.R), false, 0));
+                        Invoke(buff.Caster as AIHeroClient, SpellSlot.R, string.Empty, false, 0);
                     }
                 }
-                if (EntityManager.Heroes.Enemies.Any(x => x.Hero == Champion.Tristana))
+                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.Hero == Champion.Tristana))
                 {
-                    var enemy = EntityManager.Heroes.Enemies.Find(x => x.Hero == Champion.Tristana);
-                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "tristanaecharge");
-                    if (buff != null && (buff.EndTime - Game.Time) * 1000 < 300)
+                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals("tristanaecharge", StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff != null && buff.Caster.GetType() == typeof(AIHeroClient) && ((buff.EndTime - Game.Time) * 1000 < 350))
                     {
-                        OnBlockableSpell?.Invoke(enemy,
-                            new OnBlockableSpellEventArgs(enemy.Hero, SpellSlot.E, IsEnabledFor(enemy, SpellSlot.E), false, 0));
+                        Invoke(buff.Caster as AIHeroClient, SpellSlot.E, string.Empty, false, 0);
                     }
+                }
+
+                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.Hero == Champion.Morgana))
+                {
+                    var data = BlockableSpellsHashSet.FirstOrDefault(x => x.ChampionName == Champion.Morgana && x.SpellSlot == SpellSlot.R);
+
+                    if (data == null)
+                        return;
+
+                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals(data.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff != null && ((buff.EndTime - Game.Time) * 1000 < 350))
+                    {
+                        var morgana = buff.Caster as AIHeroClient;
+
+                        if (morgana == null)
+                            return;
+
+                        Invoke(morgana, SpellSlot.R, data.AdditionalBuffName, false, 0);
+                    }
+                }
+
+                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.Hero == Champion.Kled))
+                {
+                    var data = BlockableSpellsHashSet.FirstOrDefault(x => x.ChampionName == Champion.Kled && x.SpellSlot == SpellSlot.Q);
+
+                    if (data == null)
+                        return;
+
+                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals(data.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff != null && ((buff.EndTime - Game.Time) * 1000 < 350))
+                    {
+                        var kled = buff.Caster as AIHeroClient;
+
+                        if (kled == null)
+                            return;
+
+                        Invoke(kled, SpellSlot.Q, data.AdditionalBuffName, false, 0);
+                    }
+                }
+
+                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).All(x => x.Hero != Champion.Nocturne))
+                    return;
+                {
+                    var data = BlockableSpellsHashSet.FirstOrDefault(x => x.ChampionName == Champion.Nocturne && x.SpellSlot == SpellSlot.E);
+
+                    if (data == null)
+                        return;
+
+                    var buff = Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals(data.AdditionalBuffName, StringComparison.CurrentCultureIgnoreCase));
+
+                    if (buff == null || ((buff.EndTime - Game.Time)*1000 > 350))
+                        return;
+
+                    var nocturne = buff.Caster as AIHeroClient;
+
+                    if (nocturne == null)
+                        return;
+
+                    Invoke(nocturne, SpellSlot.E, data.AdditionalBuffName, false, 0);
                 }
             }
 
@@ -573,94 +934,362 @@ namespace Marksman_Master.Plugins.Sivir
 
                 if (enemy == null)
                     return;
-
+                
                 foreach (var blockableSpellData in BlockableSpellsHashSet.Where(data => data.ChampionName == enemy.Hero))
                 {
                     if (blockableSpellData.NeedsAdditionalLogics == false && args.Target != null && args.Target.IsMe && args.Slot == blockableSpellData.SpellSlot)
                     {
-                        OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
+                        Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
                     }
                     else if (blockableSpellData.NeedsAdditionalLogics)
                     {
                         if (args.SData.IsAutoAttack() && args.Target != null && args.Target.IsMe && !string.IsNullOrWhiteSpace(blockableSpellData.AdditionalBuffName) &&
                             blockableSpellData.AdditionalBuffName == args.SData.Name.ToLowerInvariant())
                         {
-                            OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), true, blockableSpellData.AdditionalDelay)); // better db check
+                            OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot, blockableSpellData.AdditionalBuffName), true, blockableSpellData.AdditionalDelay));
                         }
-                        else if (enemy.Hero == Champion.Azir && args.Slot == blockableSpellData.SpellSlot)
-                        {
-                            if (enemy.Distance(Player.Instance) < 300)
-                            {
-                                OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
-                            }
-                        }
-                        else if (enemy.Hero == Champion.Amumu && args.Slot == blockableSpellData.SpellSlot)
-                        {
-                            if (enemy.Distance(Player.Instance) < 1100)
-                            {
-                                OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
-                            }
-                        }
-                        else if (enemy.Hero == Champion.Akali && args.Slot == blockableSpellData.SpellSlot && enemy.Distance(Player.Instance) < 325)
-                        {
-                            OnBlockableSpell?.Invoke(enemy,
-                                new OnBlockableSpellEventArgs(enemy.Hero, args.Slot,
-                                    IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
-                        }
-                        else if (enemy.Hero == Champion.Bard && args.Slot == blockableSpellData.SpellSlot && new Geometry.Polygon.Circle(args.End, 325).IsInside(Player.Instance))
-                        {
-                            Core.DelayAction(() => OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0)), (int)Math.Max(enemy.Distance(Player.Instance) / 2000 * 1000 - 300, 0));
-                        }
-                        else if (enemy.Hero == Champion.Diana && args.Slot == blockableSpellData.SpellSlot && new Geometry.Polygon.Circle(args.End, 225).IsInside(Player.Instance))
-                        {
-                            OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
-                        }
-                        else if (enemy.Hero == Champion.Caitlyn && args.Slot == blockableSpellData.SpellSlot && args.Target != null && args.Target.IsMe)
-                        {
-                            Core.DelayAction(() => OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0)), (int)Math.Max(enemy.Distance(Player.Instance) / args.SData.MissileSpeed * 1000 + 500, 0));
-                        }
-                        else if (enemy.Hero == Champion.Kalista && args.Slot == blockableSpellData.SpellSlot && args.Target != null && args.Target.IsMe)
-                        {
-                            OnBlockableSpell?.Invoke(enemy, new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
-                        }
-                        else if (enemy.Hero == Champion.Karma && args.Slot == blockableSpellData.SpellSlot)
-                        {
 
-                        }
-                        else if (enemy.Hero == Champion.Nautilus && args.Slot == blockableSpellData.SpellSlot &&
-                                 args.Target != null && args.Target.IsMe)
+                        switch (enemy.Hero)
                         {
-                            Core.DelayAction(
-                                () =>
-                                    OnBlockableSpell?.Invoke(enemy,
-                                        new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0)),
-                                (int)
-                                    Math.Max(
-                                        enemy.Distance(Player.Instance) / args.SData.MissileSpeed * 1000 - 300, 0));
-                        }
-                        else if (enemy.Hero == Champion.Vi && args.Slot == blockableSpellData.SpellSlot &&
-                                 args.Target != null && args.Target.IsMe)
-                        {
-                            Core.DelayAction(() =>
+                            case Champion.Azir:
                             {
-                                if (enemy.Distance(Player.Instance) < 350)
-                                    OnBlockableSpell?.Invoke(enemy,
-                                        new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0));
+                                if (args.Slot == blockableSpellData.SpellSlot && (enemy.Distance(Player.Instance) < 300))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Amumu:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    (enemy.Distance(Player.Instance) < 1100))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Akali:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot && (enemy.Distance(Player.Instance) < 325))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Bard:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    new Geometry.Polygon.Circle(args.End, 325).IsInside(Player.Instance))
+                                {
+                                    Core.DelayAction(
+                                        () => Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0),
+                                        (int) Math.Max(enemy.Distance(Player.Instance)/2000*1000 - 300, 0));
+                                }
+                                break;
+                            }
+                            case Champion.Diana:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    new Geometry.Polygon.Circle(args.End, 225).IsInside(Player.Instance))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Caitlyn:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot && args.Target != null && args.Target.IsMe)
+                                {
+                                    Core.DelayAction(
+                                        () =>
+                                            Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0),
+                                        (int)
+                                            Math.Max(
+                                                enemy.Distance(Player.Instance)/args.SData.MissileSpeed*1000 + 500, 0));
+                                }
+                                break;
+                            }
+                            case Champion.Kalista:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    Player.Instance.HasBuff(blockableSpellData.AdditionalBuffName))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.JarvanIV:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot)
+                                {
+                                    var flag =
+                                        ObjectManager.Get<Obj_AI_Minion>()
+                                            .FirstOrDefault(
+                                                x => x.Name.Equals("beacon", StringComparison.CurrentCultureIgnoreCase));
 
-                            },
-                                (int)
-                                    Math.Max(
-                                        enemy.Distance(Player.Instance) / args.SData.MissileSpeed * 1000 - 400,
-                                        0));
-                        }
-                        else if (enemy.Hero == Champion.Zed && args.Slot == blockableSpellData.SpellSlot &&
-                                 enemy.Distance(Player.Instance) < 300)
-                        {
-                            Core.DelayAction(
-                                () =>
-                                    OnBlockableSpell?.Invoke(enemy,
-                                        new OnBlockableSpellEventArgs(enemy.Hero, args.Slot, IsEnabledFor(enemy, blockableSpellData.SpellSlot), false, 0)),
-                                300);
+                                    if (flag == null)
+                                        continue;
+
+                                    var endPos = enemy.Position.Extend(args.End, 790).To3D();
+                                    var flagpolygon = new Geometry.Polygon.Circle(flag.Position, 150);
+                                    var qPolygon = new Geometry.Polygon.Rectangle(enemy.Position, endPos, 180);
+                                    var playerpolygon = new Geometry.Polygon.Circle(Player.Instance.Position,
+                                        Player.Instance.BoundingRadius);
+
+                                    for (var i = 0; i <= 800; i += 100)
+                                    {
+                                        if (flagpolygon.IsInside(enemy.Position.Extend(args.End, i)) &&
+                                            playerpolygon.Points.Any(x => qPolygon.IsInside(x)))
+                                        {
+                                            Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                            case Champion.Blitzcrank:
+                            {
+                                switch (args.Slot)
+                                {
+                                    case SpellSlot.Q:
+                                        const int speed = 1800;
+                                        var eta = (int) (enemy.DistanceCached(Player.Instance)/speed) - 250;
+                                        var endPos = enemy.Position.Extend(args.End,
+                                            enemy.DistanceCached(args.End) > 1050 ? 1050 : enemy.DistanceCached(args.End));
+
+                                        Core.DelayAction(() =>
+                                        {
+                                            if (endPos.IsInRange(Player.Instance, 100))
+                                            {
+                                                Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                            }
+                                        }, eta);
+                                        break;
+                                    case SpellSlot.R:
+                                        Invoke(enemy, SpellSlot.R, blockableSpellData.AdditionalBuffName, false, 0);
+                                        break;
+                                    default:
+                                        return;
+                                }
+                                break;
+                            }
+                            case Champion.Warwick:
+                            {
+                                if ((args.Slot == blockableSpellData.SpellSlot ||
+                                     args.SData.Name.Equals(blockableSpellData.AdditionalBuffName,
+                                         StringComparison.CurrentCultureIgnoreCase)) &&
+                                    ((args.End.Distance(Player.Instance) < 500) || args.Target.IsMe))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Cassiopeia:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot)
+                                {
+                                    var endPos =
+                                        enemy.Position.Extend(args.End,
+                                            args.End.DistanceCached(enemy) > 850 ? 850 : args.End.DistanceCached(enemy))
+                                            .To3D();
+
+                                    var rPolygon = new Geometry.Polygon.Sector(enemy.Position, endPos, 850,
+                                        80*(float) (Math.PI/180F));
+                                    var playerpolygon = new Geometry.Polygon.Circle(Player.Instance.Position,
+                                        Player.Instance.BoundingRadius);
+
+                                    if (playerpolygon.Points.Any(x => rPolygon.IsInside(x)))
+                                    {
+                                        Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                    }
+                                }
+                                break;
+                            }
+                            case Champion.Evelynn:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot)
+                                {
+                                    var endPos =
+                                        enemy.Position.Extend(args.End,
+                                            args.End.DistanceCached(enemy) > 650 ? 650 : args.End.DistanceCached(enemy))
+                                            .To3D();
+
+                                    if (endPos.IsInRangeCached(Player.Instance, 500))
+                                    {
+                                        Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                    }
+                                }
+                                break;
+                            }
+                            case Champion.Janna:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    enemy.IsInRangeCached(Player.Instance, 875))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Lissandra:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    enemy.IsInRangeCached(Player.Instance, 900))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Malphite:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot)
+                                {
+                                    var speed = enemy.MoveSpeed - 335 + 1835;
+                                    var eta = (int) (enemy.DistanceCached(Player.Instance)/speed*1000 + 250) -
+                                              400;
+                                    var endPos = enemy.Position.Extend(args.End,
+                                        enemy.DistanceCached(args.End) > 1000
+                                            ? 1000
+                                            : enemy.DistanceCached(args.End));
+
+                                    Core.DelayAction(() =>
+                                    {
+                                        if (endPos.IsInRangeCached(Player.Instance, 300))
+                                        {
+                                            Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                        }
+                                    }, eta);
+                                }
+                                break;
+                            }
+                            case Champion.Sona:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot)
+                                {
+                                    var speed = enemy.MoveSpeed - 335 + 1835;
+                                    var eta = (int) (enemy.DistanceCached(Player.Instance)/speed*1000 + 250) -
+                                              400;
+                                    var endPos = enemy.Position.Extend(args.End,
+                                        enemy.DistanceCached(args.End) > 1000
+                                            ? 1000
+                                            : enemy.DistanceCached(args.End));
+
+                                    Core.DelayAction(() =>
+                                    {
+                                        if (endPos.IsInRangeCached(Player.Instance, 300))
+                                        {
+                                            Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                        }
+                                    }, eta);
+                                }
+                                break;
+                            }
+                            case Champion.Sejuani:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    Player.Instance.HasBuff(blockableSpellData.AdditionalBuffName))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Graves:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot)
+                                {
+                                    var endPos = enemy.Position.Extend(args.End, 1000).To3D();
+                                    var rPolygon = new Geometry.Polygon.Rectangle(enemy.Position,
+                                        endPos, 130);
+                                    var playerpolygon =
+                                        new Geometry.Polygon.Circle(Player.Instance.Position,
+                                            Player.Instance.BoundingRadius);
+
+                                    if (playerpolygon.Points.Any(x => rPolygon.IsInside(x)))
+                                    {
+                                        Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                    }
+                                }
+                                break;
+                            }
+                            case Champion.Hecarim:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot)
+                                {
+                                    var endPos = enemy.Position.Extend(args.End, 1000).To3D();
+                                    var rPolygon = new Geometry.Polygon.Rectangle(
+                                        enemy.Position, endPos, 300);
+                                    var playerpolygon =
+                                        new Geometry.Polygon.Circle(Player.Instance.Position,
+                                            Player.Instance.BoundingRadius);
+
+                                    if (playerpolygon.Points.Any(x => rPolygon.IsInside(x)))
+                                    {
+                                        Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                    }
+                                }
+                                break;
+                            }
+                            case Champion.Nautilus:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    args.Target != null && args.Target.IsMe)
+                                {
+                                    Core.DelayAction(
+                                        () => Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0),
+                                        (int) Math.Max(
+                                            enemy.Distance(Player.Instance)/
+                                            args.SData.MissileSpeed*1000 - 300, 0));
+                                }
+                                break;
+                            }
+                            case Champion.Vi:
+                            {
+                                if (args.Slot == blockableSpellData.SpellSlot &&
+                                    args.Target != null && args.Target.IsMe)
+                                {
+                                    Core.DelayAction(() =>
+                                    {
+                                        if (enemy.Distance(Player.Instance) < 350)
+                                            Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+
+                                    },
+                                        (int) Math.Max(enemy.Distance(Player.Instance)/
+                                                       args.SData.MissileSpeed*1000 - 400,
+                                            0));
+                                }
+                                break;
+                            }
+                            case Champion.Yasuo:
+                            {
+                                if (args.SData.Name.Equals(
+                                    blockableSpellData.AdditionalBuffName,
+                                    StringComparison.CurrentCultureIgnoreCase) &&
+                                    enemy.IsInRangeCached(Player.Instance, 380))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Morgana:
+                            {
+                                if (
+                                    args.Slot == blockableSpellData.SpellSlot &&
+                                    enemy.IsInRangeCached(Player.Instance, 600))
+                                {
+                                    Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0);
+                                }
+                                break;
+                            }
+                            case Champion.Zed:
+                            {
+                                if (args.Slot ==
+                                    blockableSpellData.SpellSlot && args.Target != null && args.Target.IsMe)
+                                {
+                                    Core.DelayAction(
+                                        () => Invoke(enemy, args.Slot, blockableSpellData.AdditionalBuffName, false, 0),
+                                        300);
+                                }
+                                break;
+                            }
                         }
                     }
                 }

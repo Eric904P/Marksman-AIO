@@ -30,6 +30,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Events;
@@ -128,7 +129,7 @@ namespace Marksman_Master
                           "hope you will have fun. Good luck !");
             Menu.AddSeparator(40);
             Menu.AddLabel("Marksman AIO is currently in early beta phase.\nIf you experienced any bugs please report them in the forum thread.");
-
+            
             InitializeAddon.PluginInstance.CreateMenu();
         }
 
@@ -194,7 +195,7 @@ namespace Marksman_Master
 
         internal static void BuildAntiGapcloserMenu()
         {
-            if (!EntityManager.Heroes.Enemies.Any(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName)))
+            if (!EntityManager.Heroes.Enemies.Any(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName) || x.Hero == Champion.Rengar))
             {
                 return;
             }
@@ -204,7 +205,7 @@ namespace Marksman_Master
             GapcloserMenu.Add("MenuManager.GapcloserMenu.Enabled", new CheckBox("Anti-Gapcloser Enabled"));
             GapcloserMenu.Add("MenuManager.GapcloserMenu.OnlyInCombo", new CheckBox("Active only in Combo mode", false));
             GapcloserMenu.AddSeparator(15);
-
+            
             foreach (var enemy in
                 EntityManager.Heroes.Enemies.Where(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName)))
             {
@@ -226,6 +227,19 @@ namespace Marksman_Master
                     GapclosersFound++;
                 }
             }
+
+            if (EntityManager.Heroes.Enemies.All(x => x.Hero != Champion.Rengar))
+                return;
+
+            GapcloserMenu.AddGroupLabel("Rengar");
+
+            GapcloserMenu.AddLabel("[Passive] Leap");
+            GapcloserMenu.Add("MenuManager.GapcloserMenu.Rengar.Passive.Delay", new Slider("Delay", 0, 0, 500));
+            GapcloserMenu.Add("MenuManager.GapcloserMenu.Rengar.Passive.Hp", new Slider("Only if I'm below under {0} % of my HP", 100));
+            GapcloserMenu.Add("MenuManager.GapcloserMenu.Rengar.Passive.Enemies", new Slider("Only if {0} or less enemies are near", 5, 1, 5));
+            GapcloserMenu.Add("MenuManager.GapcloserMenu.Rengar.Passive.Enabled", new CheckBox("Enabled"));
+
+            GapclosersFound++;
         }
     }
 }
