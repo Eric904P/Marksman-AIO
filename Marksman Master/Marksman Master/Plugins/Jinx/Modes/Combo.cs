@@ -109,13 +109,14 @@ namespace Marksman_Master.Plugins.Jinx.Modes
             if (E.IsReady() && Settings.Combo.UseE && (Player.Instance.Mana - 50 > 100))
             {
                 var target = TargetSelector.GetTarget(E.Range, DamageType.Physical);
-
+                
                 if (target != null)
                 {
                     var ePrediction = E.GetPrediction(target);
 
-                    if (ePrediction.HitChance == HitChance.High &&
-                        (ePrediction.CastPosition.DistanceCached(target) > 125))
+                    if ((ePrediction.HitChancePercent >= 80 &&
+                        (ePrediction.CastPosition.DistanceCached(target) > 150)) || (ePrediction.HitChancePercent >= 50 &&
+                        (ePrediction.CastPosition.DistanceCached(target) > 150) && target.IsMovingTowards(Player.Instance, 500)))
                     {
                         E.Cast(ePrediction.CastPosition);
                         return;

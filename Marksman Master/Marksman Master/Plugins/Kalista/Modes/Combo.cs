@@ -70,7 +70,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 {
                     var count =
                         StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
-                            unit => unit.IsValid && unit.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(unit) && Prediction.Health.GetPrediction(unit, 250) > 10).Count();
+                            unit => unit.IsValid && unit.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(unit) && (Prediction.Health.GetPrediction(unit, 250) > 15)).Count();
 
                     if (count >= Settings.Combo.UseEToSlowMinMinions)
                     {

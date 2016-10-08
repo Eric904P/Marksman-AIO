@@ -62,7 +62,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
 
             if (HasMinigun)
             {
-                if (!(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ) || !rocketsLanuncherMinions.Any() || !CanILaneClear())
+                if (!(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ) || IsPreAttack || !rocketsLanuncherMinions.Any() || !CanILaneClear())
                     return;
 
                 foreach (var objAiMinion in rocketsLanuncherMinions.OrderBy(x => x.Health))

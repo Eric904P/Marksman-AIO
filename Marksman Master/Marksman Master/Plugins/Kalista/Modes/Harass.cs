@@ -59,18 +59,23 @@ namespace Marksman_Master.Plugins.Kalista.Modes
             if (!E.IsReady() || !Settings.Harass.UseE || !(Player.Instance.ManaPercent >= Settings.Harass.MinManaForE))
                 return;
 
-            var enemy = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(E.Range) && Damage.HasRendBuff(x) &&
-                                                                 Damage.CountEStacks(x) > Settings.Harass.MinStacksForE);
+            var enemy = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                x => x.IsValidTargetCached(E.Range) && Damage.HasRendBuff(x) &&
+                     (Damage.CountEStacks(x) > Settings.Harass.MinStacksForE));
 
             if (enemy == null)
                 return;
             
             if (Settings.Harass.UseEIfManaWillBeRestored &&
-                StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions, x => x.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(x)).Count() >= 2)
+                StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions, x => x.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(x) && 
+                (Prediction.Health.GetPrediction(x, 250) > 15)).Count() >= 2)
             {
                 E.Cast();
             }
-            else
+            else if (
+                StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
+                    x => x.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(x) &&
+                         (Prediction.Health.GetPrediction(x, 250) > 15)).Any())
             {
                 E.Cast();
             }

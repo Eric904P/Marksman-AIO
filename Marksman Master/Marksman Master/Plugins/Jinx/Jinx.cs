@@ -100,7 +100,7 @@ namespace Marksman_Master.Plugins.Jinx
             {
                 AllowedCollisionCount = 0
             };
-            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 1100, 1100, 120);
+            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 950, int.MaxValue, 100);
             R = new Spell.Skillshot(SpellSlot.R, 30000, SkillShotType.Linear, 600, 1500, 140)
             {
                 AllowedCollisionCount = -1
@@ -116,13 +116,11 @@ namespace Marksman_Master.Plugins.Jinx
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
             Orbwalker.OnPostAttack += (target, args) => IsPreAttack = false;
             
-            Obj_AI_Base.OnBuffGain += (sender, args) =>
+            Obj_AI_Base.OnProcessSpellCast += (sender, args) =>
             {
-                if (sender.IsMe &&
-                    (args.Buff.Name.Equals("jinxq", StringComparison.CurrentCultureIgnoreCase) ||
-                     args.Buff.Name.Equals("jinxqicon", StringComparison.CurrentCultureIgnoreCase)))
+                if (sender.IsMe && args.Slot == SpellSlot.Q)
                 {
-                    Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                    Orbwalker.ResetAutoAttack();
                 }
             };
 

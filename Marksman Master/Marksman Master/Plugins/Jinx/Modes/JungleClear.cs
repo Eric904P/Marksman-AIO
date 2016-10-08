@@ -52,7 +52,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
             {
                 Q.Cast();
             }
-            else if (HasRocketLauncher)
+            else if (HasRocketLauncher && !IsPreAttack)
             {
                 Q.Cast();
             }

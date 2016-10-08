@@ -41,7 +41,7 @@ namespace Marksman_Master.Plugins.Kalista.Modes
         public static void Execute()
         {
             if (Q.IsReady() && Settings.JungleLaneClear.UseQ && !Player.Instance.IsDashing() &&
-                Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForQ)
+                (Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForQ))
             {
                 var minions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion,
                         x => x.Health < Player.Instance.GetSpellDamageCached(x, SpellSlot.Q)).ToList();
@@ -51,16 +51,12 @@ namespace Marksman_Master.Plugins.Kalista.Modes
 
                 foreach (var minion in minions.Where(x =>
                 {
-                    if (x != null && x.Health < Player.Instance.GetSpellDamageCached(x, SpellSlot.Q))
-                    {
-                        var prediction = Q.GetPrediction(x);
+                    if (x == null || (x.Health > Player.Instance.GetSpellDamageCached(x, SpellSlot.Q)))
+                        return false;
 
-                        if (prediction != null && prediction.HitChance >= HitChance.Medium)
-                        {
-                            return true;
-                        }
-                    }
-                    return false;
+                    var prediction = Q.GetPrediction(x);
+
+                    return prediction != null && prediction.HitChance >= HitChance.Medium;
                 }))
                 {
                     if (Settings.JungleLaneClear.MinMinionsForQ == 1)
@@ -86,21 +82,19 @@ namespace Marksman_Master.Plugins.Kalista.Modes
 
                     for (int i = 0, lenght = collisionableObjects.Count; i < lenght; i++)
                     {
-                        if (collisionableObjects[i].Health <
-                            Player.Instance.GetSpellDamageCached(collisionableObjects[i], SpellSlot.Q))
-                        {
-                            count++;
-                            lastMinion = collisionableObjects[i];
+                        if (collisionableObjects[i].Health > Player.Instance.GetSpellDamageCached(collisionableObjects[i], SpellSlot.Q))
+                            continue;
 
-                            if (i + 1 < lenght && collisionableObjects[i + 1].Health >
-                                Player.Instance.GetSpellDamageCached(collisionableObjects[i + 1], SpellSlot.Q))
-                            {
-                                break;
-                            }
+                        count++;
+                        lastMinion = collisionableObjects[i];
+
+                        if ((i + 1 < lenght) && (collisionableObjects[i + 1].Health > Player.Instance.GetSpellDamageCached(collisionableObjects[i + 1], SpellSlot.Q)))
+                        {
+                            break;
                         }
                     }
 
-                    if (count < Settings.JungleLaneClear.MinMinionsForQ || lastMinion == null)
+                    if ((count < Settings.JungleLaneClear.MinMinionsForQ) || lastMinion == null)
                         continue;
 
                     Q.Cast(lastMinion.ServerPosition);
@@ -108,10 +102,12 @@ namespace Marksman_Master.Plugins.Kalista.Modes
                 }
             }
 
-            if (!E.IsReady() || !Settings.JungleLaneClear.UseE || !(Player.Instance.ManaPercent >= Settings.JungleLaneClear.MinManaForE))
+            if (!E.IsReady() || !Settings.JungleLaneClear.UseE || (Player.Instance.ManaPercent < Settings.JungleLaneClear.MinManaForE))
                 return;
             {
-                var minions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(x));
+                var minions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion,
+                    x => x.IsValidTargetCached(E.Range) && Damage.IsTargetKillableByRend(x) &&
+                         (Prediction.Health.GetPrediction(x, 250) > 10));
 
                 if (minions.Count() >= Settings.JungleLaneClear.MinMinionsForE)
                 {
