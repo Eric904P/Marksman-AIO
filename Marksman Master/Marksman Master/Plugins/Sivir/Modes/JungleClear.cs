@@ -26,32 +26,31 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
 
 namespace Marksman_Master.Plugins.Sivir.Modes
 {
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using Utils;
+    
     internal class JungleClear : Sivir
     {
         public static void Execute()
         {
-            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+            var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange()))
+                    .ToList();
 
             if (!jungleMinions.Any())
                 return;
 
             if (Q.IsReady() && Settings.LaneClear.UseQInJungleClear &&
-                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ)
+                (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
             {
-                var pred = EntityManager.MinionsAndMonsters.GetLineFarmLocation(jungleMinions, 100, 1200,
-                    Player.Instance.Position.To2D());
-
-                if(pred.HitNumber > 1)
-                    Q.Cast(pred.CastPosition);
+                Q.CastOnBestFarmPosition(1);
             }
 
-            if (!IsPostAttack || !W.IsReady() || !Settings.LaneClear.UseWInJungleClear || !(Player.Instance.ManaPercent >= Settings.LaneClear.WMinMana))
+            if (!IsPostAttack || !W.IsReady() || !Settings.LaneClear.UseWInJungleClear || (Player.Instance.ManaPercent < Settings.LaneClear.WMinMana))
                 return;
 
             if (jungleMinions.Count > 1)

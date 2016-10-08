@@ -27,18 +27,18 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-using Marksman_Master.Utils;
-
 namespace Marksman_Master.Plugins.Sivir.Modes
 {
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Enumerations;
+    using Utils;
+
     internal class Harass : Sivir
     {
         public static void Execute()
         {
-            if (Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)
+            if (Q.IsReady() && Settings.Harass.UseQ && !IsPreAttack && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ))
             {
                 var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
 
@@ -46,14 +46,16 @@ namespace Marksman_Master.Plugins.Sivir.Modes
                 {
                     var qPrediction = Q.GetPrediction(target);
 
-                    if (qPrediction.HitChance >= HitChance.Medium && target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(target, true) * 2 + Player.Instance.GetSpellDamage(target, SpellSlot.Q))
+                    if ((qPrediction.HitChance >= HitChance.Medium) &&
+                        (target.TotalHealthWithShields() <
+                         Player.Instance.GetAutoAttackDamageCached(target, true) * 2 +
+                         Player.Instance.GetSpellDamageCached(target, SpellSlot.Q)))
                     {
-                        Misc.PrintDebugMessage($"Casting Q on {target.Hero} variant 1");
                         Q.Cast(qPrediction.CastPosition);
                     }
-                    else if (qPrediction.HitChance >= HitChance.High && Player.Instance.Mana - 60 > 100 && Player.Instance.IsInRange(target, Player.Instance.GetAutoAttackRange()))
+                    else if ((qPrediction.HitChancePercent >= 65) &&
+                             (Player.Instance.Mana - 60 > (R.IsReady() ? 100 : 0)))
                     {
-                        Misc.PrintDebugMessage($"Casting Q on {target.Hero} variant 2");
                         Q.Cast(qPrediction.CastPosition);
                     }
                 }
@@ -65,14 +67,13 @@ namespace Marksman_Master.Plugins.Sivir.Modes
             {
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange(), DamageType.Physical);
 
-                if (target != null &&
-                    target.Health - IncomingDamage.GetIncomingDamage(target) <
-                    Player.Instance.GetAutoAttackDamage(target, true))
+                if (target != null && (target.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(target) <
+                    Player.Instance.GetAutoAttackDamageCached(target, true) * 2))
                 {
                     Misc.PrintDebugMessage($"Casting W on {target.Hero} variant 1");
                     W.Cast();
                 }
-                else if (target != null && target.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange() - 100)
+                else if (target != null && Player.Instance.IsInRangeCached(target, Player.Instance.GetAutoAttackRange() - 50))
                 {
                     Misc.PrintDebugMessage($"Casting W on {target.Hero} variant 2");
                     W.Cast();

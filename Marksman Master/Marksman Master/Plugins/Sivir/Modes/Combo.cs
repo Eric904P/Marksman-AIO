@@ -27,18 +27,18 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-using Marksman_Master.Utils;
-
 namespace Marksman_Master.Plugins.Sivir.Modes
 {
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Enumerations;
+    using Utils;
+
     internal class Combo : Sivir
     {
         public static void Execute()
         {
-            if (Q.IsReady() && Settings.Combo.UseQ)
+            if (Q.IsReady() && Settings.Combo.UseQ && !IsPreAttack)
             {
                 var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
 
@@ -46,11 +46,14 @@ namespace Marksman_Master.Plugins.Sivir.Modes
                 {
                     var qPrediction = Q.GetPrediction(target);
 
-                    if(qPrediction.HitChance >= HitChance.Medium && target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(target, true) * 2 + Player.Instance.GetSpellDamage(target, SpellSlot.Q))
+                    if ((qPrediction.HitChance >= HitChance.Medium) &&
+                        (target.TotalHealthWithShields() <
+                         Player.Instance.GetAutoAttackDamageCached(target, true) * 2 +
+                         Player.Instance.GetSpellDamageCached(target, SpellSlot.Q)))
                     {
                         Q.Cast(qPrediction.CastPosition);
                     }
-                    else if (qPrediction.HitChancePercent >= 65 && (Player.Instance.Mana - 60 > (R.IsReady() ? 100 : 0)))
+                    else if ((qPrediction.HitChancePercent >= 65) && (Player.Instance.Mana - 60 > (R.IsReady() ? 100 : 0)))
                     {
                         Q.Cast(qPrediction.CastPosition);
                     }
@@ -62,12 +65,11 @@ namespace Marksman_Master.Plugins.Sivir.Modes
             {
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange(), DamageType.Physical);
 
-                if (target != null && target.HealthPercent < 25 && target.Health - IncomingDamage.GetIncomingDamage(target) > 30 &&
-                    target.Health - IncomingDamage.GetIncomingDamage(target) <
-                    Player.Instance.GetAutoAttackDamage(target, true))
+                if (target != null && (target.HealthPercent < 25) && (target.Health - IncomingDamage.GetIncomingDamage(target) > 30) &&
+                    (target.Health - IncomingDamage.GetIncomingDamage(target) < Player.Instance.GetAutoAttackDamage(target, true) * 2))
                 {
                     W.Cast();
-                } else if (target != null && target.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange() - 50)
+                } else if (target != null && Player.Instance.IsInRangeCached(target, Player.Instance.GetAutoAttackRange() - 50))
                 {
                     W.Cast();
                 }

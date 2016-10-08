@@ -27,41 +27,51 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-using Marksman_Master.Utils;
-
 namespace Marksman_Master.Plugins.Sivir.Modes
 {
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using Utils;
+
     internal class PermaActive : Sivir
     {
         public static void Execute()
         {
-            if (!IsPostAttack && Q.IsReady() && Settings.Harass.AutoHarass)
+            if (!IsPreAttack && Q.IsReady() && Settings.Harass.AutoHarass)
             {
-                foreach (var immobileEnemy in EntityManager.Heroes.Enemies.Where(x =>
+                foreach (var immobileEnemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
                 {
-                    if (!x.IsValidTarget(Q.Range) || !x.IsImmobile())
+                    if (!x.IsValidTargetCached(Q.Range) || !x.IsImmobile())
                         return false;
 
                     var immobileDuration = x.GetMovementBlockedDebuffDuration();
-                    var eta = x.Distance(Player.Instance)/Player.Instance.Spellbook.GetSpell(SpellSlot.Q).SData.MissileSpeed;
+                    var eta = x.DistanceCached(Player.Instance)/Q.Speed + .25f;
 
                     return immobileDuration > eta;
-
-                }).OrderByDescending(TargetSelector.GetPriority).ThenBy(x=> Q.GetPrediction(x).HitChancePercent))
+                })
+                    .OrderByDescending(TargetSelector.GetPriority)
+                    .Select(x => Q.GetPrediction(x))
+                    .OrderByDescending(x => x.HitChancePercent))
                 {
-                    Q.Cast(Q.GetPrediction(immobileEnemy).CastPosition);
+                    Q.Cast(immobileEnemy.CastPosition);
+                    break;
                 }
             }
 
-            if (!IsPostAttack && Q.IsReady() && Settings.Combo.UseQ)
+            if (IsPreAttack || !Q.IsReady() || !Settings.Combo.UseQ)
+                return;
+
+            foreach (var qPrediction in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                x =>
+                    x.IsValidTargetCached(Q.Range) &&
+                    (x.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(x) <
+                     Player.Instance.GetSpellDamageCached(x, SpellSlot.Q)))
+                .Select(target => Q.GetPrediction(target))
+                .Where(qPrediction => qPrediction.HitChancePercent >= 60))
             {
-                foreach (var immobileEnemy in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(Q.Range) && (x.Health - IncomingDamage.GetIncomingDamage(x) < Player.Instance.GetSpellDamage(x, SpellSlot.Q))).OrderByDescending(TargetSelector.GetPriority).ThenBy(x => Q.GetPrediction(x).HitChancePercent))
-                {
-                    Q.Cast(Q.GetPrediction(immobileEnemy).CastPosition);
-                }
+                Q.Cast(qPrediction.CastPosition);
+                break;
             }
         }
     }

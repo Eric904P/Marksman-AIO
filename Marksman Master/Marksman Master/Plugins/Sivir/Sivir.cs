@@ -58,6 +58,7 @@ namespace Marksman_Master.Plugins.Sivir
         private static bool _changingRangeScan;
 
         protected static bool IsPostAttack { get; private set; }
+        protected static bool IsPreAttack { get; private set; }
 
         protected static MissileClient QMissileClient { get; private set; }
 
@@ -75,12 +76,26 @@ namespace Marksman_Master.Plugins.Sivir
 
             ColorPicker[0] = new ColorPicker("SivirQ", new ColorBGRA(243, 109, 160, 255));
 
-            ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
+            ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker | ChampionTrackerFlags.PostBasicAttackTracker);
 
             BlockableSpells.Initialize();
             BlockableSpells.OnBlockableSpell += BlockableSpells_OnBlockableSpell;
+
             Game.OnPostTick += args => IsPostAttack = false;
-            Orbwalker.OnPostAttack += (s, a) => IsPostAttack = true;
+
+            Orbwalker.OnPreAttack += (sender, args) =>
+            {
+                IsPreAttack = true;
+            };
+
+            ChampionTracker.OnPostBasicAttack += (sender, args) =>
+            {
+                if (!args.Sender.IsMe)
+                    return;
+
+                IsPostAttack = true;
+                IsPreAttack = false;
+            };
 
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
 
@@ -88,7 +103,9 @@ namespace Marksman_Master.Plugins.Sivir
             {
                 var missile = sender as MissileClient;
 
-                if (missile != null && missile.SpellCaster.IsMe && (missile.SData.Name.Equals("SivirQMissile", StringComparison.CurrentCultureIgnoreCase) || missile.SData.Name.Equals("SivirQMissileReturn", StringComparison.CurrentCultureIgnoreCase)))
+                if (missile != null && missile.SpellCaster.IsMe &&
+                    (missile.SData.Name.Equals("SivirQMissile", StringComparison.CurrentCultureIgnoreCase) ||
+                     missile.SData.Name.Equals("SivirQMissileReturn", StringComparison.CurrentCultureIgnoreCase)))
                 {
                     QMissileClient = missile;
                 }
@@ -98,7 +115,9 @@ namespace Marksman_Master.Plugins.Sivir
             {
                 var missile = sender as MissileClient;
 
-                if (missile != null && missile.SpellCaster.IsMe && (missile.SData.Name.Equals("SivirQMissile", StringComparison.CurrentCultureIgnoreCase) || missile.SData.Name.Equals("SivirQMissileReturn", StringComparison.CurrentCultureIgnoreCase)))
+                if (missile != null && missile.SpellCaster.IsMe &&
+                    (missile.SData.Name.Equals("SivirQMissile", StringComparison.CurrentCultureIgnoreCase) ||
+                     missile.SData.Name.Equals("SivirQMissileReturn", StringComparison.CurrentCultureIgnoreCase)))
                 {
                     QMissileClient = null;
                 }
@@ -134,11 +153,14 @@ namespace Marksman_Master.Plugins.Sivir
             if (Settings.Drawings.DrawQ && (!Settings.Drawings.DrawSpellRangesWhenReady || Q.IsReady()))
                 Circle.Draw(ColorPicker[0].Color, Q.Range, Player.Instance);
 
-            if (QMissileClient != null && Settings.Drawings.DrawQMissile)
-            {
-                new Geometry.Polygon.Rectangle(Player.Instance.Position, QMissileClient.GetMissileFixedYPosition(), 145).Draw(System.Drawing.Color.White, 3);
-                new Geometry.Polygon.Rectangle(Player.Instance.Position, QMissileClient.GetMissileFixedYPosition(), 90).Draw(System.Drawing.Color.YellowGreen, 2);
-            }
+            if (QMissileClient == null || !Settings.Drawings.DrawQMissile)
+                return;
+
+            new Geometry.Polygon.Rectangle(Player.Instance.Position, QMissileClient.GetMissileFixedYPosition(), 145)
+                .Draw(System.Drawing.Color.White, 3);
+
+            new Geometry.Polygon.Rectangle(Player.Instance.Position, QMissileClient.GetMissileFixedYPosition(), 90)
+                .Draw(System.Drawing.Color.YellowGreen, 2);
         }
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
         {
@@ -651,12 +673,12 @@ namespace Marksman_Master.Plugins.Sivir
             {
                 BlockableSpellsHashSet.RemoveWhere(x => EntityManager.Heroes.Enemies.All(k => k.Hero != x.ChampionName));
 
-                if (BlockableSpellsHashSet.Count > 0)
-                {
-                    Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
-                    Game.OnTick += Game_OnTick;
-                    Obj_AI_Base.OnBasicAttack += Obj_AI_Base_OnBasicAttack;
-                }
+                if (BlockableSpellsHashSet.Count <= 0)
+                    return;
+
+                Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
+                Game.OnTick += Game_OnTick;
+                Obj_AI_Base.OnBasicAttack += Obj_AI_Base_OnBasicAttack;
             }
 
             public static void BuildMenu()
@@ -1077,7 +1099,7 @@ namespace Marksman_Master.Plugins.Sivir
                                         Invoke(enemy, SpellSlot.R, blockableSpellData.AdditionalBuffName, false, 0);
                                         break;
                                     default:
-                                        return;
+                                        continue;
                                 }
                                 break;
                             }
@@ -1101,8 +1123,7 @@ namespace Marksman_Master.Plugins.Sivir
                                             args.End.DistanceCached(enemy) > 850 ? 850 : args.End.DistanceCached(enemy))
                                             .To3D();
 
-                                    var rPolygon = new Geometry.Polygon.Sector(enemy.Position, endPos, 850,
-                                        80*(float) (Math.PI/180F));
+                                    var rPolygon = new Geometry.Polygon.Sector(enemy.Position, endPos, 850, 80 * (float) (Math.PI/180F));
                                     var playerpolygon = new Geometry.Polygon.Circle(Player.Instance.Position,
                                         Player.Instance.BoundingRadius);
 
