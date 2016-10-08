@@ -106,7 +106,8 @@
                     {"Classic Jinx", 0},
                     {"Mafia Jinx", 1},
                     {"Firecracker Jinx", 2},
-                    {"Slayer Jinx", 3}
+                    {"Slayer Jinx", 3},
+                    {"Star Guardian Jinx", 4}
                 }},
                 { Champion.Kalista, new Dictionary<string, int>
                 {
