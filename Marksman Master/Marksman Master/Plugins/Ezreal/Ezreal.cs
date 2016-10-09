@@ -31,7 +31,6 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.Remoting.Metadata;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
@@ -60,8 +59,9 @@ namespace Marksman_Master.Plugins.Ezreal
         internal static Menu MiscMenu { get; set; }
 
         private static ColorPicker[] ColorPicker { get; }
-        
+
         private static BoolItem AutoHarassItem { get; set; }
+        private static BoolItem AutoHarassItem2 { get; set; }
 
         private static bool _changingRangeScan;
 
@@ -327,7 +327,16 @@ namespace Marksman_Master.Plugins.Ezreal
                 {
                     AutoHarassItem.Value = args.NewValue;
                 };
-            HarassMenu.Add("Plugins.Ezreal.HarassMenu.MinManaQ", new Slider("Min mana percentage ({0}%) to use Q", 30, 1));
+
+            HarassMenu.AddLabel("Essence Flux (W) settings :");
+            HarassMenu.Add("Plugins.Ezreal.HarassMenu.UseW",
+                new KeyBind("Enable auto harass", false, KeyBind.BindTypes.PressToggle, 'H')).OnValueChange
+                +=
+                (sender, args) =>
+                {
+                    AutoHarassItem2.Value = args.NewValue;
+                };
+            HarassMenu.Add("Plugins.Ezreal.HarassMenu.MinManaQ", new Slider("Min mana percentage ({0}%) for auto harass", 30, 1));
             HarassMenu.AddSeparator(5);
 
             HarassMenu.AddLabel("Auto harass enabled for :");
@@ -466,8 +475,9 @@ namespace Marksman_Master.Plugins.Ezreal
             TearStacker.Enabled = Settings.Misc.EnableTearStacker;
             TearStacker.OnlyInFountain = Settings.Misc.StackOnlyInFountain;
             TearStacker.MinimumManaPercent = Settings.Misc.MinimalManaPercentTearStacker;
-            
+
             AutoHarassItem = MenuManager.PermaShow.AddItem("Ezreal.AutoHarass", new BoolItem("Auto harass with Q", Settings.Harass.UseQ));
+            AutoHarassItem2 = MenuManager.PermaShow.AddItem("Ezreal.AutoHarassW", new BoolItem("Auto harass with W", Settings.Harass.UseW));
         }
 
         protected override void PermaActive()
@@ -529,6 +539,8 @@ namespace Marksman_Master.Plugins.Ezreal
             internal static class Harass
             {
                 public static bool UseQ => MenuManager.MenuValues["Plugins.Ezreal.HarassMenu.UseQ"];
+
+                public static bool UseW => MenuManager.MenuValues["Plugins.Ezreal.HarassMenu.UseW"];
 
                 public static int MinManaQ => MenuManager.MenuValues["Plugins.Ezreal.HarassMenu.MinManaQ", true];
 
@@ -599,23 +611,26 @@ namespace Marksman_Master.Plugins.Ezreal
                 var polygon = new Geometry.Polygon.Rectangle(Player.Instance.Position, target.Position, 160);
                 var objects = ObjectManager
                         .Get<Obj_AI_Base>().Count(x => x.NetworkId != target.NetworkId && x.IsEnemy &&
-                            x.IsValidTarget(Player.Instance.Distance(target)) &&
-                            new Geometry.Polygon.Circle(Prediction.Position.PredictUnitPosition(x, R.CastDelay + (int)(x.DistanceCached(Player.Instance) / R.Speed)*1000), x.BoundingRadius).Points.Any(
+                            x.IsValidTarget() &&
+                            new Geometry.Polygon.Circle(Prediction.Position.PredictUnitPosition(x, 1000 + (int)(x.DistanceCached(Player.Instance) / R.Speed)*1000), x.BoundingRadius).Points.Any(
                                 p => polygon.IsInside(p)));
 
                 var damage = Player.Instance.GetSpellDamageCached(target, SpellSlot.R);
-                
-                for (var i = 1; i <= (objects > 7 ? 7 : objects); i++)
+                var minDamage = damage * .3f;
+
+                for (var i = 1; i <= objects; i++)
                 {
-                    damage *= 0.9f;
+                    damage *= .9f;
                 }
+
+                var finalDamage = damage >= minDamage ? damage : minDamage;
 
                 if (MenuManager.IsCacheEnabled)
                 {
-                    RDamages.Add(target.NetworkId, damage);
+                    RDamages.Add(target.NetworkId, finalDamage);
                 }
 
-                return damage;
+                return finalDamage;
             }
         }
     }

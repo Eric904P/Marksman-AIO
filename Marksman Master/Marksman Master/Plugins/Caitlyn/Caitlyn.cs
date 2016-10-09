@@ -142,18 +142,13 @@ namespace Marksman_Master.Plugins.Caitlyn
 
             if (args.Slot == SpellSlot.W)
             {
-                Orbwalker.ResetAutoAttack();
                 _lastWCastTime = Core.GameTickCount;
-            }
-            else if (args.Slot == SpellSlot.E)
-            {
-                Orbwalker.ResetAutoAttack();
             }
         }
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
-            if (args.Slot == SpellSlot.W && (GetTrapsInRange(args.EndPosition, 200).Any() || (Core.GameTickCount - _lastWCastTime < 1000)))
+            if (args.Slot == SpellSlot.W && (GetTrapsInRange(args.EndPosition, 200).Any() || (Core.GameTickCount - _lastWCastTime < 2000)))
             {
                 args.Process = false;
             }

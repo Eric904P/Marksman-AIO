@@ -26,22 +26,21 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-using EloBuddy.SDK.Events;
-using EloBuddy.SDK.Menu;
-using EloBuddy.SDK.Menu.Values;
-using Marksman_Master.Extensions;
-using Marksman_Master.Utils;
-using SharpDX;
-
 namespace Marksman_Master
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Enumerations;
+    using EloBuddy.SDK.Events;
+    using EloBuddy.SDK.Menu;
+    using EloBuddy.SDK.Menu.Values;
+    using Extensions;
+    using Utils;
+    using SharpDX;
+
     internal static class MenuManager
     {
         internal static Menu Menu { get; set; }
@@ -74,7 +73,17 @@ namespace Marksman_Master
 
             foreach (var source in Assembly.GetAssembly(typeof(ExtensionBase)).GetTypes().Where(x=>x.IsSubclassOf(typeof(ExtensionBase)) && x.IsSealed))
             {
-                var menuItem = ExtensionsMenu.Add("MenuManager.ExtensionsMenu." + source.Name, new CheckBox("Load " + source.Name, false));
+                var property = source.GetProperty("EnabledByDefault");
+
+                bool enabledByDefault;
+
+                if (property == null)
+                {
+                    enabledByDefault = false;
+                }
+                else enabledByDefault = (bool) property.GetValue(source);
+
+                var menuItem = ExtensionsMenu.Add("MenuManager.ExtensionsMenu." + source.Name, new CheckBox("Load " + source.Name, enabledByDefault));
 
                 if (menuItem.CurrentValue)
                 {
@@ -88,34 +97,33 @@ namespace Marksman_Master
                     }
                 }
 
-                menuItem.OnValueChange +=
-                    (sender, args) =>
+                menuItem.OnValueChange += (sender, args) =>
+                {
+                    if (args.NewValue)
                     {
-                        if (args.NewValue)
-                        {
-                            if (Extensions.Any(x => x.Name == source.Name))
-                                return;
+                        if (Extensions.Any(x => x.Name == source.Name))
+                            return;
 
-                            var instance = System.Activator.CreateInstance(source);
+                        var instance = System.Activator.CreateInstance(source);
 
-                            if (instance == null)
-                                return;
-                            
-                            Extensions.Add(instance as ExtensionBase);
+                        if (instance == null)
+                            return;
 
-                            source.GetMethod("Load").Invoke(instance, null);
-                        }
-                        else if (Extensions.Any(x => x.Name == source.Name))
-                        {
-                            var extension = Extensions.FirstOrDefault(x => x.Name == source.Name);
+                        Extensions.Add(instance as ExtensionBase);
 
-                            if (extension == null)
-                                return;
+                        source.GetMethod("Load").Invoke(instance, null);
+                    }
+                    else if (Extensions.Any(x => x.Name == source.Name))
+                    {
+                        var extension = Extensions.FirstOrDefault(x => x.Name == source.Name);
 
-                            extension.Dispose();
-                            Extensions.RemoveAll(x=>x.Name == source.Name);
-                        }
-                    };
+                        if (extension == null)
+                            return;
+
+                        extension.Dispose();
+                        Extensions.RemoveAll(x => x.Name == source.Name);
+                    }
+                };
             }
 
             CacheMenu = ExtensionsMenu.AddSubMenu("Cache settings", "MenuManager.ExtensionsMenu.CacheMenu");

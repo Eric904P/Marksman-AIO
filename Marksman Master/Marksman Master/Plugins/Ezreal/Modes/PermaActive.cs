@@ -75,7 +75,18 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                 }
             }
 
-            if (Q.IsReady() && Settings.Harass.UseQ && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ) &&
+            if (W.IsReady() && !IsPreAttack && !Player.Instance.IsRecalling() && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Settings.Harass.UseW && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ))
+            {
+                foreach (var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
+                        Settings.Harass.IsAutoHarassEnabledFor(x) && x.IsValidTargetCached(W.Range) &&
+                        !x.HasUndyingBuffA() && !x.HasSpellShield()).OrderByDescending(x => Player.Instance.GetSpellDamageCached(x, SpellSlot.W)))
+                {
+                    W.CastMinimumHitchance(target, 75);
+                    return;
+                }
+            }
+
+            if (Q.IsReady() && !IsPreAttack && Settings.Harass.UseQ && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ) &&
                 !Player.Instance.HasSheenBuff() && (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0))
             {
                 var immobileEnemies = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,

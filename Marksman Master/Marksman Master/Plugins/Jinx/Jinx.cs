@@ -458,22 +458,20 @@ namespace Marksman_Master.Plugins.Jinx
 
         protected static class Damage
         {
-            private static CustomCache<int, float> RDamages { get; } = Cache.Resolve<CustomCache<int, float>>();
+            private static CustomCache<int, float> RDamages { get; } = Cache.Resolve<CustomCache<int, float>>(500);
 
             public static int[] RMinimalDamage { get; } = {0, 25, 35, 45};
             public static float RBonusAdDamageMod { get; } = 0.15f;
             public static float[] RMissingHealthBonusDamage { get; } = {0, 0.25f, 0.3f, 0.35f};
 
-            public static float GetRDamage(Obj_AI_Base target)
+            public static float GetRDamage(Obj_AI_Base target, Vector3? customPosition = null)
             {
                 if (MenuManager.IsCacheEnabled && RDamages.Exist(target.NetworkId))
                 {
                     return RDamages.Get(target.NetworkId);
                 }
 
-                RDamages.RefreshRate = 500;
-
-                var distance = Player.Instance.Distance(target) > 1500 ? 1499 : Player.Instance.Distance(target);
+                var distance = Player.Instance.DistanceCached(customPosition ?? target.Position) > 1500 ? 1499 : Player.Instance.DistanceCached(customPosition ?? target.Position);
                 distance = distance < 100 ? 100 : distance;
 
                 var baseDamage = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),

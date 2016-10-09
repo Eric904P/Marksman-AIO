@@ -1,4 +1,8 @@
-﻿namespace Marksman_Master.Extensions.SkinHack
+﻿using System.Threading;
+using System.Timers;
+using EloBuddy.SDK;
+
+namespace Marksman_Master.Extensions.SkinHack
 {
     using System;
     using System.Collections.Generic;
@@ -11,21 +15,113 @@
     {
         private Menu SkinHackMenu { get; set; }
 
-        public override bool IsEnabled { get; set; } = true;
+        public override bool IsEnabled { get; set; }
+
+        public static bool EnabledByDefault { get; set; } = true;
 
         public override string Name { get; } = "SkinHack";
 
-        public Dictionary<Champion, Dictionary<string, int>> Skins { get; private set; }
+        public Dictionary<Champion, Dictionary<string, byte>> Skins { get; private set; }
+        public Dictionary<KeyValuePair<Champion, byte>, Dictionary<string, byte>> Chromas { get; private set; }
+        public Dictionary<Champion, string> BaseSkinNames { get; private set; }
 
         public ComboBox SkinId { get; set; }
+        public Slider ChromaId { get; set; }
+
+        public byte LoadSkinId { get; private set; }
+
+        public byte CurrentSkin { get; set; }
 
         public override void Load()
         {
-            IsEnabled = true;
+            LoadSkinId = (byte) Player.Instance.SkinId;
 
-            Skins = new Dictionary<Champion, Dictionary<string, int>>
+            IsEnabled = true;
+            
+            BaseSkinNames = new Dictionary<Champion, string>
             {
-                {Champion.Ashe, new Dictionary<string, int>
+                [Champion.Ashe] = "Ashe",
+                [Champion.Caitlyn] = "Caitlyn",
+                [Champion.Corki] = "Corki",
+                [Champion.Draven] = "Draven",
+                [Champion.Ezreal] = "Ezreal",
+                [Champion.Graves] = "Graves",
+                [Champion.Jhin] = "Jhin",
+                [Champion.Jinx] = "Jinx",
+                [Champion.Kalista] = "Kalista",
+                [Champion.KogMaw] = "KogMaw",
+                [Champion.Lucian] = "Lucian",
+                [Champion.MissFortune] = "MissFortune",
+                [Champion.Quinn] = "Quinn",
+                [Champion.Sivir] = "Sivir",
+                [Champion.Tristana] = "Tristana",
+                [Champion.Twitch] = "Twitch",
+                [Champion.Urgot] = "Urgot",
+                [Champion.Varus] = "Varus",
+                [Champion.Vayne] = "Vayne"
+            };
+
+            Chromas = new Dictionary<KeyValuePair<Champion, byte>, Dictionary<string, byte>>
+            {
+                {new KeyValuePair<Champion, byte>(Champion.Ezreal, 7), new Dictionary<string, byte>
+                    {
+                        {"Amethyst", 7},
+                        {"Meteorite", 10},
+                        {"Obsidian", 11},
+                        {"Pearl", 12},
+                        {"Rose", 13},
+                        {"Quartz", 14},
+                        {"Ruby", 15},
+                        {"Sandstone", 16},
+                        {"Striped", 17}
+                    }
+                },
+                {new KeyValuePair<Champion, byte>(Champion.Caitlyn, 0), new Dictionary<string, byte>
+                    {
+                        {"Default", 0},
+                        {"Pink", 7},
+                        {"Green", 8},
+                        {"Blue", 9}
+                    }
+                },
+                {new KeyValuePair<Champion, byte>(Champion.Lucian, 0), new Dictionary<string, byte>
+                    {
+                        {"Default", 0},
+                        {"Yellow", 3},
+                        {"Red", 4},
+                        {"Blue", 5}
+                    }
+                },
+                {new KeyValuePair<Champion, byte>(Champion.MissFortune, 7), new Dictionary<string, byte>
+                    {
+                        {"Amethyst", 7},
+                        {"Aquamarine", 11},
+                        {"Citrine", 12},
+                        {"Peridot", 13},
+                        {"Ruby", 14}
+                    }
+                },
+                {new KeyValuePair<Champion, byte>(Champion.Vayne, 3), new Dictionary<string, byte>
+                    {
+                        {"Default", 3},
+                        {"Green", 7},
+                        {"Red", 8},
+                        {"Silver", 9}
+                    }
+                },
+                {new KeyValuePair<Champion, byte>(Champion.Tristana, 6), new Dictionary<string, byte>
+                    {
+                        {"Default", 6},
+                        {"Navy", 7},
+                        {"Purple", 8},
+                        {"Orange", 9}
+                    }
+                }
+            };
+
+            Skins = new Dictionary<Champion, Dictionary<string, byte>>
+            {
+                {Champion.Ashe, new Dictionary<string, byte>
                 {
                     {"Classic Ashe", 0},
                     {"Freljord Ashe", 1},
@@ -37,7 +133,7 @@
                     {"Marauder Ashe", 7},
                     {"PROJECT: Ashe", 8}
                 }},
-                { Champion.Caitlyn, new Dictionary<string, int>
+                { Champion.Caitlyn, new Dictionary<string, byte>
                 {
                     {"Classic Caitlyn", 0},
                     {"Resistance Caitlyn", 1},
@@ -46,12 +142,9 @@
                     {"Arctic Warfare Caitlyn", 4},
                     {"Officer Caitlyn", 5},
                     {"Headhunter Caitlyn", 6},
-                    {"Classic Caitlyn : Pink Chroma", 7},
-                    {"Classic Caitlyn : Green Chroma", 8},
-                    {"Classic Caitlyn : Blue Chroma", 9},
                     {"Lunar Wraith Caitlyn", 10}
                 }},
-                { Champion.Corki, new Dictionary<string, int>
+                { Champion.Corki, new Dictionary<string, byte>
                 {
                     {"Classic Corki", 0},
                     {"UFO Corki", 1},
@@ -63,7 +156,7 @@
                     {"Fnatic Corki", 7},
                     {"Arcade Corki", 8}
                 }},
-                { Champion.Draven, new Dictionary<string, int>
+                { Champion.Draven, new Dictionary<string, byte>
                 {
                     {"Classic Draven", 0},
                     {"Soul Reaver Draven", 1},
@@ -73,7 +166,7 @@
                     {"Beast Hunter Draven", 5},
                     {"Draven Draven", 6}
                 }},
-                { Champion.Ezreal, new Dictionary<string, int>
+                { Champion.Ezreal, new Dictionary<string, byte>
                 {
                     {"Classic Ezreal", 0},
                     {"Nottingham Ezreal", 1},
@@ -86,7 +179,7 @@
                     {"Ace of Spades Ezreal", 8},
                     {"Arcade Ezreal", 9}
                 }},
-                { Champion.Graves, new Dictionary<string, int>
+                { Champion.Graves, new Dictionary<string, byte>
                 {
                     {"Classic Graves", 0},
                     {"Hired Gun Graves", 1},
@@ -96,12 +189,12 @@
                     {"Pool Party Graves", 5},
                     {"Cutthroat Graves", 6}
                 }},
-                { Champion.Jhin, new Dictionary<string, int>
+                { Champion.Jhin, new Dictionary<string, byte>
                 {
                     {"Classic Jhin", 0},
                     {"High Noon Jhin", 1}
                 }},
-                { Champion.Jinx, new Dictionary<string, int>
+                { Champion.Jinx, new Dictionary<string, byte>
                 {
                     {"Classic Jinx", 0},
                     {"Mafia Jinx", 1},
@@ -109,14 +202,14 @@
                     {"Slayer Jinx", 3},
                     {"Star Guardian Jinx", 4}
                 }},
-                { Champion.Kalista, new Dictionary<string, int>
+                { Champion.Kalista, new Dictionary<string, byte>
                 {
                     {"Classic Kalista", 0},
                     {"Blood Moon Kalista", 1},
                     {"Championship Kalista", 2},
                     {"SKT T1 Kalista", 3}
                 }},
-                { Champion.KogMaw, new Dictionary<string, int>
+                { Champion.KogMaw, new Dictionary<string, byte>
                 {
                     {"Classic Kog'Maw", 0},
                     {"Caterpillar Kog'Maw", 1},
@@ -128,17 +221,14 @@
                     {"Jurassic Kog'Maw", 7},
                     {"Battlecast Kog'Maw", 8}
                 }},
-                { Champion.Lucian, new Dictionary<string, int>
+                { Champion.Lucian, new Dictionary<string, byte>
                 {
                     {"Classic Lucian", 0},
                     {"Hired Gun Lucian", 1},
                     {"Striker Lucian", 2},
-                    {"Classic Lucian : Yellow Chroma", 3},
-                    {"Classic Lucian : Red Chroma", 4},
-                    {"Classic Lucian : Blue Chroma", 5},
                     {"PROJECT: Lucian", 6}
                 }},
-                { Champion.MissFortune, new Dictionary<string, int>
+                { Champion.MissFortune, new Dictionary<string, byte>
                 {
                     {"Classic Miss Fortune", 0},
                     {"Cowgirl Miss Fortune", 1},
@@ -152,14 +242,14 @@
                     {"Pool Party Miss Fortune", 9},
                     {"New Arcade Miss Fortune", 10}
                 }},
-                { Champion.Quinn, new Dictionary<string, int>
+                { Champion.Quinn, new Dictionary<string, byte>
                 {
                     {"Classic Quinn", 0},
                     {"Phoenix Quinn", 1},
                     {"Woad Scout Quinn", 2},
                     {"Corsair Quinn (Taylor Swift)", 3}
                 }},
-                { Champion.Sivir, new Dictionary<string, int>
+                { Champion.Sivir, new Dictionary<string, byte>
                 {
                     {"Classic Sivir", 0},
                     {"Warrior Princess Sivir", 1},
@@ -171,7 +261,7 @@
                     {"Warden Sivir", 7},
                     {"Victorious Sivir", 8}
                 }},
-                { Champion.Tristana, new Dictionary<string, int>
+                { Champion.Tristana, new Dictionary<string, byte>
                 {
                     {"Classic Tristana", 0},
                     {"Riot Girl Tristana", 1},
@@ -180,12 +270,9 @@
                     {"Guerilla Tristana", 4},
                     {"Buccaneer Tristana", 5},
                     {"Rocket Girl Tristana", 6},
-                    {"Rocket Girl Tristana : Blue Chroma", 7},
-                    {"Rocket Girl Tristana : Sea blue Chroma", 8},
-                    {"Rocket Girl Tristana : Red hair Chroma", 9},
                     {"Dragon Trainer Tristana", 10}
                 }},
-                { Champion.Twitch, new Dictionary<string, int>
+                { Champion.Twitch, new Dictionary<string, byte>
                 {
                     {"Classic Twitch", 0},
                     {"Kingpin Twitch", 1},
@@ -196,14 +283,14 @@
                     {"Pickpocket Twitch", 6},
                     {"SSW Twitch", 7}
                 }},
-                { Champion.Urgot, new Dictionary<string, int>
+                { Champion.Urgot, new Dictionary<string, byte>
                 {
                     {"Classic Urgot", 0},
                     {"Giant Enemy Crabgot", 1},
                     {"Butcher Urgot", 2},
                     {"Battlecast Urgot", 3}
                 }},
-                { Champion.Varus, new Dictionary<string, int>
+                { Champion.Varus, new Dictionary<string, byte>
                 {
                     {"Classic Varus", 0},
                     {"Blight Crystal Varus", 1},
@@ -213,7 +300,7 @@
                     {"Varus Swiftbolt", 5},
                     {"Dark Star Varus", 6}
                 }},
-                {Champion.Vayne, new Dictionary<string, int>
+                {Champion.Vayne, new Dictionary<string, byte>
                 {
                     {"Classic Vayne", 0},
                     {"Vindicator Vayne", 1},
@@ -222,9 +309,6 @@
                     {"Heartseeker Vayne", 4},
                     {"SKT T1 Vayne", 5},
                     {"Arclight Vayne", 6},
-                    {"Dragonslayer Vayne : Green Chroma", 7},
-                    {"Dragonslayer Vayne : Red Chroma", 8},
-                    {"Dragonslayer Vayne : Silver Chroma", 9},
                     {"Soulsteler Vayne", 10}
                 }}
             };
@@ -235,20 +319,29 @@
                 {
                     SkinHackMenu = MenuManager.ExtensionsMenu.AddSubMenu("Skin Hack", "Extension.SkinHack");
                     BuildMenu();
-                } else MainMenu.OnClose += MainMenu_OnClose;
+                }
+                else MainMenu.OnClose += MainMenu_OnClose;
             }
             else
             {
-                foreach (var subMenu in MenuManager.ExtensionsMenu.SubMenus)
-                {
-                    if (subMenu["SkinId." + Player.Instance.ChampionName] == null)
-                        return;
-                    
-                    SkinId = subMenu["SkinId." + Player.Instance.ChampionName].Cast<ComboBox>();
-                    subMenu["SkinId." + Player.Instance.ChampionName].Cast<ComboBox>().OnValueChange += SkinId_OnValueChange;
+                var subMenu =
+                    MenuManager.ExtensionsMenu.SubMenus.Find(x => x.UniqueMenuId.Contains("Extension.SkinHack"));
 
-                    Player.Instance.SetSkin(Player.Instance.BaseSkinName, SkinId.CurrentValue);
-                }
+                if (subMenu?["SkinId." + Player.Instance.ChampionName] == null)
+                    return;
+
+                SkinId = subMenu["SkinId." + Player.Instance.ChampionName].Cast<ComboBox>();
+                ChromaId = subMenu["ChromaId." + Player.Instance.ChampionName].Cast<Slider>();
+
+                subMenu["SkinId." + Player.Instance.ChampionName].Cast<ComboBox>().OnValueChange += SkinId_OnValueChange;
+                subMenu["ChromaId." + Player.Instance.ChampionName].Cast<Slider>().OnValueChange += ChromaId_OnValueChange;
+
+                UpdateChromaSlider(SkinId.CurrentValue);
+
+                if (HasChromaPack(SkinId.CurrentValue))
+                {
+                    ChangeSkin(SkinId.CurrentValue, ChromaId.CurrentValue);
+                } else ChangeSkin(SkinId.CurrentValue);
             }
 
             Obj_AI_Base.OnUpdateModel += Obj_AI_Base_OnUpdateModel;
@@ -258,8 +351,9 @@
         {
             if (!sender.IsMe || !IsEnabled)
                 return;
+            
 
-            if (args.Model == Player.Instance.BaseSkinName && args.SkinId != SkinId.CurrentValue)
+            if (args.Model != BaseSkinNames[Player.Instance.Hero] || args.SkinId != SkinId.CurrentValue)
                 args.Process = false;
         }
 
@@ -288,24 +382,150 @@
 
             SkinHackMenu.AddGroupLabel("Skin hack settings : ");
 
-            SkinId = SkinHackMenu.Add("SkinId."+Player.Instance.ChampionName, new ComboBox("Skin : ", skins));
+            SkinId = SkinHackMenu.Add("SkinId." + Player.Instance.ChampionName, new ComboBox("Skin : ", skins));
+            SkinHackMenu.AddSeparator(5);
 
-            Player.Instance.SetSkin(Player.Instance.BaseSkinName, SkinId.CurrentValue);
-
-            SkinId.OnValueChange += SkinId_OnValueChange;
+            BuildChroma();
         }
 
+        private void BuildChroma()
+        {
+            ChromaId = SkinHackMenu.Add("ChromaId." + Player.Instance.ChampionName, new Slider("Chroma : "));
+            ChromaId.IsVisible = false;
+            ChromaId.OnValueChange += ChromaId_OnValueChange;
+            SkinId.OnValueChange += SkinId_OnValueChange;
+
+            if (HasChromaPack(SkinId.CurrentValue))
+            {
+                var dictionary = GetChromaList(SkinId.CurrentValue);
+
+                if (dictionary == null)
+                {
+                    ChangeSkin(SkinId.CurrentValue);
+
+                    return;
+                }
+                var maxValue = dictionary.Select(x => x.Key).Count();
+
+                ChromaId.MaxValue = maxValue - 1;
+
+                ChromaId.DisplayName = GetChromaName(SkinId.CurrentValue, ChromaId.CurrentValue);
+
+                ChromaId.IsVisible = true;
+
+                if (Player.Instance.SkinId == 0)
+                    ChangeSkin(SkinId.CurrentValue, ChromaId.CurrentValue);
+            }
+            else if(Player.Instance.SkinId == 0)
+                ChangeSkin(SkinId.CurrentValue);
+        }
+
+        private void ChromaId_OnValueChange(ValueBase<int> sender, ValueBase<int>.ValueChangeArgs args)
+        {
+            var currentId = SkinId.CurrentValue;
+
+            ChromaId.DisplayName = GetChromaName(SkinId.CurrentValue, ChromaId.CurrentValue);
+            
+            ChangeSkin(currentId, args.NewValue);
+        }
+
+        private void UpdateChromaSlider(int id)
+        {
+            var dictionary = GetChromaList(id);
+
+            if (dictionary == null)
+            {
+                ChromaId.IsVisible = false;
+                return;
+            }
+
+            var maxValue = dictionary.Select(x => x.Key).Count();
+
+            ChromaId.MaxValue = maxValue - 1;
+
+            ChromaId.DisplayName = GetChromaName(SkinId.CurrentValue, ChromaId.CurrentValue);
+
+            ChromaId.IsVisible = true;
+        }
+        
         private void SkinId_OnValueChange(ValueBase<int> sender, ValueBase<int>.ValueChangeArgs args)
         {
+            if (HasChromaPack(args.NewValue))
+            {
+                UpdateChromaSlider(args.NewValue);
+
+                ChangeSkin(args.NewValue, ChromaId.CurrentValue);
+                return;
+            }
+
+            ChromaId.IsVisible = false;
+
             ChangeSkin(args.NewValue);
         }
 
-        private void ChangeSkin(int id)
+        private bool HasChromaPack(int id)
+            => Chromas != null && Chromas.ContainsKey(new KeyValuePair<Champion, byte>(Player.Instance.Hero, (byte) id));
+
+        private string GetChromaName(int id, int chromaId)
+        {
+            if (Chromas == null || !Chromas.ContainsKey(new KeyValuePair<Champion, byte>(Player.Instance.Hero, (byte) id)))
+                return string.Empty;
+
+            var dictionary = GetChromaList(id);
+            var baseSkinName = Skins.FirstOrDefault(x => x.Key == Player.Instance.Hero).Value.FirstOrDefault(x => x.Value == id).Key;
+
+            if (dictionary == null)
+                return baseSkinName;
+
+            var chromaIdT = dictionary.ElementAtOrDefault(chromaId).Key;
+
+            return chromaIdT != default(string) ? $"{baseSkinName} : {chromaIdT} chroma" : baseSkinName;
+        }
+
+        private Dictionary<string, byte> GetChromaList(int id)
+            =>
+                !HasChromaPack(id)
+                    ? null
+                    : Chromas.FirstOrDefault(x => x.Key.Key == Player.Instance.Hero && x.Key.Value == id).Value;
+
+        private void ChangeSkin(int id, int? chromaId = null)
         {
             if (!IsEnabled)
                 return;
 
-            Player.SetSkin(Player.Instance.BaseSkinName, id);
+            if (Skins.All(x => x.Key != Player.Instance.Hero))
+            {
+                return;
+            }
+            
+            var skins = Skins.FirstOrDefault(x => x.Key == Player.Instance.Hero);
+
+            if (skins.Value == null)
+            {
+                return;
+            }
+
+            var skinId = skins.Value.ElementAtOrDefault(id).Value;
+
+            if (chromaId.HasValue && HasChromaPack(id))
+            {
+                var dictionary = GetChromaList(id);
+
+                if (dictionary != null)
+                {
+                    var chromaIdT = dictionary.ElementAtOrDefault(chromaId.Value).Value;
+
+                    if (chromaIdT != 0)
+                    {
+                        Player.Instance.SetSkin(BaseSkinNames[Player.Instance.Hero], chromaIdT);
+                        return;
+                    }
+                }
+            }
+
+            Player.Instance.SetSkin(BaseSkinNames[Player.Instance.Hero], skinId);
+
+            CurrentSkin = skinId;
         }
 
         public override void Dispose()
@@ -313,8 +533,13 @@
             IsEnabled = false;
             
             SkinId.OnValueChange -= SkinId_OnValueChange;
+            ChromaId.OnValueChange -= ChromaId_OnValueChange;
+
             MainMenu.OnClose -= MainMenu_OnClose;
+
             Obj_AI_Base.OnUpdateModel -= Obj_AI_Base_OnUpdateModel;
+
+            Player.Instance.SetSkin(BaseSkinNames[Player.Instance.Hero], LoadSkinId);
         }
     }
 }
