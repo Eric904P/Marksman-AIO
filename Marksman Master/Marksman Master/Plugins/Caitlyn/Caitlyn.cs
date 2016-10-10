@@ -105,7 +105,7 @@ namespace Marksman_Master.Plugins.Caitlyn
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
-
+            
             ColorPicker[3].OnColorChange +=
                 (a, b) =>
                 {
@@ -117,13 +117,32 @@ namespace Marksman_Master.Plugins.Caitlyn
                 IsPreAttack = false;
             };
 
-            Orbwalker.OnPreAttack += (target, args) => IsPreAttack = true;
+            Orbwalker.OnPreAttack += (target, args) =>
+            {
+                if (Core.GameTickCount - LastHeadshotTime < Player.Instance.AttackDelay*1000 + Game.Ping / 2f)
+                    args.Process = false;
+
+                IsPreAttack = true;
+            };
 
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
+
+            Obj_AI_Base.OnSpellCast += Obj_AI_Base_OnSpellCast;
+        }
+
+        private static float LastHeadshotTime { get; set; }
+
+        private static void Obj_AI_Base_OnSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if (sender.IsMe &&
+                args.SData.Name.Equals("CaitlynHeadshotMissile", StringComparison.CurrentCultureIgnoreCase))
+            {
+                LastHeadshotTime = Core.GameTickCount;
+            }
         }
 
         private static float _lastWCastTime;
