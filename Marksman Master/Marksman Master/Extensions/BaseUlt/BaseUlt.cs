@@ -141,7 +141,6 @@ namespace Marksman_Master.Extensions.BaseUlt
             Drawing.OnEndScene += Drawing_OnEndScene;
         }
         
-
         private void SubscribeToEvents()
         {
             SpawnPoint = ObjectManager.Get<Obj_SpawnPoint>().FirstOrDefault(x => x.IsEnemy);
@@ -355,6 +354,7 @@ namespace Marksman_Master.Extensions.BaseUlt
             
             Teleport.OnTeleport -= Teleport_OnTeleport;
             Drawing.OnEndScene -= Drawing_OnEndScene;
+            Game.OnTick -= Game_OnTick;
         }
 
 
