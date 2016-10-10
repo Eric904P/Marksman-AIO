@@ -91,6 +91,9 @@ namespace Marksman_Master.Extensions.BaseUlt
         public int RecallTrackerBarSize
             => BaseUltMenu?["RecallTracker.BarSize"]?.Cast<Slider>().CurrentValue ?? 0;
 
+        public int FontSize
+            => BaseUltMenu?["RecallTracker.FontSize"]?.Cast<Slider>().CurrentValue ?? 0;
+
         public bool IsEnabledFor(string championName) => BaseUltMenu?[$"BaseUlt.Enable.{championName}"] != null && BaseUltMenu[$"BaseUlt.Enable.{championName}"].Cast<CheckBox>().CurrentValue;
 
         public override void Load()
@@ -191,16 +194,18 @@ namespace Marksman_Master.Extensions.BaseUlt
             if (ActiveTeleports.Any())
                 Drawing.DrawLine(BarPosition, new Vector2(BarPosition.X + BarWidth, BarPosition.Y), RecallTrackerBarSize,
                     Color.FromArgb(ColorPicker.Color.A, ColorPicker.Color.R, ColorPicker.Color.G, ColorPicker.Color.B));
-            
-            foreach (var teleport in ActiveTeleports)
-            {
-                if (teleport.Value.Status != TeleportStatus.Start)
-                    continue;
 
+            var statusDrawn = false;
+
+            foreach (
+                var teleport in
+                    ActiveTeleports.Where(x => x.Value != null && x.Value.Status == TeleportStatus.Start)
+                        .OrderByDescending(x => x.Value.Start))
+            {
                 var caster = EntityManager.Heroes.AllHeroes.Find(x => x.NetworkId == teleport.Key);
 
                 if (caster == null)
-                    continue;
+                  continue;
 
                 var endTime = teleport.Value.Start + teleport.Value.Duration;
                 var percentage = Math.Max(0,
@@ -215,16 +220,26 @@ namespace Marksman_Master.Extensions.BaseUlt
                 stringBuilder.Append($"{((endTime - Core.GameTickCount)/1000F).ToString("F1")}s ");
                 stringBuilder.Append($"({percentage.ToString("F1")}%)");
 
-                Text.Draw(stringBuilder.ToString(), Color.AliceBlue, new Vector2(endPos.X + 5, endPos.Y - TextHeight*1.25f*count));
+                Vector2[] linePos =
+                {
+                    new Vector2(endPos.X, BarPosition.Y + RecallTrackerBarSize/2f - (int)(TextHeight * 1.27f * count)),
+                    new Vector2(endPos.X, BarPosition.Y + RecallTrackerBarSize/2f)
+                };
 
-                Drawing.DrawLine(BarPosition, endPos, RecallTrackerBarSize, color);
-                
-                Drawing.DrawLine(new Vector2(endPos.X, BarPosition.Y - (TextHeight + 1) * count), new Vector2(endPos.X, BarPosition.Y + RecallTrackerBarSize/2f), 1, Color.AliceBlue);
+                Text.Draw(stringBuilder.ToString(), Color.AliceBlue, new Vector2(endPos.X + 5, endPos.Y - TextHeight * 1.25f * count));
+
+                if (!statusDrawn)
+                {
+                    Drawing.DrawLine(BarPosition, endPos, RecallTrackerBarSize, color);
+                    statusDrawn = true;
+                }
+
+                Drawing.DrawLine(linePos[0], linePos[1], 1, Color.AliceBlue);
 
                 count++;
             }
         }
-
+        
         private void Teleport_OnTeleport(Obj_AI_Base sender, Teleport.TeleportEventArgs args)
         {
             if (sender?.Type != GameObjectType.AIHeroClient)
@@ -245,11 +260,11 @@ namespace Marksman_Master.Extensions.BaseUlt
 
                         ActiveRecalls[hero.NetworkId] = args;
                     }
-
                     ActiveTeleports[hero.NetworkId] = args;
+
                     break;
                 case TeleportStatus.Abort:
-                    if (args.Type == TeleportType.Recall && sender.IsEnemy)
+                    if (args.Type == TeleportType.Recall)
                     {
                         ActiveRecalls.Remove(hero.NetworkId);
                     }
