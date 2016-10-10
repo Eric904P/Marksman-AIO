@@ -137,7 +137,7 @@ namespace Marksman_Master.Plugins.Jhin.Modes
             
             if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x=> x.IsValidTargetCached(3700) && IsInsideRRange(x) && x.IsHPBarRendered).Any())
             {
-                if (TargetSelector.SelectedTarget != null && IsInsideRRange(TargetSelector.SelectedTarget))
+                if (TargetSelector.SelectedTarget != null && IsInsideRRange(TargetSelector.SelectedTarget) && TargetSelector.SelectedTarget.IsValidTarget())
                 {
                     var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {

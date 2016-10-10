@@ -215,9 +215,11 @@ namespace Marksman_Master.Extensions.BaseUlt
                 stringBuilder.Append($"{((endTime - Core.GameTickCount)/1000F).ToString("F1")}s ");
                 stringBuilder.Append($"({percentage.ToString("F1")}%)");
 
-                Text.Draw(stringBuilder.ToString(), Color.AliceBlue, new Vector2(endPos.X, endPos.Y - TextHeight*1.25f*count));
+                Text.Draw(stringBuilder.ToString(), Color.AliceBlue, new Vector2(endPos.X + 5, endPos.Y - TextHeight*1.25f*count));
 
                 Drawing.DrawLine(BarPosition, endPos, RecallTrackerBarSize, color);
+                
+                Drawing.DrawLine(new Vector2(endPos.X, BarPosition.Y - (TextHeight + 1) * count), new Vector2(endPos.X, BarPosition.Y + RecallTrackerBarSize/2f), 1, Color.AliceBlue);
 
                 count++;
             }
@@ -230,7 +232,7 @@ namespace Marksman_Master.Extensions.BaseUlt
 
             var hero = sender as AIHeroClient;
 
-            if (hero == null || hero.IsMe || args.Type == TeleportType.Shen)
+            if (hero == null || hero.IsMe || !hero.IsEnemy || args.Type == TeleportType.Shen)
                 return;
 
             switch (args.Status)
@@ -238,12 +240,10 @@ namespace Marksman_Master.Extensions.BaseUlt
                 case TeleportStatus.Start:
                     if (args.Type == TeleportType.Recall)
                     {
-                        Notifications.Show(
-                            new SimpleNotification("Recall tracker",
-                                $"{hero.Hero} ({hero.Name}) just started recalling."), 2500);
+                        if (IsRecallTrackerEnabled)
+                            Notifications.Show(new SimpleNotification("Recall tracker", $"{hero.Hero} ({hero.Name}) just started recalling."), 2500);
 
-                        if(sender.IsEnemy)
-                            ActiveRecalls[hero.NetworkId] = args;
+                        ActiveRecalls[hero.NetworkId] = args;
                     }
 
                     ActiveTeleports[hero.NetworkId] = args;
@@ -259,12 +259,10 @@ namespace Marksman_Master.Extensions.BaseUlt
                 case TeleportStatus.Finish:
                     if (args.Type == TeleportType.Recall)
                     {
-                        Notifications.Show(
-                            new SimpleNotification("Recall tracker",
-                                $"{hero.Hero} ({hero.Name}) just finished recalling."), 2500);
+                        if(IsRecallTrackerEnabled)
+                            Notifications.Show(new SimpleNotification("Recall tracker", $"{hero.Hero} ({hero.Name}) just finished recalling."), 2500);
 
-                        if (sender.IsEnemy)
-                            ActiveRecalls.Remove(hero.NetworkId);
+                        ActiveRecalls.Remove(hero.NetworkId);
                     }
 
                     ActiveTeleports.Remove(hero.NetworkId);
