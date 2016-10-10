@@ -137,85 +137,87 @@ namespace Marksman_Master.Plugins.Jhin.Modes
             
             if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x=> x.IsValidTargetCached(3700) && IsInsideRRange(x) && x.IsHPBarRendered).Any())
             {
-                if (TargetSelector.SelectedTarget != null)
+                if (TargetSelector.SelectedTarget != null && IsInsideRRange(TargetSelector.SelectedTarget))
                 {
-                    var t = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).ToList().Find(x => x.NetworkId == TargetSelector.SelectedTarget.NetworkId);
-
-                    if (t != null && IsInsideRRange(t))
+                    var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                     {
-                        var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
-                        {
-                            Range = 3500,
-                            Target = t,
-                            Speed = 5000,
-                            RangeCheckFrom = Player.Instance.Position,
-                            Delay = 0.3f,
-                            From = Player.Instance.Position,
-                            Radius = 60,
-                            Type = SkillShotType.Linear,
-                            CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion }
-                        });
-                        if (rPrediction.HitChance >= HitChance.High)
-                        {
-                            Player.CastSpell(SpellSlot.R, rPrediction.CastPosition);
-                        }
+                        Range = 3500,
+                        Target = TargetSelector.SelectedTarget,
+                        Speed = 5000,
+                        RangeCheckFrom = Player.Instance.Position,
+                        Delay = .2f,
+                        From = Player.Instance.Position,
+                        Radius = 80,
+                        Type = SkillShotType.Linear,
+                        CollisionTypes = Prediction.Manager.PredictionSelected == "ICPrediction"
+                            ? new HashSet<CollisionType> {CollisionType.AiHeroClient, CollisionType.YasuoWall}
+                            : new HashSet<CollisionType> {CollisionType.ObjAiMinion}
+                    });
+                    if (rPrediction.HitChance >= HitChance.High)
+                    {
+                        R.Cast(rPrediction.CastPosition);
                     }
                 }
                 else
                 {
                     var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                        x => x.IsValid && !x.IsZombie && !x.IsDead && IsInsideRRange(x) && !x.HasUndyingBuffA() &&
+                        x =>
+                            x.IsValidTarget() && !x.IsZombie && !x.IsDead && IsInsideRRange(x) && !x.HasUndyingBuffA() &&
                             !x.HasSpellShield()
                             && Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                             {
-                                Range = 4000,
+                                Range = 3500,
                                 Target = x,
                                 Speed = 5000,
                                 RangeCheckFrom = Player.Instance.Position,
-                                Delay = 0.3f,
+                                Delay = .2f,
                                 From = Player.Instance.Position,
-                                Radius = 60,
+                                Radius = 80,
                                 Type = SkillShotType.Linear,
-                                CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion }
+                                CollisionTypes = Prediction.Manager.PredictionSelected == "ICPrediction"
+                                    ? new HashSet<CollisionType> {CollisionType.AiHeroClient, CollisionType.YasuoWall}
+                                    : new HashSet<CollisionType> {CollisionType.ObjAiMinion}
                             }).HitChance != HitChance.Collision);
-                    
+
                     var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-                    if (target != null)
-                    {
-                        var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
-                        {
-                            Range = 4000,
-                            Target = target,
-                            Speed = 5000,
-                            RangeCheckFrom = Player.Instance.Position,
-                            Delay = 0.3f,
-                            From = Player.Instance.Position,
-                            Radius = 60,
-                            Type = SkillShotType.Linear,
-                            CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion }
-                        });
-                        
+                    if (target == null)
+                        return;
 
-                        if (rPrediction.HitChance >= HitChance.High)
-                        {
-                            Player.CastSpell(SpellSlot.R, rPrediction.CastPosition);
-                        }
+                    var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                    {
+                        Range = 3500,
+                        Target = target,
+                        Speed = 5000,
+                        RangeCheckFrom = Player.Instance.Position,
+                        Delay = .2f,
+                        From = Player.Instance.Position,
+                        Radius = 80,
+                        Type = SkillShotType.Linear,
+                        CollisionTypes =
+                            Prediction.Manager.PredictionSelected == "ICPrediction"
+                                ? new HashSet<CollisionType> {CollisionType.AiHeroClient, CollisionType.YasuoWall}
+                                : new HashSet<CollisionType> {CollisionType.ObjAiMinion}
+                    });
+
+                    if (rPrediction.HitChance >= HitChance.High)
+                    {
+                        R.Cast(rPrediction.CastPosition);
                     }
                 }
             }
             else if(Settings.Combo.EnableFowPrediction)
             {
-                foreach (var enemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Where(x => !x.IsDead && x.IsUserInvisibleFor(250)))
+                foreach (var enemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Where(x => !x.IsDead && !x.IsZombie && x.IsUserInvisibleFor(250)))
                 {
                     var data = enemy.GetVisibilityTrackerData();
-                    if (!(Game.Time*1000 - data.LastVisibleGameTime*1000 < 2000) || !(data.LastHealthPercent > 0) ||
-                        !IsInsideRRange(data.LastPosition)) continue;
 
-                    var eta = data.LastPosition.Distance(Player.Instance)/5000;
+                    if ((Core.GameTickCount - data.LastVisibleGameTime*1000 > 2200) || (data.LastHealthPercent <= 0) || !IsInsideRRange(data.LastPosition))
+                        continue;
+
+                    var eta = data.LastPosition.Distance(Player.Instance) / 5000;
 
                     R.Cast(data.LastPosition.Extend(data.LastPath, enemy.MoveSpeed*eta).To3D());
-
                     return;
                 }
             }
