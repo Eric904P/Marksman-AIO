@@ -161,6 +161,9 @@ namespace Marksman_Master.Extensions.BaseUlt
             if (!IsEnabled || !IsBaseUltEnabled || !Player.Instance.Spellbook.GetSpell(SpellSlot.R).IsReady)
                 return;
 
+            if (DisableBaseUltInComboMode && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+                return;
+
             foreach (var recall in ActiveRecalls)
             {
                 var caster = EntityManager.Heroes.AllHeroes.Find(x => x.NetworkId == recall.Key);
@@ -177,7 +180,7 @@ namespace Marksman_Master.Extensions.BaseUlt
                 var travelTime = GetUltTravelTime(SpawnPoint.Position);
                 var timeLeft = recall.Value.Start + recall.Value.Duration - Core.GameTickCount;
 
-                if ((damage >= GetHealthAfterTime(caster, timeLeft/1000)) && (timeLeft - travelTime >= -130) && (timeLeft - travelTime <= -75))
+                if ((damage >= Damage.GetHealthAfterTime(caster, timeLeft/1000)) && (timeLeft - travelTime >= -130) && (timeLeft - travelTime <= -75))
                 {   
                     Player.Instance.Spellbook.CastSpell(SpellSlot.R, SpawnPoint.Position);
                 }
@@ -369,20 +372,7 @@ namespace Marksman_Master.Extensions.BaseUlt
             Drawing.OnEndScene -= Drawing_OnEndScene;
             Game.OnTick -= Game_OnTick;
         }
-
-        private float GetHealthAfterTime(AIHeroClient target, int bonusTime)
-        {
-            if (target.IsHPBarRendered)
-                return target.Health;
-
-            var invisibleTime = Game.Time - target.GetVisibilityTrackerData().LastVisibleGameTime + bonusTime;
-
-            var healthPerSec = 0.45f * target.Level;//bug this is not a valid solution
-            var result = target.Health + healthPerSec*invisibleTime;
-
-            return result > target.MaxHealth ? target.MaxHealth : result;
-        }
-
+        
         public float GetUltTravelTime(Vector3 point)
         {
             switch (Player.Instance.Hero)
@@ -404,7 +394,7 @@ namespace Marksman_Master.Extensions.BaseUlt
                     var addition = 1700/MissileInfos[Player.Instance.Hero].MissileSpeed +
                                    MissileInfos[Player.Instance.Hero].MissileCastTime;
 
-                    return ((distance - 1700)/2250 + addition)*1000;
+                    return ((distance - 1700)/2230 + addition)*1000;
                 default:
                     return 0;
             }
@@ -489,13 +479,13 @@ namespace Marksman_Master.Extensions.BaseUlt
             var distance = Player.Instance.DistanceCached(customPosition ?? target.Position) > 1500 ? 1499 : Player.Instance.DistanceCached(customPosition ?? target.Position);
             distance = distance < 100 ? 100 : distance;
 
-            var baseDamage = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
+            var baseDamage = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1500),
                 RMinimalDamage[level],
                 RMinimalDamage[level] * 10);
-            var bonusAd = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1505),
+            var bonusAd = Misc.GetNumberInRangeFromProcent(Misc.GetProcentFromNumberRange(distance, 100, 1500),
                 RBonusAdDamageMod,
                 RBonusAdDamageMod * 10);
-            var percentDamage = (target.MaxHealth - target.Health) * RMissingHealthBonusDamage[level];
+            var percentDamage = (target.MaxHealth - GetHealthAfterTime(target, 0)) * RMissingHealthBonusDamage[level];
 
             var finalDamage = Player.Instance.CalculateDamageOnUnit(target, DamageType.Physical,
                 (float)(baseDamage + percentDamage + Player.Instance.FlatPhysicalDamageMod * bonusAd));
@@ -503,6 +493,18 @@ namespace Marksman_Master.Extensions.BaseUlt
             return finalDamage;
         }
 
+        public static float GetHealthAfterTime(AIHeroClient target, int bonusTime)
+        {
+            if (target.IsHPBarRendered)
+                return target.Health;
+
+            var invisibleTime = Game.Time - target.GetVisibilityTrackerData().LastVisibleGameTime + bonusTime;
+
+            var healthPerSec = 0.45f * target.Level;//bug this is not a valid solution
+            var result = target.Health + healthPerSec * invisibleTime;
+
+            return result > target.MaxHealth ? target.MaxHealth : result;
+        }
 
         public static float GetEzrealRDamage(Obj_AI_Base target, Vector3? customPosition = null)
         {
