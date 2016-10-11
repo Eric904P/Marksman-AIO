@@ -158,6 +158,22 @@ namespace Marksman_Master.Extensions.BaseUlt
 
         private void Game_OnTick(EventArgs args)
         {
+            ActiveTeleports.Select(x => x.Key).ToList().ForEach(x =>
+            {
+                if (ActiveTeleports.ContainsKey(x) && ((Core.GameTickCount - ActiveTeleports[x].Start > ActiveTeleports[x].Duration) || ActiveTeleports[x].Status != TeleportStatus.Start))
+                {
+                    ActiveTeleports.Remove(x);
+                }
+            });
+
+            ActiveRecalls.Select(x => x.Key).ToList().ForEach(x =>
+            {
+                if (ActiveRecalls.ContainsKey(x) && ((Core.GameTickCount - ActiveRecalls[x].Start > ActiveRecalls[x].Duration) || ActiveRecalls[x].Status != TeleportStatus.Start))
+                {
+                    ActiveRecalls.Remove(x);
+                }
+            });
+
             if (!IsEnabled || !IsBaseUltEnabled || !Player.Instance.Spellbook.GetSpell(SpellSlot.R).IsReady)
                 return;
 
@@ -191,34 +207,37 @@ namespace Marksman_Master.Extensions.BaseUlt
         {
             if (!IsRecallTrackerEnabled || !ActiveTeleports.Any() || Drawing.Direct3DDevice.IsDisposed)
                 return;
-
-            var count = 1;
-
+            
             if (ActiveTeleports.Any())
                 Drawing.DrawLine(BarPosition, new Vector2(BarPosition.X + BarWidth, BarPosition.Y), RecallTrackerBarSize,
                     Color.FromArgb(ColorPicker.Color.A, ColorPicker.Color.R, ColorPicker.Color.G, ColorPicker.Color.B));
-
-            var statusDrawn = false;
-
+            
             foreach (
                 var teleport in
-                    ActiveTeleports.Where(x => x.Value != null && x.Value.Status == TeleportStatus.Start)
-                        .OrderByDescending(x => x.Value.Start))
+                    ActiveTeleports.Where(x => x.Value != null && x.Value.Status == TeleportStatus.Start).OrderByDescending(x => x.Value.Start))
             {
                 var caster = EntityManager.Heroes.AllHeroes.Find(x => x.NetworkId == teleport.Key);
-
                 if (caster == null)
-                  continue;
+                    continue;
+
+                var count = GetIndex(ActiveTeleports, teleport.Key) + 1;
 
                 var endTime = teleport.Value.Start + teleport.Value.Duration;
-                var percentage = Math.Max(0,
-                    Math.Min(100, ((float) endTime - Core.GameTickCount)/teleport.Value.Duration*100));
+                var percentage = Math.Max(0, Math.Min(100, ((float) endTime - Core.GameTickCount)/teleport.Value.Duration*100));
                 var degree = Misc.GetNumberInRangeFromProcent(percentage, 3, 110);
-                var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
+                var color =
+                    new Misc.HsvColor(degree, 1, 1)
+                    {
+                        Value =
+                            Misc.GetNumberInRangeFromProcent(
+                                Math.Max(0, Math.Min((GetIndex(ActiveTeleports, teleport.Key) + 1f)/ActiveTeleports.Count*100, 100)),
+                                0.35f, 1)
+                    }.ColorFromHsv();
+                
                 var endPos = new Vector2(BarPosition.X + BarWidth*percentage/100, BarPosition.Y);
 
                 var stringBuilder = new StringBuilder();
-
+                
                 stringBuilder.Append($"{caster.Hero} ({(int)caster.Health} HP) ");
                 stringBuilder.Append($"{((endTime - Core.GameTickCount)/1000F).ToString("F1")}s ");
                 stringBuilder.Append($"({percentage.ToString("F1")}%)");
@@ -231,18 +250,42 @@ namespace Marksman_Master.Extensions.BaseUlt
 
                 Text.Draw(stringBuilder.ToString(), Color.AliceBlue, new Vector2(endPos.X + 5, endPos.Y - TextHeight * 1.25f * count));
 
-                if (!statusDrawn)
-                {
-                    Drawing.DrawLine(BarPosition, endPos, RecallTrackerBarSize, color);
-                    statusDrawn = true;
-                }
+                Drawing.DrawLine(BarPosition, endPos, RecallTrackerBarSize, color);
 
                 Drawing.DrawLine(linePos[0], linePos[1], 1, Color.AliceBlue);
-
-                count++;
             }
         }
-        
+
+        public int GetIndexDescending(Dictionary<int, Teleport.TeleportEventArgs> dictionary, int key)
+        {
+            var index = 0;
+
+            foreach (var teleportEventArgse in dictionary.Where(x => x.Value != null && x.Value.Status == TeleportStatus.Start).OrderByDescending(x => x.Value.Start))
+            {
+                if (teleportEventArgse.Key == key)
+                    return index;
+                
+                index++;
+            }
+
+            return 0;
+        }
+
+        public int GetIndex(Dictionary<int, Teleport.TeleportEventArgs> dictionary, int key)
+        {
+            var index = 0;
+
+            foreach (var teleportEventArgse in dictionary.Where(x => x.Value != null && x.Value.Status == TeleportStatus.Start).OrderBy(x => x.Value.Start))
+            {
+                if (teleportEventArgse.Key == key)
+                    return index;
+
+                index++;
+            }
+
+            return 0;
+        }
+
         private void Teleport_OnTeleport(Obj_AI_Base sender, Teleport.TeleportEventArgs args)
         {
             if (sender?.Type != GameObjectType.AIHeroClient)
@@ -264,14 +307,12 @@ namespace Marksman_Master.Extensions.BaseUlt
                         ActiveRecalls[hero.NetworkId] = args;
                     }
                     ActiveTeleports[hero.NetworkId] = args;
-
                     break;
                 case TeleportStatus.Abort:
                     if (args.Type == TeleportType.Recall)
                     {
                         ActiveRecalls.Remove(hero.NetworkId);
                     }
-
                     ActiveTeleports.Remove(hero.NetworkId);
                     break;
                 case TeleportStatus.Finish:
