@@ -158,7 +158,7 @@ namespace Marksman_Master.Extensions.BaseUlt
 
         private void Game_OnTick(EventArgs args)
         {
-            if(!IsEnabled || !IsBaseUltEnabled || !Player.Instance.Spellbook.GetSpell(SpellSlot.R).IsReady)
+            if (!IsEnabled || !IsBaseUltEnabled || !Player.Instance.Spellbook.GetSpell(SpellSlot.R).IsReady)
                 return;
 
             foreach (var recall in ActiveRecalls)
@@ -177,7 +177,7 @@ namespace Marksman_Master.Extensions.BaseUlt
                 var travelTime = GetUltTravelTime(SpawnPoint.Position);
                 var timeLeft = recall.Value.Start + recall.Value.Duration - Core.GameTickCount;
 
-                if ((damage >= caster.Health) && (timeLeft - travelTime >= -200) && (timeLeft - travelTime <= -60))
+                if ((damage >= GetHealthAfterTime(caster, timeLeft/1000)) && (timeLeft - travelTime >= -130) && (timeLeft - travelTime <= -75))
                 {   
                     Player.Instance.Spellbook.CastSpell(SpellSlot.R, SpawnPoint.Position);
                 }
@@ -370,6 +370,18 @@ namespace Marksman_Master.Extensions.BaseUlt
             Game.OnTick -= Game_OnTick;
         }
 
+        private float GetHealthAfterTime(AIHeroClient target, int bonusTime)
+        {
+            if (target.IsHPBarRendered)
+                return target.Health;
+
+            var invisibleTime = Game.Time - target.GetVisibilityTrackerData().LastVisibleGameTime + bonusTime;
+
+            var healthPerSec = 0.45f * target.Level;//bug this is not a valid solution
+            var result = target.Health + healthPerSec*invisibleTime;
+
+            return result > target.MaxHealth ? target.MaxHealth : result;
+        }
 
         public float GetUltTravelTime(Vector3 point)
         {

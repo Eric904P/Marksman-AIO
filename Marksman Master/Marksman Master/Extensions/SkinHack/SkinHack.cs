@@ -1,17 +1,44 @@
-﻿
-
+﻿#region Licensing
+// ---------------------------------------------------------------------
+// <copyright file="BaseUlt.cs" company="EloBuddy">
+// 
+// Marksman Master
+// Copyright (C) 2016 by gero
+// All rights reserved
+// 
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/. 
+// </copyright>
+// <summary>
+// 
+// Email: geroelobuddy@gmail.com
+// PayPal: geroelobuddy@gmail.com
+// </summary>
+// ---------------------------------------------------------------------
+#endregion
 namespace Marksman_Master.Extensions.SkinHack
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.IO;
     using System.Net;
+    using System.Threading.Tasks;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using EloBuddy;
     using EloBuddy.SDK.Menu;
     using EloBuddy.SDK.Menu.Values;
-    using EloBuddy.SDK.Utils;
 
     internal sealed class SkinHack : ExtensionBase
     {
@@ -122,7 +149,6 @@ namespace Marksman_Master.Extensions.SkinHack
             };
 
             var skin = new SkinData(Player.Instance.ChampionName);
-
             Skins = skin.ToDictionary();
             
             if (!MenuManager.ExtensionsMenu.SubMenus.Any(x => x.UniqueMenuId.Contains("Extension.SkinHack")))
@@ -348,10 +374,26 @@ namespace Marksman_Master.Extensions.SkinHack
 
         public class SkinData
         {
-            public string DDragonVersion { get; }
-            public Skins SkinsData { get; }
+            public string DDragonVersion { get; private set; }
+            public Skins SkinsData { get; private set; }
+            public string ChampionName { get; }
+            private string Data { get; set; }
 
             public SkinData(string championName)
+            {
+                ChampionName = championName;
+
+                try
+                {
+                    Task.Run(() => DownloadData()).Wait(1500);
+                }
+                catch (Exception exception)
+                {
+                    Console.WriteLine(exception);
+                }
+            }
+
+            private void DownloadData()
             {
                 try
                 {
@@ -359,40 +401,45 @@ namespace Marksman_Master.Extensions.SkinHack
                         new WebClient().DownloadString(new Uri("http://ddragon.leagueoflegends.com/realms/na.json"));
 
                     DDragonVersion = (string) JObject.Parse(realm).Property("dd");
-                    
-                    var output =
-                        new WebClient().DownloadString(
-                            new Uri(
-                                $"http://ddragon.leagueoflegends.com/cdn/{DDragonVersion}/data/en_US/champion/{championName}.json"));
 
-                    var parsedObject = JObject.Parse(output);
-                    var data = parsedObject["data"][championName];
+                    Data =
+                        new WebClient().DownloadString(
+                            $"http://ddragon.leagueoflegends.com/cdn/{DDragonVersion}/data/en_US/champion/{ChampionName}.json");
+
+                    
+                    var parsedObject = JObject.Parse(Data);
+                    var data = parsedObject["data"][ChampionName];
 
                     SkinsData = data.ToObject<Skins>();
                 }
                 catch (Exception exception)
                 {
-                    Logger.Info($"Couldn't load skinhack an exception occured\n{exception}");
+                    var ex = exception as WebException;
+
+                    Console.WriteLine(ex != null
+                        ? $"Couldn't load skinhack a WebException occured\nStatus : {ex.Status} | Message : {ex.Message}{Environment.NewLine}"
+                        : $"Couldn't load skinhack an exception occured\n{exception}{Environment.NewLine}");
                 }
             }
 
             public Dictionary<string, byte> ToDictionary()
             {
                 var output = new Dictionary<string, byte>();
+
                 try
                 {
                     foreach (var skin in SkinsData.SkinsInfos)
                     {
-                        output[skin.SkinName] = (byte)skin.SkinId;
+                        output[skin.SkinName] = (byte) skin.SkinId;
                     }
                 }
                 catch (Exception exception)
                 {
-                    Logger.Error($"Couldn't load skinhack an exception occured\n{exception}");
+                    Console.WriteLine(exception);
                 }
                 return output;
             }
-
+            
             public class SkinInfo
             {
                 [JsonProperty(PropertyName = "id")]
@@ -412,6 +459,55 @@ namespace Marksman_Master.Extensions.SkinHack
             {
                 [JsonProperty(PropertyName = "skins")]
                 public SkinInfo[] SkinsInfos { get; set; }
+            }
+        }
+
+        public class WebService
+        {
+            public int Timeout { get; set; }
+
+            public WebService(int timeout = 2000)
+            {
+                Timeout = timeout;
+            }
+
+            public string SendRequest(Uri uri)
+            {
+                var request = WebRequest.Create(uri);
+
+                request.Timeout = Timeout;
+
+                try
+                {
+                    using (var result = request.GetResponse())
+                    {
+                        using (var response = result as HttpWebResponse)
+                        {
+                            if (response == null || response.StatusCode != HttpStatusCode.OK)
+                            {
+                                return string.Empty;
+                            }
+
+                            using (var stream = response.GetResponseStream())
+                            {
+                                if (stream == null)
+                                    return string.Empty;
+
+                                using (var streamReader = new StreamReader(stream))
+                                {
+                                    return streamReader.ReadToEnd();
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (WebException ex)
+                {
+                    Console.WriteLine(
+                        $"{ex}\nServer : {uri.OriginalString}\nMessage : {ex.Message} | Status code : {ex.Status}");
+                }
+
+                return string.Empty;
             }
         }
     }
