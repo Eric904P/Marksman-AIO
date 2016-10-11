@@ -157,7 +157,7 @@ namespace Marksman_Master.Plugins.Vayne
         {
             if (sender.IsMe && args.Animation == "Spell1")
             {
-                //Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
+                Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
                 Orbwalker.ResetAutoAttack();
             }
         }
@@ -493,7 +493,6 @@ namespace Marksman_Master.Plugins.Vayne
         {
             if (args.Slot == SpellSlot.Q && HasAnyOrbwalkerFlags())
             {
-                Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
                 Orbwalker.ResetAutoAttack();
             }
 
@@ -502,7 +501,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             if (args.Slot == SpellSlot.Q)
             {
-                _lastQCastTime = Game.Time*1000;
+                _lastQCastTime = Core.GameTickCount;
             }
         }
 
@@ -921,7 +920,7 @@ namespace Marksman_Master.Plugins.Vayne
 
         protected override void PermaActive()
         {
-            //Orbwalker.DisableMovement = Game.Time * 1000 - LastQ < 400;
+            Orbwalker.DisableMovement = Game.Time * 1000 - LastQ < 400;
 
             Modes.PermaActive.Execute();
         }
