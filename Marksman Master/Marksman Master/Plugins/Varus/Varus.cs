@@ -26,8 +26,8 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -35,6 +35,7 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Rendering;
 using EloBuddy.SDK.Enumerations;
 using EloBuddy.SDK.Menu.Values;
+using Marksman_Master.Cache.Modules;
 using SharpDX;
 using Marksman_Master.PermaShow.Values;
 using Marksman_Master.Utils;
@@ -59,25 +60,28 @@ namespace Marksman_Master.Plugins.Varus
         private static bool _changingRangeScan;
         private static bool _changingRangeQ;
 
-        private static readonly Dictionary<int, Dictionary<float, float>> Damages =
-            new Dictionary<int, Dictionary<float, float>>();
+        protected static Cache.Cache Cache => StaticCacheProvider.Cache;
+
+        protected static CustomCache<int, float> ComboDamages { get; }
 
         protected static BoolItem AutoHarass { get; private set; }
 
-        protected static bool HasWDebuff(Obj_AI_Base unit) => unit.Buffs.Any(x => x.IsActive && x.Name.ToLower() == "varuswdebuff");
-        protected static BuffInstance GetWDebuff(Obj_AI_Base unit) => HasWDebuff(unit) ? unit.Buffs.First(x => x.IsActive && x.Name.ToLower() == "varuswdebuff") : null;
+        protected static bool HasWDebuff(Obj_AI_Base unit) => unit.Buffs.Any(x => x.IsActive && x.Name.Equals("varuswdebuff", StringComparison.CurrentCultureIgnoreCase));
+        protected static BuffInstance GetWDebuff(Obj_AI_Base unit) => HasWDebuff(unit) ? unit.Buffs.First(x => x.IsActive && x.Name.Equals("varuswdebuff", StringComparison.CurrentCultureIgnoreCase)) : null;
 
         protected static bool IsPreAttack { get; private set; }
 
         static Varus()
         {
-            Q = new Spell.Chargeable(SpellSlot.Q, 1000, 1600, 1500, 0, 1900, 70)
+            Q = new Spell.Chargeable(SpellSlot.Q, 1000, 1600, 1300, 0, 1900, 70)
             {
                 AllowedCollisionCount = int.MaxValue
             };
             W = new Spell.Active(SpellSlot.W);
             E = new Spell.Skillshot(SpellSlot.E, 925, SkillShotType.Circular, 250, 1500, 235);
             R = new Spell.Skillshot(SpellSlot.R, 1250, SkillShotType.Linear, 250, 1950, 120);
+
+            ComboDamages = Cache.Resolve<CustomCache<int, float>>(1000);
 
             ColorPicker = new ColorPicker[4];
 
@@ -94,8 +98,9 @@ namespace Marksman_Master.Plugins.Varus
                 {
                     DamageIndicator.Color = b.Color;
                 };
-            
-            Orbwalker.OnPostAttack += (sender, args) => IsPreAttack = false;
+
+            ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
+            ChampionTracker.OnPostBasicAttack += (sender, args) => IsPreAttack = false;
             Orbwalker.OnPreAttack += (target, args) => IsPreAttack = true;
         }
 
@@ -111,26 +116,29 @@ namespace Marksman_Master.Plugins.Varus
 
         protected static float GetComboDamage(Obj_AI_Base unit)
         {
-            if (Damages.ContainsKey(unit.NetworkId) &&
-                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time*1000 - k.Key > 200))) //
-                return Damages[unit.NetworkId].Values.FirstOrDefault();
+            if (MenuManager.IsCacheEnabled && ComboDamages.Exist(unit.NetworkId))
+            {
+                return ComboDamages.Get(unit.NetworkId);
+            }
 
             var damage = Damage.GetWDamage(unit);
 
-            if (Q.IsReady() && unit.IsValidTarget(Q.Range))
+            if (Q.IsReady() && unit.IsValidTargetCached(Q.Range))
                 damage += Damage.GetQDamage(unit);
             
-            if (unit.IsValidTarget(E.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.E);
+            if (E.IsReady() && unit.IsValidTargetCached(E.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.E);
 
-            if (unit.IsValidTarget(R.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.R);
+            if (R.IsReady() && unit.IsValidTargetCached(R.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.R);
 
             if (Player.Instance.IsInAutoAttackRange(unit))
-                damage += Player.Instance.GetAutoAttackDamage(unit);
+                damage += Player.Instance.GetAutoAttackDamageCached(unit, true);
 
-            Damages[unit.NetworkId] = new Dictionary<float, float> {{Game.Time*1000, damage}};
-
+            if (MenuManager.IsCacheEnabled)
+            {
+                ComboDamages.Add(unit.NetworkId, damage);
+            }
             return damage;
         }
 
@@ -317,16 +325,8 @@ namespace Marksman_Master.Plugins.Varus
                 new BoolItem("Enable auto harass with Q", Settings.Harass.AutoHarassWithQ));
         }
 
-        private static bool HasAnyOrbwalkerFlags()
-        {
-            return (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
-        }
-
         protected override void PermaActive()
         {
-            if (Q.IsCharging && HasAnyOrbwalkerFlags())
-                Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
-
             Modes.PermaActive.Execute();
         }
 
@@ -434,6 +434,8 @@ namespace Marksman_Master.Plugins.Varus
 
         protected static class Damage
         {
+            private static CustomCache<int, float> WDamages => Cache.Resolve<CustomCache<int, float>>(200);
+
             public static float GetQDamage(Obj_AI_Base unit)
             {
                 float[] minDamage = { 0, 10, 46.7f, 83.3f, 120, 156.7f };
@@ -450,6 +452,11 @@ namespace Marksman_Master.Plugins.Varus
 
             public static float GetWDamage(Obj_AI_Base unit)
             {
+                if (MenuManager.IsCacheEnabled && WDamages.Exist(unit.NetworkId))
+                {
+                    return WDamages.Get(unit.NetworkId);
+                }
+
                 if (!HasWDebuff(unit))
                     return 0;
 
@@ -461,9 +468,14 @@ namespace Marksman_Master.Plugins.Varus
 
                 var damage = unit.MaxHealth*magicDamagePerStack[W.Level]*stacks +
                              (additionalDamage - additionalDamage%2);
+                
+                var finalDamage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage > 360 && unit.GetType() != typeof (AIHeroClient) ? 360 : damage);
 
-                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical,
-                    damage > 360 && unit.GetType() != typeof (AIHeroClient) ? 360 : damage);
+                if (MenuManager.IsCacheEnabled)
+                {
+                    WDamages.Add(unit.NetworkId, finalDamage);
+                }
+                return finalDamage;
             }
         }
     }

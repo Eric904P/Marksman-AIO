@@ -26,9 +26,11 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Varus.Modes
 {
@@ -43,26 +45,27 @@ namespace Marksman_Master.Plugins.Varus.Modes
 
         public static void Execute()
         {
-            var laneMinions = EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
-                Player.Instance.Position, 1500).ToList();
+            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTargetCached(1500)).ToList();
 
             if (!laneMinions.Any())
                 return;
 
             if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear)
             {
-                if (!Q.IsCharging && !Player.Instance.IsUnderTurret() && (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ) && (laneMinions.Count >= Settings.LaneClear.MinMinionsHitQ) && !IsPreAttack && EntityManager.MinionsAndMonsters.GetLineFarmLocation(laneMinions, Q.Width, 1550).HitNumber >= Settings.LaneClear.MinMinionsHitQ && CanILaneClear())
+                if (!Q.IsCharging && !Player.Instance.IsUnderTurret() && (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ) && (laneMinions.Count >= Settings.LaneClear.MinMinionsHitQ) && !IsPreAttack && (EntityManager.MinionsAndMonsters.GetLineFarmLocation(laneMinions, Q.Width, 1550).HitNumber >= Settings.LaneClear.MinMinionsHitQ))
                 {
-                    Q.StartCharging();
+                    if(CanILaneClear())
+                        Q.StartCharging();
                 } else if (Q.IsCharging && Q.IsFullyCharged)
                 {
-                    Q.CastOnBestFarmPosition(Settings.LaneClear.MinMinionsHitQ);
+                    Q.CastOnBestFarmPosition(1);
                 }
             }
 
-            if (E.IsReady() && !Player.Instance.IsUnderTurret() && Settings.LaneClear.UseEInLaneClear && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE && laneMinions.Count >= Settings.LaneClear.MinMinionsHitE)
+            if (E.IsReady() && !Player.Instance.IsUnderTurret() && Settings.LaneClear.UseEInLaneClear &&
+                (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE))
             {
-                E.CastOnBestFarmPosition(Settings.LaneClear.MinMinionsHitE);
+                E.CastOnBestFarmPosition(1);
             }
         }
     }

@@ -47,8 +47,11 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                      Player.Instance.CalculateDamageOnUnit(x, DamageType.Physical,
                          Player.Instance.TotalAttackDamage + Damage.RBonusAd[R.Level], false, true)*2));
 
-                if (enemy != null && enemy.IsValidTargetCached(750) && Orbwalker.CanAutoAttack && (enemy.Health + Player.Instance.CalculateDamageOnUnit(enemy, DamageType.Physical,
-                         Player.Instance.TotalAttackDamage + Damage.RBonusAd[R.Level], false, true) > IncomingDamage.GetIncomingDamage(enemy)))
+                if (enemy != null && enemy.IsValidTargetCached(750) && (enemy.Health > Damage.GetPassiveDamage(enemy)) &&
+                    Orbwalker.CanAutoAttack &&
+                    (enemy.Health + Player.Instance.CalculateDamageOnUnit(enemy, DamageType.Physical,
+                        Player.Instance.TotalAttackDamage + Damage.RBonusAd[R.Level], false, true) >
+                     IncomingDamage.GetIncomingDamage(enemy)))
                 {
                     Misc.PrintInfoMessage("Casting R to kill <font color=\"#ff1493\">" + enemy.Hero + "</font>.");
                     R.Cast();

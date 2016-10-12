@@ -29,6 +29,7 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Varus.Modes
 {
@@ -36,7 +37,9 @@ namespace Marksman_Master.Plugins.Varus.Modes
     {
         public static void Execute()
         {
-            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+            var jungleMinions =
+                StaticCacheProvider.GetMinions(CachedEntityType.Monsters,
+                    x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).ToList();
 
             if (!jungleMinions.Any())
                 return;
@@ -48,38 +51,54 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 "SRU_Dragon_Water", "SRU_Baron"
             };
 
-            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ && (jungleMinions.Count >= Settings.LaneClear.MinMinionsHitQ || allowedMonsters.Any(x=> jungleMinions.Any(k=>x.Contains(k.BaseSkinName)))))
+            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear &&
+                (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ) &&
+                ((jungleMinions.Count >= Settings.LaneClear.MinMinionsHitQ) ||
+                 allowedMonsters.Any(x => jungleMinions.Any(k => x.Contains(k.BaseSkinName)))))
             {
-                if (!Q.IsCharging && !IsPreAttack && EntityManager.MinionsAndMonsters.GetLineFarmLocation(jungleMinions, Q.Width, 1550).HitNumber >= Settings.LaneClear.MinMinionsHitQ)
+                if (!Q.IsCharging && !IsPreAttack &&
+                    (EntityManager.MinionsAndMonsters.GetLineFarmLocation(jungleMinions, Q.Width, 1550).HitNumber >=
+                     Settings.LaneClear.MinMinionsHitQ))
                 {
                     Q.StartCharging();
                 }
                 else if (Q.IsCharging && Q.IsFullyCharged)
                 {
-                    var bigMonster = jungleMinions.FirstOrDefault(k => allowedMonsters.Any(x => x.Contains(k.BaseSkinName)));
+                    var bigMonster =
+                        jungleMinions.FirstOrDefault(k => allowedMonsters.Any(x => x.Contains(k.BaseSkinName)));
+
                     if (bigMonster != null)
                     {
                         Q.Cast(bigMonster);
                     }
+                    else
+                    {
+                        Q.CastOnBestFarmPosition(1);
+                    }
                 }
             }
 
-            if (E.IsReady() && Settings.LaneClear.UseEInLaneClear &&
-                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE &&
-                (jungleMinions.Count >= Settings.LaneClear.MinMinionsHitQ ||
-                 allowedMonsters.Any(x => jungleMinions.Any(k => x.Contains(k.BaseSkinName)))))
+            if (!E.IsReady() || !Settings.LaneClear.UseEInLaneClear ||
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaE) ||
+                ((jungleMinions.Count < Settings.LaneClear.MinMinionsHitQ) &&
+                 !allowedMonsters.Any(x => jungleMinions.Any(k => x.Contains(k.BaseSkinName)))))
+                return;
+
+            if (jungleMinions.Count >= Settings.LaneClear.MinMinionsHitE)
             {
-                if (jungleMinions.Count >= Settings.LaneClear.MinMinionsHitE)
+                E.CastOnBestFarmPosition(Settings.LaneClear.MinMinionsHitE);
+            }
+            else
+            {
+                var bigMonster = jungleMinions.FirstOrDefault(k => allowedMonsters.Any(x => x.Contains(k.BaseSkinName)));
+
+                if (bigMonster != null)
                 {
-                    E.CastOnBestFarmPosition(Settings.LaneClear.MinMinionsHitE);
+                    E.Cast(bigMonster);
                 }
                 else
                 {
-                    var bigMonster = jungleMinions.FirstOrDefault(k => allowedMonsters.Any(x => x.Contains(k.BaseSkinName)));
-                    if (bigMonster != null)
-                    {
-                        E.Cast(bigMonster);
-                    }
+                    E.CastOnBestFarmPosition(1);
                 }
             }
         }

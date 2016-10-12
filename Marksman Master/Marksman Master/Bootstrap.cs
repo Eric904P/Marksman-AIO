@@ -96,6 +96,9 @@ namespace Marksman_Master
                     var downloadedData = webClient.DownloadString("https://raw.githubusercontent.com/Daeral/Marksman-AIO/master/Marksman%20Master/Marksman%20Master/Properties/AssemblyInfo.cs");
 
                     var regex = Regex.Match(downloadedData, @"\[assembly\: AssemblyVersion\(""([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)""\)\]");
+                    
+                    if(string.IsNullOrEmpty(regex.Groups[1].Value) || string.IsNullOrWhiteSpace(regex.Groups[1].Value))
+                        return Assembly.GetExecutingAssembly().GetName().Version;
 
                     return new System.Version(regex.Groups[1].Value);
                 }

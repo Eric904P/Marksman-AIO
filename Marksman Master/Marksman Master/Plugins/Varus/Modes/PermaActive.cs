@@ -42,76 +42,70 @@ namespace Marksman_Master.Plugins.Varus.Modes
         {
             if (Settings.Misc.EnableKillsteal)
             {
-                if(EntityManager.Heroes.Enemies.Any(x=>x.IsValidTarget(Q.Range) && x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x)))
+                if(Q.IsReady() && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x=>x.IsValidTargetCached(Q.Range)))
                 {
-                    foreach (var targ in EntityManager.Heroes.Enemies.Where(x=> !x.IsDead &&
-                                x.IsValidTarget(Q.Range) &&
+                    foreach (var targ in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x=> x.IsValidTargetCached(Q.Range) &&
                                 (x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x))))
                     {
                         if (!Q.IsCharging)
                         {
-                            if (!IsPreAttack && 
-                                Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) <= 1)
+                            if (!IsPreAttack && (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange()) <= 1))
                             {
                                 Q.StartCharging();
-                                break;
                             }
                         }
-                        if (Q.IsCharging)
+                        if (Q.IsCharging && targ != null && (targ.TotalHealthWithShields() <= Damage.GetQDamage(targ) + Damage.GetWDamage(targ)))
                         {
                             Q.CastMinimumHitchance(targ, HitChance.Medium);
                         }
                     }
-
-                    
-                } else if (E.IsReady() && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(E.Range) && x.TotalHealthWithShields() <= Player.Instance.GetSpellDamage(x, SpellSlot.E) + Damage.GetWDamage(x)))
+                } else if (E.IsReady())
                 {
-                    foreach (var targ in EntityManager.Heroes.Enemies.Where(x => !x.IsDead && x.IsValidTarget(E.Range) && (x.TotalHealthWithShields() <= Player.Instance.GetSpellDamage(x, SpellSlot.E) + Damage.GetWDamage(x))))
+                    foreach (
+                        var targ in
+                            StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                                x => x != null && x.IsValidTargetCached(E.Range) &&
+                                    (x.TotalHealthWithShields() <= Player.Instance.GetSpellDamageCached(x, SpellSlot.E) + Damage.GetWDamage(x))))
                     {
                         E.CastMinimumHitchance(targ, HitChance.Medium);
                     }
                 }
             }
 
-            if (Settings.Harass.AutoHarassWithQ && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && !Player.Instance.IsRecalling() &&
-                !Player.Instance.Position.IsVectorUnderEnemyTower() && Q.IsReady() &&
-                Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)
+            if (Q.IsReady() && Settings.Harass.AutoHarassWithQ && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && !Player.Instance.IsRecalling())
             {
-                if (!Q.IsCharging &&
-                    EntityManager.Heroes.Enemies.Any(
-                        x => Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0 &&
-                            x.IsValidTarget(Q.MaximumRange - 100) && Settings.Harass.IsAutoHarassEnabledFor(x) &&
-                            Q.GetPrediction(x).HitChancePercent > 50) && !IsPreAttack &&
-                    !EntityManager.Heroes.Enemies.Any(x =>
-                        x.IsValidTarget(Settings.Combo.QMinDistanceToTarget)))
+                if (!Q.IsCharging && !IsPreAttack && (Player.Instance.CountEnemyHeroesInRangeWithPrediction(Settings.Combo.QMinDistanceToTarget, 350) == 0) && !Player.Instance.Position.IsVectorUnderEnemyTower() && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ) &&
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(
+                        x => x.IsValidTargetCached(Q.MaximumRange - 100) && Settings.Harass.IsAutoHarassEnabledFor(x)))
                 {
                     Q.StartCharging();
                 }
                 else if (Q.IsCharging)
                 {
                     foreach (
-                        var target in
-                            EntityManager.Heroes.Enemies.Where(
-                                x =>
-                                    x.IsValidTarget(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) &&
-                                    Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) != 0 || Q.IsFullyCharged && Q.GetPrediction(x).HitChancePercent >= 60).TakeWhile(target => Q.IsReady()))
+                        var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                                x => x != null && x.IsValidTargetCached(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) &&
+                                    ((Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) > 0) || Q.IsFullyCharged)))
                     {
                         Q.CastMinimumHitchance(target, 60);
                     }
                 }
             }
 
-            if (!R.IsReady())
+            if (!R.IsReady() || !Settings.Combo.RKeybind)
                 return;
 
             var t = TargetSelector.GetTarget(R.Range, DamageType.Physical);
 
-            if (t == null || !Settings.Combo.RKeybind)
+            if (t == null)
                 return;
 
             var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
-                CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
+                CollisionTypes =
+                    Prediction.Manager.PredictionSelected == "ICPrediction"
+                        ? new HashSet<CollisionType> {CollisionType.YasuoWall, CollisionType.AiHeroClient}
+                        : new HashSet<CollisionType> {CollisionType.ObjAiMinion},
                 Delay = .25f,
                 From = Player.Instance.Position,
                 Radius = R.Width,
@@ -121,7 +115,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 Target = t,
                 Type = SkillShotType.Linear
             });
-            
+
             if (rPrediction.HitChancePercent >= 60)
             {
                 R.Cast(rPrediction.CastPosition);

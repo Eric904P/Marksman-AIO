@@ -42,28 +42,27 @@ namespace Marksman_Master.Plugins.Vayne.Modes
 
         public static void Execute()
         {
-            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion,
-                    x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange() + 300)).ToList();
+            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange()) && !x.IdEquals(Orbwalker.GetTarget())).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
 
-            if (!Q.IsReady() || !IsPostAttack || !Settings.LaneClear.UseQToLaneClear ||
-                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinMana))
+            if (!Q.IsReady() || !IsPostAttack || !Settings.LaneClear.UseQToLaneClear || (Player.Instance.ManaPercent < Settings.LaneClear.MinMana))
                 return;
 
-            var delay = (int)(Orbwalker.AttackCastDelay*1000);
+            var delay = (int) (Orbwalker.AttackDelay*1000) + Game.Ping/2;
 
-            var minion = laneMinions.Where(x=>
+            var minion =
+                laneMinions.Where(x =>
                         (Prediction.Health.GetPrediction(x, 250 + delay) <
-                        Player.Instance.GetAutoAttackDamageCached(x, true) +
-                        Player.Instance.TotalAttackDamage*Damage.QBonusDamage[Q.Level]) && (Prediction.Health.GetPrediction(x, 350 + delay) > 10)).OrderBy(x=>x.DistanceCached(Player.Instance));
+                         Player.Instance.GetAutoAttackDamageCached(x, true) +
+                         Player.Instance.TotalAttackDamage*Damage.QBonusDamage[Q.Level]) &&
+                        (Prediction.Health.GetPrediction(x, 250 + delay) > 20)).ToList();
 
             if (!minion.Any())
                 return;
 
-            if (Player.Instance.Position.Extend(Game.CursorPos, 299)
-                .IsInRangeCached(minion.First().Position.To2D(), Player.Instance.GetAutoAttackRange()) && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, e => Player.Instance.Position.Extend(Game.CursorPos, 299).IsInRangeCached(e.Position, e.IsMelee ? e.GetAutoAttackRange() * 2 : e.GetAutoAttackRange())).Any() == false)
+            if (Player.Instance.Position.Extend(Game.CursorPos, 299).IsInRangeCached(minion.First().Position.To2D(), Player.Instance.GetAutoAttackRange()) && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, e => e.IsValidTargetCached() && Player.Instance.Position.Extend(Game.CursorPos, 299).IsInRangeCached(e.Position, 700)).Any() == false)
             {
                 Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
             }

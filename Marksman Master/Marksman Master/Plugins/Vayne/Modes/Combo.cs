@@ -39,8 +39,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
     {
         public static void Execute()
         {
-            if (IsPostAttack && Q.IsReady() && Settings.Combo.UseQ &&
-                (!Settings.Combo.UseQOnlyToProcW ||
+            if (IsPostAttack && Q.IsReady() && Settings.Combo.UseQ && (!Settings.Combo.UseQOnlyToProcW ||
                  (Orbwalker.LastTarget.GetType() == typeof (AIHeroClient) &&
                   HasSilverDebuff((AIHeroClient) Orbwalker.LastTarget) &&
                   GetSilverDebuff((AIHeroClient) Orbwalker.LastTarget).Count == 1)))
@@ -53,8 +52,15 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 {
                     if (!Player.Instance.Position.Extend(Game.CursorPos, 300).To3D().IsVectorUnderEnemyTower())
                     {
-                        Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
-                        return;
+                        var positions =
+                            StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                                .Select(x => Prediction.Position.PredictUnitPosition(x, 300));
+
+                        if (positions.Any(x => Player.Instance.IsInRange(x, Player.Instance.GetAutoAttackRange())))
+                        {
+                            Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
+                            return;
+                        }
                     }
                 }
                 else

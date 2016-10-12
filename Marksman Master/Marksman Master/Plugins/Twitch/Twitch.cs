@@ -59,16 +59,17 @@ namespace Marksman_Master.Plugins.Twitch
 
         private static readonly ColorPicker[] ColorPicker;
 
-        protected static bool HasDeadlyVenomBuff(Obj_AI_Base unit) => Damage.CountEStacks(unit) > 0;
+        protected static bool HasDeadlyVenomBuff(Obj_AI_Base unit)
+            => unit.Buffs.Any(b => b.IsActive && b.DisplayName.Equals("twitchdeadlyvenom", StringComparison.CurrentCultureIgnoreCase));
 
         protected static BuffInstance GetDeadlyVenomBuff(Obj_AI_Base unit) => unit.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "twitchdeadlyvenom");
+            b => b.IsActive && b.DisplayName.Equals("twitchdeadlyvenom", StringComparison.CurrentCultureIgnoreCase));
 
         private static readonly Text Text;
 
         private static bool _changingRangeScan;
 
-        protected static Cache.Cache Cache { get; }
+        protected static Cache.Cache Cache => StaticCacheProvider.Cache;
 
         static Twitch()
         {
@@ -79,9 +80,7 @@ namespace Marksman_Master.Plugins.Twitch
             };
             E = new Spell.Active(SpellSlot.E, 1200);
             R = new Spell.Active(SpellSlot.R, 950);
-
-            Cache = StaticCacheProvider.Cache;
-
+            
             ColorPicker = new ColorPicker[4];
             
             ColorPicker[0] = new ColorPicker("TwitchW", new ColorBGRA(243, 109, 160, 255));
@@ -100,19 +99,33 @@ namespace Marksman_Master.Plugins.Twitch
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
+            Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
             Game.OnNotify += Game_OnNotify;
         }
 
+        private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
+        {
+            if (Q.IsReady() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Settings.Combo.UseQ && target?.GetType() == typeof (AIHeroClient) &&
+                target.IsValidTargetCached(Player.Instance.GetAutoAttackRange() - 100) &&
+                (Player.Instance.Mana >= 130 + (R.IsReady() ? 100 : 0)))
+            {
+                Q.Cast();
+            }
+        }
+
         private static void Game_OnNotify(GameNotifyEventArgs args)
         {
-            if (Q.IsReady() && Settings.Combo.UseQAfterKill)
+            if (Q.IsReady() && Settings.Combo.UseQAfterKill && args.NetworkId == Player.Instance.NetworkId && args.EventId == GameEventId.OnChampionKill)
             {
-                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x=>x.IsValidTargetCached(1500)) &&
-                        args.NetworkId == Player.Instance.NetworkId && args.EventId == GameEventId.OnChampionKill)
+                Core.DelayAction(() =>
                 {
-                    Q.Cast();
-                }
+                    if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                            .Any(x => x.IsValidTarget(1500)))
+                    {
+                        Q.Cast();
+                    }
+                }, 150);
             }
         }
 
@@ -237,7 +250,8 @@ namespace Marksman_Master.Plugins.Twitch
             ComboMenu.AddGroupLabel("Combo mode settings for Twitch addon");
 
             ComboMenu.AddLabel("Ambush (Q) settings :");
-            ComboMenu.Add("Plugins.Twitch.ComboMenu.UseQ", new CheckBox("Use Q after kill"));
+            ComboMenu.Add("Plugins.Twitch.ComboMenu.UseQ", new CheckBox("Use Q"));
+            ComboMenu.Add("Plugins.Twitch.ComboMenu.UseQAfterKill", new CheckBox("Use Q after kill"));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Venom Cask (W) settings :");
@@ -467,7 +481,9 @@ namespace Marksman_Master.Plugins.Twitch
         {
             internal static class Combo
             {
-                public static bool UseQAfterKill => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseQ"];
+                public static bool UseQAfterKill => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseQAfterKill"];
+
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseQ"]; 
 
                 public static bool UseW => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseW"];
 
@@ -556,10 +572,10 @@ namespace Marksman_Master.Plugins.Twitch
             private static float EDamagePerStackBounsApMod { get; } = 0.2f;
             public static int[] RBonusAd { get; } = {0, 20, 30, 40};
 
-            private static CustomCache<KeyValuePair<int, int>, float> ComboDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
-            private static CustomCache<int, int> EStacks { get; } = Cache.Resolve<CustomCache<int, int>>();
-            private static CustomCache<Tuple<int, bool, int>, float> EDamages { get; } = Cache.Resolve<CustomCache<Tuple<int, bool, int>, float>>();
-            private static CustomCache<KeyValuePair<int, int>, float> PassiveDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
+            private static CustomCache<KeyValuePair<int, int>, float> ComboDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>(1000);
+            private static CustomCache<int, int> EStacks { get; } = Cache.Resolve<CustomCache<int, int>>(100);
+            private static CustomCache<Tuple<int, bool, int>, float> EDamages { get; } = Cache.Resolve<CustomCache<Tuple<int, bool, int>, float>>(250);
+            private static CustomCache<KeyValuePair<int, int>, float> PassiveDamages { get; } = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>(250);
 
             public static float GetComboDamage(AIHeroClient enemy, int autos = 0)
             {
@@ -585,7 +601,7 @@ namespace Marksman_Master.Plugins.Twitch
                 if (E.IsReady())
                     damage += GetEDamage(enemy, true, autos > 0 ? autos : CountEStacks(enemy));
                 
-                damage += Player.Instance.GetAutoAttackDamage(enemy, true) * autos < 1 ? 1 : autos;
+                damage += Player.Instance.GetAutoAttackDamageCached(enemy, true) * autos < 1 ? 1 : autos;
 
                 if (MenuManager.IsCacheEnabled)
                 {
@@ -597,7 +613,7 @@ namespace Marksman_Master.Plugins.Twitch
 
             public static bool CanCastEOnUnit(Obj_AI_Base target)
             {
-                if (target == null || !target.IsValidTargetCached(E.Range) || /* BUG GetDeadlyVenomBuff(target) == null ||*/ CountEStacks(target) < 1)
+                if (target == null || !target.IsValidTargetCached(E.Range) || GetDeadlyVenomBuff(target) == null)
                     return false;
 
                 if (target.GetType() != typeof(AIHeroClient))
@@ -635,7 +651,7 @@ namespace Marksman_Master.Plugins.Twitch
                 return GetEDamage(heroClient) > heroClient.TotalHealthWithShields();
             }
 
-            private static float GetPassiveDamage(Obj_AI_Base target, int stacks = -1)
+            public static float GetPassiveDamage(Obj_AI_Base target, int stacks = -1)
             {
                 if (MenuManager.IsCacheEnabled && PassiveDamages.Exist(new KeyValuePair<int, int>(target.NetworkId, stacks)))
                 {

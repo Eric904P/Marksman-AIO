@@ -123,6 +123,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
+            Spellbook.OnStopCast += Spellbook_OnStopCast;
             Game.OnPostTick += args => IsPostAttack = false;
 
             ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
@@ -147,9 +148,18 @@ namespace Marksman_Master.Plugins.Vayne
             TargetedSpells.Initialize();
         }
 
+        private static void Spellbook_OnStopCast(Obj_AI_Base sender, SpellbookStopCastEventArgs args)
+        {
+            if (sender.IsMe && (Core.GameTickCount - LastQ < 500) &&
+                (args.StopAnimation || args.ForceStop))
+            {
+                LastQ = 0;
+            }
+        }
+
         private static void Player_OnIssueOrder(Obj_AI_Base sender, PlayerIssueOrderEventArgs args)
         {
-            if (sender.IsMe && (Game.Time * 1000 - LastQ < 400) && args.Order == GameObjectOrder.MoveTo)
+            if (sender.IsMe && (Core.GameTickCount - LastQ < 400) && args.Order == GameObjectOrder.MoveTo)
                 args.Process = false;
         }
 
@@ -157,7 +167,6 @@ namespace Marksman_Master.Plugins.Vayne
         {
             if (sender.IsMe && args.Animation == "Spell1")
             {
-                Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
                 Orbwalker.ResetAutoAttack();
             }
         }
@@ -403,7 +412,8 @@ namespace Marksman_Master.Plugins.Vayne
 
             if (args.Slot == SpellSlot.Q)
             {
-                LastQ = Game.Time * 1000;
+                LastQ = Core.GameTickCount;
+                Orbwalker.ResetAutoAttack();
             }
 
             if (args.Slot != SpellSlot.E || args.Target == null)
@@ -455,10 +465,11 @@ namespace Marksman_Master.Plugins.Vayne
             IsPreAttack = false;
             IsPostAttack = true;
 
-            if (e.Target.GetType() == typeof (Obj_AI_Turret) && Q.IsReady() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) && Settings.LaneClear.UseQToLaneClear)
+            if ((e.Target.Type == GameObjectType.obj_AI_Turret ||
+                 e.Target.Type == GameObjectType.obj_BarracksDampener || e.Target.Type == GameObjectType.obj_HQ) && Q.IsReady() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) && Settings.LaneClear.UseQToLaneClear)
             {
                 if (Player.Instance.CountEnemiesInRangeCached(1000) == 0 &&
-                    Player.Instance.ManaPercent >= Settings.LaneClear.MinMana)
+                    (Player.Instance.ManaPercent >= Settings.LaneClear.MinMana))
                 {
                     Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
                 }
@@ -491,15 +502,10 @@ namespace Marksman_Master.Plugins.Vayne
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
-            if (args.Slot == SpellSlot.Q && HasAnyOrbwalkerFlags())
-            {
-                Orbwalker.ResetAutoAttack();
-            }
-
             if (!Settings.Misc.NoAaWhileStealth || !HasInquisitionBuff)
                 return;
 
-            if (args.Slot == SpellSlot.Q)
+            if (args.Slot == SpellSlot.Q && HasAnyOrbwalkerFlags())
             {
                 _lastQCastTime = Core.GameTickCount;
             }
@@ -686,7 +692,7 @@ namespace Marksman_Master.Plugins.Vayne
 
         protected static void PerformFlashCondemn()
         {
-            if(Game.Time * 1000 - LastTick < 500 || !E.IsReady() || (!Q.IsReady() && !Flash.IsReady()))
+            if(Game.Time * 1000 - LastTick < 500 || !E.IsReady() || (/*!Q.IsReady() &&*/ !Flash.IsReady()))
                 return;
 
             LastTick = Game.Time * 1000;
@@ -701,26 +707,26 @@ namespace Marksman_Master.Plugins.Vayne
 
             List<Vector2> points;
 
-            if (Q.IsReady() && Player.Instance.IsInRangeCached(target, Q.Range))
-            {
-                if (FlashCondemnCheck(target, Player.Instance.Position.Extend(Game.CursorPos, 300).To3D()))
-                {
-                    Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
-                    return;
-                }
+            //if (Q.IsReady() && Player.Instance.IsInRangeCached(target, Q.Range))
+            //{
+            //    if (FlashCondemnCheck(target, Player.Instance.Position.Extend(Game.CursorPos, 300).To3D()))
+            //    {
+            //        Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
+            //        return;
+            //    }
 
-                points = new Geometry.Polygon.Circle(Player.Instance.Position, 300, 30).Points.Where(
-                        x => !x.To3D().IsVectorUnderEnemyTower() && FlashCondemnCheck(target, x.To3D())).ToList();
+            //    points = new Geometry.Polygon.Circle(Player.Instance.Position, 300, 30).Points.Where(
+            //            x => !x.To3D().IsVectorUnderEnemyTower() && FlashCondemnCheck(target, x.To3D())).ToList();
 
-                var position = points.FirstOrDefault();
+            //    var position = points.FirstOrDefault();
 
-                if (position != default(Vector2))
-                {
-                    Q.Cast(Player.Instance.Position.Extend(position, 285).To3D());
+            //    if (position != default(Vector2))
+            //    {
+            //        Q.Cast(Player.Instance.Position.Extend(position, 285).To3D());
 
-                    return;
-                }
-            }
+            //        return;
+            //    }
+            //}
 
             if (Flash.IsReady())
             {
@@ -736,7 +742,7 @@ namespace Marksman_Master.Plugins.Vayne
                         .Where(
                             x =>
                                 !x.To3D().IsVectorUnderEnemyTower() && (x.Distance(Player.Instance) < 475) &&
-                                (x.Distance(target) > 150) && FlashCondemnCheck(target, x.To3D()))
+                                (x.Distance(target) > 250) && FlashCondemnCheck(target, x.To3D()))
                         .ToList();
 
                 foreach (var vector2 in points)
@@ -920,7 +926,7 @@ namespace Marksman_Master.Plugins.Vayne
 
         protected override void PermaActive()
         {
-            Orbwalker.DisableMovement = Game.Time * 1000 - LastQ < 400;
+            //Orbwalker.DisableMovement = Core.GameTickCount - LastQ < 400;
 
             Modes.PermaActive.Execute();
         }
