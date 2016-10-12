@@ -397,16 +397,12 @@ namespace Marksman_Master.Extensions.SkinHack
             {
                 try
                 {
-                    var realm =
-                        new WebClient().DownloadString(new Uri("http://ddragon.leagueoflegends.com/realms/na.json"));
+                    using (var webClient = new WebClient())
+                    {
+                        DDragonVersion = (string)JObject.Parse(webClient.DownloadString(new Uri("http://ddragon.leagueoflegends.com/realms/na.json"))).Property("dd");
+                        Data = webClient.DownloadString($"http://ddragon.leagueoflegends.com/cdn/{DDragonVersion}/data/en_US/champion/{ChampionName}.json");
+                    }
 
-                    DDragonVersion = (string) JObject.Parse(realm).Property("dd");
-
-                    Data =
-                        new WebClient().DownloadString(
-                            $"http://ddragon.leagueoflegends.com/cdn/{DDragonVersion}/data/en_US/champion/{ChampionName}.json");
-
-                    
                     var parsedObject = JObject.Parse(Data);
                     var data = parsedObject["data"][ChampionName];
 

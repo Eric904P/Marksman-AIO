@@ -111,7 +111,10 @@ namespace Marksman_Master.Utils
             message = Regex.Replace(message, "<blue>", "<font color=\"#0A9CCC\">", RegexOptions.IgnoreCase);
             message = Regex.Replace(message, "</blue>", "</font>", RegexOptions.IgnoreCase);
 
-            message = Regex.Replace(message, "<in>", $"<font color=\"{ (SandboxConfig.IsBuddy ? "#BF1B49" : "#1BBF91")}\">", RegexOptions.IgnoreCase);
+            message = Regex.Replace(message, "<red>", "<font color=\"#FA002E\">", RegexOptions.IgnoreCase);
+            message = Regex.Replace(message, "</red>", "</font>", RegexOptions.IgnoreCase); 
+
+             message = Regex.Replace(message, "<in>", $"<font color=\"{ (SandboxConfig.IsBuddy ? "#BF1B49" : "#1BBF91")}\">", RegexOptions.IgnoreCase);
             message = Regex.Replace(message, "</in>", "</font>", RegexOptions.IgnoreCase);
             
             if (possibleFlood && _lastMessageTick + 500 > Game.Time * 1000 && _lastMessageString == message)

@@ -27,7 +27,12 @@
 // ---------------------------------------------------------------------
 #endregion
 
+using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using EloBuddy;
 using EloBuddy.Sandbox;
 using EloBuddy.SDK;
@@ -55,6 +60,13 @@ namespace Marksman_Master
             if (!pluginInitialized)
                 return;
 
+            var task = Task.Factory.StartNew(PrintVersionInfo);
+
+            AppDomain.CurrentDomain.DomainUnload += (sender, args) =>
+            {
+                task.Dispose();
+            };
+
             Core.DelayAction(
                 () =>
                 {
@@ -73,6 +85,63 @@ namespace Marksman_Master
 
                     Misc.PrintDebugMessage("Marksman AIO  fully loaded");
                 }, 250);
+        }
+
+        private static System.Version GetGithubVersion()
+        {
+            try
+            {
+                using (var webClient = new WebClient())
+                {
+                    var downloadedData = webClient.DownloadString("https://raw.githubusercontent.com/Daeral/Marksman-AIO/master/Marksman%20Master/Marksman%20Master/Properties/AssemblyInfo.cs");
+
+                    var regex = Regex.Match(downloadedData, @"\[assembly\: AssemblyVersion\(""([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)""\)\]");
+
+                    return new System.Version(regex.Groups[1].Value);
+                }
+            }
+            catch (Exception exception)
+            {
+                var ex = exception as WebException;
+
+                Console.WriteLine(ex != null
+                    ? $"Couldn't check version a WebException occured\nStatus : {ex.Status} | Message : {ex.Message}{Environment.NewLine}"
+                    : $"Couldn't check version an exception occured\n{exception}{Environment.NewLine}");
+
+                return Assembly.GetExecutingAssembly().GetName().Version;
+            }
+        }
+
+        private static int CompareVersions()
+        {
+            try
+            {
+                var assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version;
+                return GetGithubVersion().CompareTo(assemblyVersion);
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"Couldn't check version an exception occured\n{exception}{Environment.NewLine}");
+
+                return 0;
+            }
+        }
+
+        private static void PrintVersionInfo()
+        {
+            try
+            {
+                var version = CompareVersions();
+
+                if (version == 1)
+                {
+                    Misc.PrintInfoMessage("<i><red>Your assembly version is outdated. Consider updating it in the loader.</red></i>");
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"Couldn't check version an exception occured\n{exception}{Environment.NewLine}");
+            }
         }
     }
 }
