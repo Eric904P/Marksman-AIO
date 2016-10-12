@@ -27,6 +27,7 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using EloBuddy;
@@ -36,6 +37,7 @@ using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using SharpDX;
 using EloBuddy.SDK.Rendering;
+using Marksman_Master.Cache.Modules;
 using Marksman_Master.Utils;
 using Color = SharpDX.Color;
 
@@ -61,12 +63,15 @@ namespace Marksman_Master.Plugins.Tristana
         protected static bool IsCatingW {get; set; }
         protected static Vector3 WStartPos { get; set; }
 
-        protected static bool HasExplosiveChargeBuff(Obj_AI_Base unit) =>  unit.Buffs.Any(x => x.Name.ToLowerInvariant() == "tristanaechargesound");
+        protected static Cache.Cache Cache => StaticCacheProvider.Cache;
 
-        protected static int CountEStacks(Obj_AI_Base unit) => unit.Buffs.Any(x => x.Name.ToLowerInvariant() == "tristanaecharge") ? unit.Buffs.First(x => x.Name.ToLowerInvariant() == "tristanaecharge").Count : 0;
+        protected static CustomCache<int, float> ComboDamages { get; }
+
+        protected static bool HasExplosiveChargeBuff(Obj_AI_Base unit) => unit.Buffs.Any(x => x.Name.Equals("tristanaechargesound", StringComparison.CurrentCultureIgnoreCase));
+
+        protected static int CountEStacks(Obj_AI_Base unit) => unit.Buffs.Any(x => x.Name.Equals("tristanaecharge", StringComparison.CurrentCultureIgnoreCase)) ? unit.Buffs.First(x => x.Name.Equals("tristanaecharge", StringComparison.CurrentCultureIgnoreCase)).Count : 0;
         
-        protected static BuffInstance GetExplosiveChargeBuff(Obj_AI_Base unit) => unit.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "tristanaecharge");
-        
+        protected static BuffInstance GetExplosiveChargeBuff(Obj_AI_Base unit) => unit.Buffs.FirstOrDefault(x => x.Name.Equals("tristanaecharge", StringComparison.CurrentCultureIgnoreCase));
         protected static AIHeroClient WTarget { get; set; }
 
         private static AIHeroClient Wtarg { get; set; }
@@ -84,50 +89,60 @@ namespace Marksman_Master.Plugins.Tristana
             ColorPicker[0] = new ColorPicker("TristanaW", new ColorBGRA(243, 109, 160, 255));
             ColorPicker[1] = new ColorPicker("TristanaHpBar", new ColorBGRA(255, 134, 0, 255));
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
+            
+            ComboDamages = Cache.Resolve<CustomCache<int, float>>(1000);
 
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
 
             Orbwalker.OnPostAttack += (sender, args) =>
             {
                 IsPreAttack = false;
+
+                if (!W.IsReady() || !Settings.Combo.UseW || !Settings.Combo.DoubleWKeybind)
+                    return;
+
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => x.IsValidTarget(W.Range) && HasExplosiveChargeBuff(x) && CountEStacks(x) == 2);
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                if (target == null || target.Position.IsVectorUnderEnemyTower())
+                    return;
                 
-                if (W.IsReady() && Settings.Combo.UseW && Settings.Combo.DoubleWKeybind)
-                {
-                    var possibleTargets =
-                        EntityManager.Heroes.Enemies.Where(
-                            x => x.IsValidTarget(W.Range) && HasExplosiveChargeBuff(x) && CountEStacks(x) == 2);
+                    var buff = target.Buffs.Find(x => x.Name.ToLowerInvariant() == "tristanaechargesound").EndTime;
 
-                    var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+                if (buff - Game.Time < Player.Instance.Distance(target)/1300 + 0.5)
+                    return;
 
-                    if (target != null && !target.Position.IsVectorUnderEnemyTower())
-                    {
-                        var buff = target.Buffs.Find(x => x.Name.ToLowerInvariant() == "tristanaechargesound").EndTime;
+                var wPrediction = W.GetPrediction(target);
 
-                        if (buff - Game.Time > Player.Instance.Distance(target)/1300 + 0.5)
-                        {
-                            var wPrediction = W.GetPrediction(target);
+                if (wPrediction.HitChance < HitChance.Medium)
+                    return;
 
-                            if (wPrediction.HitChance >= HitChance.Medium)
-                            {
-                                Wtarg = target;
-                                Checkw = true;
+                Wtarg = target;
+                Checkw = true;
 
-                                W.Cast(wPrediction.CastPosition);
-
-                                Core.DelayAction(() => WTarget = null, 3000);
-                            }
-                        }
-                    }
-                }
+                W.Cast(wPrediction.CastPosition);
+                Core.DelayAction(() => WTarget = null, 3000);
             };
             
             DamageIndicator.Initalize(ColorPicker[1].Color, 1300);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
+            ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
+            ChampionTracker.OnPostBasicAttack += (sender, args) =>
+            {
+                var target = args.Target as AIHeroClient;
+
+                if (target != null && args.Sender.IsMe && CountEStacks(target) == 2 && (target.TotalHealthWithShields() <= Damage.GetEPhysicalDamage(target, 3) + Damage.GetRDamage(target)))
+                {
+                    R.Cast(target);
+                }
+            };
+
             ColorPicker[1].OnColorChange += (a, b) => { DamageIndicator.Color = b.Color; };
 
             GameObject.OnCreate += GameObject_OnCreate;
-
             Messages.OnMessage += Messages_OnMessage;
         }
 
@@ -136,22 +151,17 @@ namespace Marksman_Master.Plugins.Tristana
             if (!Checkw)
                 return;
 
-            if (sender.GetType() == typeof(Obj_GeneralParticleEmitter))
-            {
-                var particle = sender as Obj_GeneralParticleEmitter;
+            var particle = sender as Obj_GeneralParticleEmitter;
 
-                if (particle != null)
-                {
-                    if (particle.Name == "Tristana_Base_W_launch.troy")
-                    {
-                        WTarget = Wtarg;
-                        Wtarg = null;
-                        Checkw = false;
-                    }
-                }
-            }
+            if (particle == null ||
+                !particle.Name.Equals("Tristana_Base_W_launch.troy", StringComparison.CurrentCultureIgnoreCase))
+                return;
+
+            WTarget = Wtarg;
+            Wtarg = null;
+            Checkw = false;
         }
-        
+
         private static void Messages_OnMessage(Messages.WindowMessage args)
         {
             if (args.Message == WindowMessages.KeyDown)
@@ -161,18 +171,38 @@ namespace Marksman_Master.Plugins.Tristana
                     Orbwalker.ActiveModesFlags |= Orbwalker.ActiveModes.Combo;
                 }
             }
-            if (args.Message == WindowMessages.KeyUp)
+
+            if (args.Message != WindowMessages.KeyUp)
+                return;
+
+            if (args.Handle.WParam == Keybind.Keys.Item1 || args.Handle.WParam == Keybind.Keys.Item2)
             {
-                if (args.Handle.WParam == Keybind.Keys.Item1 || args.Handle.WParam == Keybind.Keys.Item2)
-                {
-                    Orbwalker.ActiveModesFlags = Orbwalker.ActiveModes.None;
-                }
+                Orbwalker.ActiveModesFlags = Orbwalker.ActiveModes.None;
             }
         }
 
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
             IsPreAttack = true;
+
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Settings.Combo.FocusE)
+            {
+                foreach (var enemy in
+                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && HasExplosiveChargeBuff(x)))
+                {
+                    Orbwalker.ForcedTarget = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x =>
+                        x.IsValidTarget(Player.Instance.GetAutoAttackRange()) &&
+                        (x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(x, true)*2) &&
+                        x.NetworkId != enemy.NetworkId)
+                        ?
+                        null : enemy;
+                }
+            }
+            else if (!Settings.Combo.FocusE || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(
+                         x => x.IsValidTarget(Player.Instance.GetAutoAttackRange())))
+            {
+                Orbwalker.ForcedTarget = null;
+            }
 
             if (!Settings.LaneClear.UseEOnTowers || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) || Player.Instance.ManaPercent < Settings.LaneClear.MinManaE || !E.IsReady())
                 return;
@@ -196,21 +226,31 @@ namespace Marksman_Master.Plugins.Tristana
                 return 0;
             }
 
-            var enemy = (AIHeroClient)unit;
+            return unit.GetType() != typeof(AIHeroClient) ? 0 : GetComboDamage(unit);
+        }
 
-            if (enemy == null)
-                return 0;
+        protected static float GetComboDamage(Obj_AI_Base unit)
+        {
+            if (MenuManager.IsCacheEnabled && ComboDamages.Exist(unit.NetworkId))
+            {
+                return ComboDamages.Get(unit.NetworkId);
+            }
 
-            var damge = 0f;
+            var damage = 0f;
 
-            if (R.IsReady())
-                damge += Damage.GetRDamage(unit);
+            if (R.IsReady() && unit.IsValidTarget(R.Range))
+                damage += Damage.GetRDamage(unit);
             if (HasExplosiveChargeBuff(unit))
-                damge += Damage.GetEPhysicalDamage(unit);
+                damage += Damage.GetEPhysicalDamage(unit);
 
-            damge += Player.Instance.GetAutoAttackDamage(unit, true);
+            if (unit.IsValidTarget(Player.Instance.GetAutoAttackRange()))
+                damage += Player.Instance.GetAutoAttackDamageCached(unit, true);
 
-            return damge;
+            if (MenuManager.IsCacheEnabled)
+            {
+                ComboDamages.Add(unit.NetworkId, damage);
+            }
+            return damage;
         }
 
         protected override void OnDraw()
@@ -225,11 +265,11 @@ namespace Marksman_Master.Plugins.Tristana
             if (!Settings.Drawings.DrawInfo)
                 return;
 
-            foreach (var source in EntityManager.Heroes.Enemies.Where(x => x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && x.Buffs.Any(k => k.Name.ToLowerInvariant() == "tristanaechargesound")))
+            foreach (var source in EntityManager.Heroes.Enemies.Where(x => x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && HasExplosiveChargeBuff(x)))
             {
                 var hpPosition = source.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 30; // tracker friendly.
-                var timeLeft = source.Buffs.Find(x => x.Name.ToLowerInvariant() == "tristanaechargesound").EndTime - Game.Time;
+                var timeLeft = source.Buffs.Find(x => x.Name.Equals("tristanaechargesound", StringComparison.CurrentCultureIgnoreCase)).EndTime - Game.Time;
                 var endPos = timeLeft * 0x3e8 / 0x25;
 
                 var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 4000d * 100d, 3, 110);
@@ -265,7 +305,7 @@ namespace Marksman_Master.Plugins.Tristana
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (Settings.Combo.UseWVsGapclosers && W.IsReady() && args.End.Distance(Player.Instance) < 350)
+            if (Settings.Combo.UseWVsGapclosers && W.IsReady() && (args.End.Distance(Player.Instance) < 350))
             {
                 var pos =
                     SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 880, 1200, 400)
@@ -274,11 +314,19 @@ namespace Marksman_Master.Plugins.Tristana
                         .ToList();
                 if (pos.Any())
                 {
-                    W.Cast(Player.Instance.Position.Extend(Misc.SortVectorsByDistanceDescending(pos, args.End.To2D())[0], 880).To3D());
+                    var position =
+                        Player.Instance.Position.Extend(Misc.SortVectorsByDistanceDescending(pos, args.End.To2D())[0],
+                            880).To3D();
+
+                    if (!position.IsVectorUnderEnemyTower() &&
+                        (position.CountEnemiesInRangeCached(500) < Player.Instance.CountEnemiesInRangeCached(500)))
+                    {
+                        W.Cast();
+                    }
                 }
             }
 
-            if (!Settings.Combo.UseRVsGapclosers || !R.IsReady() || !sender.IsValidTarget(R.Range) || args.End.Distance(Player.Instance) > 350)
+            if (!Settings.Combo.UseRVsGapclosers || !R.IsReady() || !sender.IsValidTarget(R.Range) || (args.End.Distance(Player.Instance) > 350))
                 return;
 
             if (args.Delay == 0)
@@ -402,7 +450,10 @@ namespace Marksman_Master.Plugins.Tristana
         {
             E.Range = (uint)(630 + 7 * Player.Instance.Level);
             R.Range = (uint)(630 + 7 * Player.Instance.Level);
-            
+
+            if (Orbwalker.ShouldWait && Orbwalker.ForcedTarget != null)
+                Orbwalker.ForcedTarget = null;
+
             Modes.PermaActive.Execute();
         }
 
@@ -418,9 +469,6 @@ namespace Marksman_Master.Plugins.Tristana
 
         protected override void LaneClear()
         {
-            if (Orbwalker.ShouldWait && Orbwalker.ForcedTarget != null)
-                Orbwalker.ForcedTarget = null;
-
             Modes.LaneClear.Execute();
         }
 
@@ -513,6 +561,9 @@ namespace Marksman_Master.Plugins.Tristana
             public static float EDamagePerStackBonusApMod { get; } = 0.15f;
             public static int[] RDamage { get; } = {0, 300, 400, 500};
 
+            private static CustomCache<KeyValuePair<int, int>, float> GetEPhysicalDamages => Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
+            private static CustomCache<int, bool> IsKillableFromR => Cache.Resolve<CustomCache<int, bool>>();
+
             public static float GetEMagicDamage(Obj_AI_Base unit)
             {
                 return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, EMagicDamage[E.Level] + Player.Instance.FlatMagicDamageMod * EMagicDamageApMod);
@@ -520,6 +571,11 @@ namespace Marksman_Master.Plugins.Tristana
 
             public static float GetEPhysicalDamage(Obj_AI_Base unit, int customStacks = -1)
             {
+                if (MenuManager.IsCacheEnabled && GetEPhysicalDamages.Exist(new KeyValuePair<int, int>(unit.NetworkId, customStacks)))
+                {
+                    return GetEPhysicalDamages.Get(new KeyValuePair<int, int>(unit.NetworkId, customStacks));
+                }
+
                 var rawDamage = (EPhysicalDamage[E.Level] +
                                  (Player.Instance.FlatPhysicalDamageMod*EPhysicalDamageBonusAdMod[E.Level] +
                                   Player.Instance.FlatMagicDamageMod*EPhysicalDamageBonusApMod))
@@ -529,41 +585,84 @@ namespace Marksman_Master.Plugins.Tristana
                                   Player.Instance.FlatMagicDamageMod*EDamagePerStackBonusApMod))*
                                 (customStacks > 0
                                     ? customStacks
-                                    : (unit.Buffs.Any(x => x.Name.ToLowerInvariant() == "tristanaecharge")
-                                        ? unit.Buffs.Find(x => x.Name.ToLowerInvariant() == "tristanaecharge").Count
+                                    : (unit.Buffs.Any(x => x.Name.Equals("tristanaecharge", StringComparison.CurrentCultureIgnoreCase))
+                                        ? unit.Buffs.Find(x => x.Name.Equals("tristanaecharge", StringComparison.CurrentCultureIgnoreCase)).Count
                                         : 0));
 
                 var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Physical, rawDamage);
 
+                if (MenuManager.IsCacheEnabled)
+                {
+                    GetEPhysicalDamages.Add(new KeyValuePair<int, int>(unit.NetworkId, customStacks), damage);
+                }
                 return damage;
             }
 
             public static float GetRDamage(Obj_AI_Base unit)
             {
-                return Player.Instance.GetSpellDamage(unit, SpellSlot.R);
+                return Player.Instance.GetSpellDamageCached(unit, SpellSlot.R);
             }
 
             public static bool IsTargetKillableFromR(Obj_AI_Base unit)
             {
+                if (MenuManager.IsCacheEnabled && IsKillableFromR.Exist(unit.NetworkId))
+                {
+                    return IsKillableFromR.Get(unit.NetworkId);
+                }
+
+                bool isKillable;
+
                 if (unit.GetType() != typeof(AIHeroClient))
                 {
-                    return unit.TotalHealthWithShields() <= GetRDamage(unit);
+                    isKillable = unit.TotalHealthWithShields(true) <= GetRDamage(unit);
+
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        IsKillableFromR.Add(unit.NetworkId, isKillable);
+                    }
+                    return isKillable;
                 }
 
                 var enemy = (AIHeroClient)unit;
 
                 if (enemy.HasSpellShield() || enemy.HasUndyingBuffA())
+                {
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        IsKillableFromR.Add(unit.NetworkId, false);
+                    }
                     return false;
+                }
 
                 if (enemy.ChampionName != "Blitzcrank")
-                    return enemy.TotalHealthWithShields(true) < GetRDamage(enemy);
+                {
+                    isKillable = enemy.TotalHealthWithShields(true) < GetRDamage(enemy);
+
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        IsKillableFromR.Add(unit.NetworkId, isKillable);
+                    }
+                    return isKillable;
+                }
 
                 if (!enemy.HasBuff("BlitzcrankManaBarrierCD") && !enemy.HasBuff("ManaBarrier"))
                 {
-                    return enemy.TotalHealthWithShields(true) + enemy.Mana / 2 < GetRDamage(enemy);
+                    isKillable = enemy.TotalHealthWithShields(true) + enemy.Mana / 2 < GetRDamage(enemy);
+
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        IsKillableFromR.Add(unit.NetworkId, isKillable);
+                    }
+                    return isKillable;
                 }
 
-                return enemy.TotalHealthWithShields(true) < GetRDamage(enemy);
+                isKillable = enemy.TotalHealthWithShields(true) < GetRDamage(enemy);
+
+                if (MenuManager.IsCacheEnabled)
+                {
+                    IsKillableFromR.Add(unit.NetworkId, isKillable);
+                }
+                return isKillable;
             }
         }
     }

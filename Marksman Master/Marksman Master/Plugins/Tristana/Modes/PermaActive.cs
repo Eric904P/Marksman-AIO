@@ -26,34 +26,45 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-using Marksman_Master.Utils;
-
 namespace Marksman_Master.Plugins.Tristana.Modes
 {
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using Utils;
+
     internal class PermaActive : Tristana
     {
         public static void Execute()
         {
-            if (R.IsReady() && Settings.Combo.UseR && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(R.Range) && x.HealthPercent < 50))
+            if (!R.IsReady() || !Settings.Combo.UseR)
+                return;
+
+            foreach (var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
             {
-                foreach (var target in EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(R.Range)).OrderBy(TargetSelector.GetPriority))
+                if (x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && (x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(x, true)))
+                    return false;
+
+                return x.IsValidTarget(R.Range);
+
+            }).OrderBy(TargetSelector.GetPriority))
+            {
+                if (Damage.IsTargetKillableFromR(target))
                 {
-                    var damage = Damage.GetEPhysicalDamage(target) + Damage.GetRDamage(target) - 25;
+                    R.Cast(target);
+                    break;
+                }
 
-                    if (target.Hero == Champion.Blitzcrank && !target.HasBuff("BlitzcrankManaBarrierCD") && !target.HasBuff("ManaBarrier"))
-                    {
-                        damage -= target.Mana / 2;
-                    }
+                var damage = Damage.GetEPhysicalDamage(target) + Damage.GetRDamage(target) - 25;
 
-                    if ((target.Distance(Player.Instance) < Player.Instance.GetAutoAttackRange()) &&
-                        (target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(target, true)*2) && (target.TotalHealthWithShields() < damage))
-                    {
-                        R.Cast(target);
-                    }
+                if (target.Hero == Champion.Blitzcrank && !target.HasBuff("BlitzcrankManaBarrierCD") && !target.HasBuff("ManaBarrier"))
+                {
+                    damage -= target.Mana / 2;
+                }
+
+                if (target.TotalHealthWithShields() < damage)
+                {
+                    R.Cast(target);
                 }
             }
         }

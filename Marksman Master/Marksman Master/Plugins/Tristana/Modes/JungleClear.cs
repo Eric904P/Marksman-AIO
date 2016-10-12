@@ -26,18 +26,21 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-
 namespace Marksman_Master.Plugins.Tristana.Modes
 {
+    using System;
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using Utils;
+
     internal class JungleClear : Tristana
     {
         public static void Execute()
         {
-            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+            var jungleMinions =
+                StaticCacheProvider.GetMinions(CachedEntityType.Monsters,
+                    x => x.IsValidTarget(Player.Instance.GetAutoAttackRange())).ToList();
 
             if (!jungleMinions.Any())
                 return;
@@ -49,22 +52,24 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                 "SRU_Dragon_Water", "SRU_Baron"
             };
 
-            if (Q.IsReady() && Settings.LaneClear.UseQInJungleClear && jungleMinions.Count(x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase)) >= 1)
+            if (Q.IsReady() && !IsPreAttack && Settings.LaneClear.UseQInJungleClear &&
+                (jungleMinions.Count(
+                    x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase)) >= 1))
             {
                 Q.Cast();
             }
 
-            if (E.IsReady() && Settings.LaneClear.UseEInJungleClear &&
-                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE)
-            {
-                var minion =
-                    jungleMinions.FirstOrDefault(
-                        x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase));
+            if (!E.IsReady() || !Settings.LaneClear.UseEInJungleClear ||
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaE))
+                return;
 
-                if (minion != null && minion.Health > Player.Instance.GetAutoAttackDamage(minion, true) * 2)
-                {
-                    E.Cast(minion);
-                }
+            var minion =
+                jungleMinions.FirstOrDefault(
+                    x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase));
+
+            if (minion != null && (minion.Health > Player.Instance.GetAutoAttackDamageCached(minion, true)*2))
+            {
+                E.Cast(minion);
             }
         }
     }

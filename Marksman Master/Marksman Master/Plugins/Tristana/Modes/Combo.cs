@@ -26,22 +26,23 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-using Marksman_Master.Utils;
-
 namespace Marksman_Master.Plugins.Tristana.Modes
 {
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Enumerations;
+    using Utils;
+
     internal class Combo : Tristana
     {
         public static void Execute()
         {
             if (Q.IsReady() && IsPreAttack && Settings.Combo.UseQ)
             {
-                if (EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange() - 50)))
+                if (
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                        .Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange() - 50)))
                 {
                     Q.Cast();
                 }
@@ -49,7 +50,9 @@ namespace Marksman_Master.Plugins.Tristana.Modes
 
             if (WTarget != null && W.IsReady() && Settings.Combo.DoubleWKeybind)
             {
-                var target = EntityManager.Heroes.Enemies.FirstOrDefault(x => x.NetworkId == WTarget.NetworkId);
+                var target =
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                        .FirstOrDefault(x => x.NetworkId == WTarget.NetworkId);
 
                 if (target != null)
                 {
@@ -62,26 +65,37 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                         W.Cast(wPrediction.CastPosition);
                     }
                 }
+                else
+                {
+                    WTarget = null;
+                }
             }
 
             if (W.IsReady() && IsCatingW)
             {
-                W.Cast(Player.Instance.Position.Extend(WStartPos, WStartPos.Distance(Player.Instance) > 850 ? 850 : WStartPos.Distance(Player.Instance)).To3D());
+                W.Cast(
+                    Player.Instance.Position.Extend(WStartPos,
+                        WStartPos.DistanceCached(Player.Instance) > 850
+                            ? 850
+                            : WStartPos.DistanceCached(Player.Instance)).To3D());
                 IsCatingW = false;
             }
-            
-            if (W.IsReady() && Settings.Combo.UseW && R.IsReady() && Settings.Combo.UseR && Player.Instance.Mana - 160 > 90 && Player.Instance.HealthPercent > 25)
+
+            if (W.IsReady() && Settings.Combo.UseW && R.IsReady() && Settings.Combo.UseR &&
+                (Player.Instance.Mana - 160 > 90) && (Player.Instance.HealthPercent > 25))
             {
                 var target = TargetSelector.GetTarget(900, DamageType.Physical);
 
-                if (target != null && target.CountEnemiesInRange(500) == 1 && target.Distance(Player.Instance) > R.Range)
+                if (target != null && target.CountEnemiesInRangeCached(500) == 1 &&
+                    (target.DistanceCached(Player.Instance) > R.Range))
                 {
                     var damage = IncomingDamage.GetIncomingDamage(target) + Damage.GetRDamage(target) +
                                  Damage.GetEPhysicalDamage(target);
 
-                    if (HasExplosiveChargeBuff(target) && target.Health < damage)
+                    if (HasExplosiveChargeBuff(target) && (target.Health < damage))
                     {
                         var wPrediction = W.GetPrediction(target);
+
                         if (wPrediction.HitChance >= HitChance.Medium)
                         {
                             IsCatingW = true;
@@ -107,40 +121,29 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                      Damage.GetEPhysicalDamage(target2, 2) + Player.Instance.GetAutoAttackDamageCached(target2)))
                 {
                     E.Cast(target2);
-                } else if (target != null && Settings.Combo.IsEnabledFor(target) && target.IsValidTargetCached(E.Range) && Player.Instance.IsInRangeCached(target, Player.Instance.GetAutoAttackRange() - 50))
+                }
+                else if (target != null && Settings.Combo.IsEnabledFor(target) && target.IsValidTargetCached(E.Range) &&
+                         Player.Instance.IsInRangeCached(target, Player.Instance.GetAutoAttackRange() - 50))
                 {
                     E.Cast(target);
                 }
             }
 
-            if (Settings.Combo.FocusE && IsPreAttack && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && HasExplosiveChargeBuff(x)))
-            {
-                foreach (
-                    var enemy in
-                        EntityManager.Heroes.Enemies.Where(
-                            x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && HasExplosiveChargeBuff(x)))
-                {
-                    if (!EntityManager.Heroes.Enemies.Any(
-                        x =>
-                            x.IsValidTarget(Player.Instance.GetAutoAttackRange()) &&
-                            x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamage(x, true)*2 &&
-                            x.NetworkId != enemy.NetworkId))
-                    {
-                        Orbwalker.ForcedTarget = enemy;
-                    }
-                    else
-                    {
-                        Orbwalker.ForcedTarget = null;
-                    }
-                } 
-            } else if(!Settings.Combo.FocusE || !EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && HasExplosiveChargeBuff(x))) { Orbwalker.ForcedTarget = null; }
+            if (!R.IsReady() || !Settings.Combo.UseR || !Settings.Combo.UseRVsMelees ||
+                (Player.Instance.HealthPercent > 25) || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                    .Any(x => x.IsMelee && x.IsValidTarget(500) && (x.HealthPercent > 50)))
+                return;
 
-            if (R.IsReady() && Settings.Combo.UseR && Settings.Combo.UseRVsMelees && Player.Instance.HealthPercent < 20 && EntityManager.Heroes.Enemies.Any(x => x.IsMelee && x.IsValidTarget(300) && x.HealthPercent > 50))
+            foreach (
+                var enemy in
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x =>
+                            x.IsMelee && x.IsMovingTowards(Player.Instance, 500) && x.IsValidTarget(500) &&
+                            x.HealthPercent > 50)
+                        .OrderByDescending(TargetSelector.GetPriority)
+                        .ThenBy(x => x.DistanceCached(Player.Instance)))
             {
-                foreach (var enemy in EntityManager.Heroes.Enemies.Where(x => x.IsMelee && x.IsValidTarget(300) && x.HealthPercent > 50).OrderByDescending(TargetSelector.GetPriority).ThenBy(x=>x.Distance(Player.Instance)))
-                {
-                    R.Cast(enemy);
-                }
+                R.Cast(enemy);
             }
         }
     }

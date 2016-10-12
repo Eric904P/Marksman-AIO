@@ -26,13 +26,13 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-
 namespace Marksman_Master.Plugins.Tristana.Modes
 {
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using Utils;
+
     internal class LaneClear : Tristana
     {
         public static bool CanILaneClear()
@@ -42,27 +42,24 @@ namespace Marksman_Master.Plugins.Tristana.Modes
 
         public static void Execute()
         {
-            var laneMinions =
-                EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy, Player.Instance.Position,
-                    Player.Instance.GetAutoAttackRange()).ToList();
+            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTarget(Player.Instance.GetAutoAttackRange())).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
 
-            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear && IsPreAttack && laneMinions.Count >= 3)
+            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear && !IsPreAttack && (laneMinions.Count >= 3))
             {
                 Q.Cast();
             }
 
-            if (IsPreAttack && EntityManager.MinionsAndMonsters.EnemyMinions.Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && HasExplosiveChargeBuff(x)))
+            if (IsPreAttack && StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion).Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && HasExplosiveChargeBuff(x)))
             {
-                foreach (var enemy in EntityManager.MinionsAndMonsters.EnemyMinions.Where(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && HasExplosiveChargeBuff(x)))
+                foreach (var enemy in StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && HasExplosiveChargeBuff(x)))
                 {
-                    if (!EntityManager.MinionsAndMonsters.EnemyMinions.Any(
+                    if (!StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion).Any(
                         x =>
                             x.IsValidTarget(Player.Instance.GetAutoAttackRange()) &&
-                            x.Health < Player.Instance.GetAutoAttackDamage(x, true) &&
-                            x.NetworkId != enemy.NetworkId) && !Orbwalker.ShouldWait)
+                            (x.Health < Player.Instance.GetAutoAttackDamageCached(x, true)) && !x.IdEquals(enemy)) && !Orbwalker.ShouldWait)
                     {
                         Orbwalker.ForcedTarget = enemy;
                     }
@@ -73,13 +70,12 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                 }
             }
 
-            if (!E.IsReady() || Player.Instance.IsUnderHisturret() || !Settings.LaneClear.UseEInLaneClear ||
-                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE))
+            if (!E.IsReady() || Player.Instance.IsUnderHisturret() || !Settings.LaneClear.UseEInLaneClear || (Player.Instance.ManaPercent < Settings.LaneClear.MinManaE))
                 return;
 
-            var minion = laneMinions.OrderByDescending(x => x.CountEnemyMinionsInRange(200)).ToArray();
+            var minion = laneMinions.OrderByDescending(x => x.CountEnemyMinionsInRangeCached(200)).ToArray();
 
-            if (minion.Any() && minion[0].CountEnemyMinionsInRange(200) >= 3)
+            if (minion.Any() && minion[0].CountEnemyMinionsInRangeCached(200) >= 3)
             {
                 E.Cast(minion[0]);
             }
