@@ -26,24 +26,24 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-using EloBuddy.SDK.Menu;
-using EloBuddy.SDK.Menu.Values;
-using EloBuddy.SDK.Rendering;
-using Marksman_Master.Utils;
-using SharpDX;
-using Color = System.Drawing.Color;
-using ColorPicker = Marksman_Master.Utils.ColorPicker;
-using Font = System.Drawing.Font;
-
 namespace Marksman_Master.Plugins.Draven
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Drawing;
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Enumerations;
+    using EloBuddy.SDK.Menu;
+    using EloBuddy.SDK.Menu.Values;
+    using EloBuddy.SDK.Rendering;
+    using SharpDX;
+    using Utils;
+    using Color = System.Drawing.Color;
+    using ColorPicker = Utils.ColorPicker;
+    using Font = System.Drawing.Font;
+
     internal class Draven : ChampionPlugin
     {
         protected static Spell.Active Q { get; }
@@ -65,28 +65,31 @@ namespace Marksman_Master.Plugins.Draven
         protected static float[] WAdditionalMovementSpeed { get; } = {0, 1.4f, 1.45f, 1.5f, 1.55f, 1.6f};
 
         protected static bool HasSpinningAxeBuff
-            => Player.Instance.Buffs.Any(x => x.Name.ToLowerInvariant() == "dravenspinningattack");
+            => Player.Instance.Buffs.Any(x => x.Name.Equals("dravenspinningattack", StringComparison.CurrentCultureIgnoreCase));
 
         protected static BuffInstance GetSpinningAxeBuff
-            => Player.Instance.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "dravenspinningattack");
+            => Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals("dravenspinningattack", StringComparison.CurrentCultureIgnoreCase));
 
         protected static bool HasMoveSpeedFuryBuff
-            => Player.Instance.Buffs.Any(x => x.Name.ToLowerInvariant() == "dravenfury");
+            => Player.Instance.Buffs.Any(x => x.Name.Equals("dravenfury", StringComparison.CurrentCultureIgnoreCase));
 
         protected static BuffInstance GetMoveSpeedFuryBuff
-            => Player.Instance.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "dravenfury");
+            => Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals("dravenfury", StringComparison.CurrentCultureIgnoreCase));
 
         protected static bool HasAttackSpeedFuryBuff
-            => Player.Instance.Buffs.Any(x => x.Name.ToLowerInvariant() == "dravenfurybuff");
+            => Player.Instance.Buffs.Any(x => x.Name.Equals("dravenfurybuff", StringComparison.CurrentCultureIgnoreCase));
 
         protected static BuffInstance GetAttackSpeedFuryBuff
-            => Player.Instance.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "dravenfurybuff");
+            => Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals("dravenfurybuff", StringComparison.CurrentCultureIgnoreCase));
 
         private static bool _changingRangeScan;
+
         private static bool _changingkeybindRange;
-        private static bool _catching;
 
         protected static MissileClient DravenRMissile { get; private set; }
+
+        protected static bool IsPreAttack { get; private set; }
+        protected static bool IsAfterAttack { get; private set; }
 
         static Draven()
         {
@@ -107,16 +110,26 @@ namespace Marksman_Master.Plugins.Draven
 
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 
+            ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
+            ChampionTracker.OnPostBasicAttack += (sender, args) =>
+            {
+                IsPreAttack = false;
+                IsAfterAttack = true;
+            };
+
             Game.OnTick += Game_OnTick;
+
             GameObject.OnCreate += GameObject_OnCreate;
             GameObject.OnDelete += GameObject_OnDelete;
+
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
             Orbwalker.OnPostAttack += Orbwalker_OnPostAttack;
+            Orbwalker.OverrideOrbwalkPosition += OverrideOrbwalkPosition;
         }
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
-            if (target.GetType() != typeof(AIHeroClient) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+            if (target?.GetType() != typeof(AIHeroClient) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
             if (Q.IsReady() && GetAxesCount() != 0 && GetAxesCount() < Settings.Combo.MaxAxesAmount)
@@ -125,28 +138,23 @@ namespace Marksman_Master.Plugins.Draven
 
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
+            IsPreAttack = true;
+
             if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear))
             {
-                var jungleMinions =
-                    EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position,
-                        Player.Instance.GetAutoAttackRange()).ToList();
-
-                var laneMinions =
-                    EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
-                        Player.Instance.Position,
-                        Player.Instance.GetAutoAttackRange()).ToList();
+                var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).ToList();
+                var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).ToList();
 
                 if (jungleMinions.Any())
                 {
-                    if (Settings.LaneClear.UseQInJungleClear && Q.IsReady() && GetAxesCount() == 0 &&
-                        Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ)
+                    if (Settings.LaneClear.UseQInJungleClear && Q.IsReady() && (GetAxesCount() == 0) &&
+                        (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
                     {
                         Q.Cast();
                     }
 
-                    if (Settings.LaneClear.UseWInJungleClear && W.IsReady() && jungleMinions.Count > 1 &&
-                        !HasAttackSpeedFuryBuff &&
-                        Player.Instance.ManaPercent >= Settings.LaneClear.MinManaW)
+                    if (Settings.LaneClear.UseWInJungleClear && W.IsReady() && (jungleMinions.Count > 1) &&
+                        !HasAttackSpeedFuryBuff && (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaW))
                     {
                         W.Cast();
                     }
@@ -154,15 +162,14 @@ namespace Marksman_Master.Plugins.Draven
                 }
                 if (laneMinions.Any() && Modes.LaneClear.CanILaneClear())
                 {
-                    if (Settings.LaneClear.UseQInLaneClear && Q.IsReady() && GetAxesCount() == 0 &&
-                        Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ)
+                    if (Settings.LaneClear.UseQInLaneClear && Q.IsReady() && (GetAxesCount() == 0) &&
+                        (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
                     {
                         Q.Cast();
                     }
 
-                    if (Settings.LaneClear.UseWInLaneClear && W.IsReady() && laneMinions.Count > 3 &&
-                        !HasAttackSpeedFuryBuff &&
-                        Player.Instance.ManaPercent >= Settings.LaneClear.MinManaW)
+                    if (Settings.LaneClear.UseWInLaneClear && W.IsReady() && (laneMinions.Count > 3) &&
+                        !HasAttackSpeedFuryBuff && (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaW))
                     {
                         W.Cast();
                     }
@@ -173,135 +180,104 @@ namespace Marksman_Master.Plugins.Draven
             if (target.GetType() != typeof(AIHeroClient) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
-            if (Q.IsReady() && GetAxesCount() == 0)
+            if (Q.IsReady() && (GetAxesCount() == 0))
                 Q.Cast();
 
-            if (!W.IsReady() || !Settings.Combo.UseW || HasAttackSpeedFuryBuff || !(Player.Instance.Mana - 40 > 145))
+            if (!W.IsReady() || !Settings.Combo.UseW || HasAttackSpeedFuryBuff || (Player.Instance.Mana - 40 < 145))
                 return;
 
-            var t = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange(), DamageType.Physical);
-            if (t != null)
-            {
-                W.Cast();
-            }
+            W.Cast();
         }
         
         private static void Game_OnTick(EventArgs args)
         {
-            if(!AxeObjects.Any() || !Settings.Axe.CatchAxes || !_catching || GetAxesCount() == 0)
-            { 
-                Orbwalker.OverrideOrbwalkPosition += () => Game.CursorPos;
-                _catching = false;
-            }
-
-            foreach (var axeObjectData in AxeObjects.Where(x => Game.CursorPos.Distance(x.EndPosition) < Settings.Axe.AxeCatchRange && CanPlayerCatchAxe(x)).OrderBy(x => x.EndPosition.Distance(Player.Instance)))
+            if (Player.Instance.HasBuffOfType(BuffType.Slow) && W.IsReady() && (Player.Instance.Mana > 85) &&
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange())).Any())
             {
-                switch (Settings.Axe.CatchAxesMode)
-                {
-                    case 1:
-                        var isOutside = !new Geometry.Polygon.Circle(Player.Instance.ServerPosition, Player.Instance.BoundingRadius - 15)
-                            .Points.Any(x => new Geometry.Polygon.Circle(axeObjectData.EndPosition, 80).IsInside(x));
-
-                        var isInside = new Geometry.Polygon.Circle(Player.Instance.ServerPosition, Player.Instance.BoundingRadius - 30)
-                            .Points.Any(x => new Geometry.Polygon.Circle(axeObjectData.EndPosition, 40).IsInside(x));
-
-                        if (isOutside)
-                        {
-                            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
-                            {
-                                var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 350,
-                                    DamageType.Physical);
-
-                                if (target != null &&
-                                    target.TotalHealthWithShields() <
-                                    Player.Instance.GetAutoAttackDamage(target, true) * 2)
-                                {
-                                    var pos = Prediction.Position.PredictUnitPosition(target, (int)(GetEta(axeObjectData, Player.Instance.MoveSpeed) * 1000));
-                                    if (!axeObjectData.EndPosition.IsInRange(pos, Player.Instance.GetAutoAttackRange()))
-                                    {
-                                        continue;
-                                    }
-                                }
-                            }
-
-                            if (axeObjectData.EndTick - Game.Time < GetEta(axeObjectData, Player.Instance.MoveSpeed) && !HasMoveSpeedFuryBuff &&
-                                GetEta(axeObjectData, Player.Instance.MoveSpeed * WAdditionalMovementSpeed[W.Level]) > axeObjectData.EndTick - Game.Time &&
-                                W.IsReady() && Settings.Axe.UseWToCatch)
-                            {
-                                W.Cast();
-                            }
-
-                            Orbwalker.OverrideOrbwalkPosition +=
-                                () =>
-                                    axeObjectData.EndPosition.Extend(Player.Instance.Position,
-                                        40 - Player.Instance.Distance(axeObjectData.EndPosition)).To3D();
-                            _catching = true;
-                        }
-                        else if (isInside &&
-                                 !CanPlayerLeaveAxeRangeInDesiredTime(axeObjectData.EndPosition,
-                                     (axeObjectData.EndTick / 1000 - Game.Time) - 0.15f))
-                        {
-                            Orbwalker.OverrideOrbwalkPosition += () => Game.CursorPos;
-                            _catching = false;
-                        }
-                        break;
-                    case 0:
-                        if (Player.Instance.Distance(axeObjectData.EndPosition) > 250)
-                            return;
-
-                        var isOutside2 = !new Geometry.Polygon.Circle(Player.Instance.ServerPosition, Player.Instance.BoundingRadius - 15)
-                            .Points.Any(x => new Geometry.Polygon.Circle(axeObjectData.EndPosition, 80).IsInside(x));
-
-                        var isInside2 = new Geometry.Polygon.Circle(Player.Instance.ServerPosition, Player.Instance.BoundingRadius - 30)
-                            .Points.Any(x => new Geometry.Polygon.Circle(axeObjectData.EndPosition, 80).IsInside(x));
-
-                        if (isOutside2)
-                        {
-                            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
-                            {
-                                var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 350,
-                                    DamageType.Physical);
-                                
-                                if (target != null &&
-                                    target.TotalHealthWithShields() <
-                                    Player.Instance.GetAutoAttackDamage(target, true) * 2)
-                                {
-                                    var pos = Prediction.Position.PredictUnitPosition(target, (int)(GetEta(axeObjectData, Player.Instance.MoveSpeed)*1000));
-                                    if (!axeObjectData.EndPosition.IsInRange(pos, Player.Instance.GetAutoAttackRange()))
-                                    {
-                                        continue;
-                                    }
-                                }
-                            }
-
-                            if (axeObjectData.EndTick - Game.Time < GetEta(axeObjectData, Player.Instance.MoveSpeed) && !HasMoveSpeedFuryBuff &&
-                                GetEta(axeObjectData, Player.Instance.MoveSpeed * WAdditionalMovementSpeed[W.Level]) > axeObjectData.EndTick - Game.Time &&
-                                W.IsReady() && Settings.Axe.UseWToCatch)
-                            {
-                                W.Cast();
-                            }
-
-                            Orbwalker.OverrideOrbwalkPosition +=
-                                () =>
-                                    axeObjectData.EndPosition.Extend(Player.Instance.Position,
-                                        40 - Player.Instance.Distance(axeObjectData.EndPosition)).To3D();
-                            _catching = true;
-                        }
-                        else if (isInside2 &&
-                                 !CanPlayerLeaveAxeRangeInDesiredTime(axeObjectData.EndPosition,
-                                     (axeObjectData.EndTick / 1000 - Game.Time) - 0.15f))
-                        {
-                            Orbwalker.OverrideOrbwalkPosition += () => Game.CursorPos;
-                            _catching = false;
-                        }
-                        break;
-                    default:
-                        _catching = false;
-                        return;
-                }
+                W.Cast();
             }
 
             AxeObjects.RemoveAll(x => x.EndTick - Game.Time * 1000 <= 0);
+        }
+
+        private static Vector3? OverrideOrbwalkPosition()
+        {
+            if (!Settings.Axe.CatchAxes || !AxeObjects.Any() || GetAxesCount() == 0)
+            {
+                return null;
+            }
+            
+            foreach (
+                var axeObjectData in
+                    AxeObjects.Where(
+                        x =>
+                            Game.CursorPos.IsInRangeCached(x.EndPosition, Settings.Axe.AxeCatchRange) &&
+                            CanPlayerCatchAxe(x)).OrderBy(x => x.EndPosition.DistanceCached(Player.Instance)))
+            {
+                var isOutside = !Player.Instance.Position.IsInRangeCached(axeObjectData.EndPosition, 120);
+                var isInside = Player.Instance.Position.IsInRangeCached(axeObjectData.EndPosition, 120);
+
+                if ((Settings.Axe.CatchAxesMode == 0) && !Player.Instance.Position.IsInRangeCached(axeObjectData.EndPosition, 250))
+                    return null;
+
+                if (isOutside)
+                {
+                    if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+                    {
+                        var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 350,DamageType.Physical);
+
+                        if (target != null && (target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(target) * 2))
+                        {
+                            var pos = Prediction.Position.PredictUnitPosition(target, (int)(GetEta(axeObjectData, Player.Instance.MoveSpeed) * 1000));
+
+                            if (!axeObjectData.EndPosition.IsInRangeCached(pos, Player.Instance.GetAutoAttackRange()))
+                            {
+                                return null;
+                            }
+                        }
+                    }
+
+                    if ((axeObjectData.EndTick - Game.Time < GetEta(axeObjectData, Player.Instance.MoveSpeed)) &&
+                        !HasMoveSpeedFuryBuff &&
+                        (GetEta(axeObjectData, Player.Instance.MoveSpeed * WAdditionalMovementSpeed[W.Level]) >
+                         axeObjectData.EndTick - Game.Time) &&
+                        W.IsReady() && Settings.Axe.UseWToCatch)
+                    {
+                        W.Cast();
+                    }
+                    return axeObjectData.EndPosition;
+                }
+
+                if (isInside)
+                {
+                    if (!CanPlayerLeaveAxeRangeInDesiredTime(axeObjectData.EndPosition, (axeObjectData.EndTick - Core.GameTickCount) / 1000f))
+                    {
+                        return null;
+                    }
+
+                    var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 100, DamageType.Physical);
+
+                    if (target != null &&
+                        (target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(target, true) * 2) &&
+                        !Prediction.Position.PredictUnitPosition(target, (int)(axeObjectData.EndTick - Core.GameTickCount))
+                            .IsInRangeCached(Player.Instance, Player.Instance.GetAutoAttackRange()))
+                    {
+                        return null;
+                    }
+                    var position =
+                        new Geometry.Polygon.Circle(axeObjectData.EndPosition, 120).Points.Where(
+                            x =>
+                                axeObjectData.EndPosition.To2D()
+                                    .ProjectOn(axeObjectData.EndPosition.To2D(), Game.CursorPos.To2D())
+                                    .IsOnSegment).OrderBy(x => x.DistanceCached(Game.CursorPos)).FirstOrDefault();
+
+                    if (position == default(Vector2))
+                        return null;
+
+                    return position.To3D();
+                }
+            }
+            return null;
         }
 
         private static bool CanPlayerCatchAxe(AxeObjectData axe)
@@ -314,12 +290,12 @@ namespace Marksman_Master.Plugins.Draven
             if (!Settings.Axe.CatchAxesUnderTower && axe.EndPosition.IsVectorUnderEnemyTower())
                 return false;
 
-            return Settings.Axe.CatchAxesNearEnemies || axe.EndPosition.CountEnemiesInRange(550) <= 2;
+            return Settings.Axe.CatchAxesNearEnemies || (axe.EndPosition.CountEnemiesInRange(550) <= 2);
         }
 
         private static float GetEta(AxeObjectData axe, float movespeed)
         {
-            return Player.Instance.Distance(axe.EndPosition) / movespeed;
+            return Player.Instance.DistanceCached(axe.EndPosition) / movespeed;
         }
 
         private static bool CanPlayerLeaveAxeRangeInDesiredTime(Vector3 axeCenterPosition, float time)
@@ -327,9 +303,9 @@ namespace Marksman_Master.Plugins.Draven
             var axePolygon = new Geometry.Polygon.Circle(axeCenterPosition, 90);
             var playerPosition = Player.Instance.ServerPosition;
             var playerLastWaypoint = Player.Instance.Path.LastOrDefault();
-            var cloestPoint = playerLastWaypoint.To2D().Closest(axePolygon.Points);
+            var cloestPoint = axePolygon.Points.OrderBy(x => x.Distance(playerLastWaypoint)).FirstOrDefault();
             var distanceFromPoint = cloestPoint.Distance(playerPosition);
-            var distanceInTime = Player.Instance.MoveSpeed*time;
+            var distanceInTime = Player.Instance.MoveSpeed * time;
 
             return distanceInTime > distanceFromPoint;
         }
@@ -344,19 +320,20 @@ namespace Marksman_Master.Plugins.Draven
                 AxeObjects.Add(new AxeObjectData
                 {
                     EndPosition = sender.Position,
-                    EndTick = Game.Time * 1000 + 1227.1f,
+                    EndTick = Core.GameTickCount + 1227.1f,
                     NetworkId = sender.NetworkId,
                     Owner = Player.Instance,
-                    StartTick = Game.Time * 1000
+                    StartTick = Core.GameTickCount
                 });
             }
 
 
             var missile = sender as MissileClient;
+
             if (missile == null || !missile.IsValidMissile())
                 return;
 
-            if (missile.SData.Name.ToLowerInvariant() == "dravenr" && missile.SpellCaster.IsMe)
+            if (missile.SData.Name.Equals("dravenr", StringComparison.CurrentCultureIgnoreCase) && missile.SpellCaster.IsMe)
             {
                 DravenRMissile = missile;
             }
@@ -371,13 +348,13 @@ namespace Marksman_Master.Plugins.Draven
             {
                 AxeObjects.Remove(AxeObjects.Find(data => data.NetworkId == sender.NetworkId));
             }
-
-
+            
             var missile = sender as MissileClient;
+
             if (missile == null)
                 return;
 
-            if (missile.SData.Name.ToLowerInvariant() == "dravenr" && missile.SpellCaster.IsMe)
+            if (missile.SData.Name.Equals("dravenr", StringComparison.CurrentCultureIgnoreCase) && missile.SpellCaster.IsMe)
             {
                 DravenRMissile = null;
             }
@@ -391,13 +368,13 @@ namespace Marksman_Master.Plugins.Draven
             if (!HasSpinningAxeBuff && AxeObjects?.Count > 0)
                 return AxeObjects.Count;
 
-            if (HasSpinningAxeBuff && GetSpinningAxeBuff.Count == 0 && AxeObjects?.Count > 0)
+            if (GetSpinningAxeBuff?.Count == 0 && AxeObjects?.Count > 0)
                 return AxeObjects.Count;
 
-            if (HasSpinningAxeBuff && GetSpinningAxeBuff.Count > 0 && AxeObjects?.Count == 0)
+            if (GetSpinningAxeBuff?.Count > 0 && AxeObjects?.Count == 0)
                 return GetSpinningAxeBuff.Count;
 
-            if (HasSpinningAxeBuff && GetSpinningAxeBuff.Count > 0 && AxeObjects?.Count > 0)
+            if (GetSpinningAxeBuff?.Count > 0 && AxeObjects?.Count > 0)
                 return GetSpinningAxeBuff.Count + AxeObjects.Count;
 
             return 0;
@@ -419,10 +396,9 @@ namespace Marksman_Master.Plugins.Draven
             {
                 if (Settings.Drawings.DrawAxes)
                 {
-                    Circle.Draw(
-                        new Geometry.Polygon.Circle(Player.Instance.ServerPosition, Player.Instance.BoundingRadius).Points.Any(x => new Geometry.Polygon.Circle(axeObjectData.EndPosition, 80).IsInside(x))
+                    Circle.Draw(Player.Instance.Position.IsInRangeCached(axeObjectData.EndPosition, 120)
                             ? new ColorBGRA(0, 255, 0, 255)
-                            : new ColorBGRA(255, 0, 0, 255), 80, axeObjectData.EndPosition);
+                            : new ColorBGRA(255, 0, 0, 255), 120, axeObjectData.EndPosition);
                 }
 
                 if (!Settings.Drawings.DrawAxesTimer)
@@ -432,9 +408,8 @@ namespace Marksman_Master.Plugins.Draven
                 var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 1227.1 * 100d, 3, 110);
                 
                 Text.Color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
-                Text.X = (int) Drawing.WorldToScreen(axeObjectData.EndPosition).X;
-                Text.Y = (int) Drawing.WorldToScreen(axeObjectData.EndPosition).Y + 50;
-                Text.TextValue = ((axeObjectData.EndTick - Game.Time*1000)/1000).ToString("F1") + " s";
+                Text.Position = Drawing.WorldToScreen(new Vector3(axeObjectData.EndPosition.X - 80, axeObjectData.EndPosition.Y - 110, axeObjectData.EndPosition.Z));
+                Text.TextValue = $"{((axeObjectData.EndTick - Core.GameTickCount)/1000f).ToString("F1")} s";
                 Text.Draw();
             }
 
@@ -454,8 +429,7 @@ namespace Marksman_Master.Plugins.Draven
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (!Settings.Misc.EnableAntiGapcloser || !(args.End.Distance(Player.Instance) < 350) || !E.IsReady() ||
-                !sender.IsValidTarget(E.Range))
+            if (!Settings.Misc.EnableAntiGapcloser || (args.End.Distance(Player.Instance) > 350) || !E.IsReady() || !sender.IsValidTarget(E.Range))
                 return;
 
             if(args.Delay == 0)

@@ -26,18 +26,38 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-
 namespace Marksman_Master.Plugins.Draven.Modes
 {
+    using System;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Enumerations;
+    using Utils;
+
     internal class PermaActive : Draven
     {
         public static void Execute()
         {
-            if (!R.IsReady() || !Settings.Combo.UseR || Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name.ToLowerInvariant() == "dravenrdoublecast")
+            if (IsPreAttack)
+            {
+                foreach (
+                    var enemy in
+                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                            x =>
+                            {
+                                if (Player.Instance.IsInAutoAttackRange(x) && (x.TotalHealthWithShields() <=
+                                     Player.Instance.GetAutoAttackDamageCached(x, true)))
+                                    return false;
+
+                                return x.IsValidTargetCached(E.Range) &&
+                                       (x.TotalHealthWithShields() <= Player.Instance.GetSpellDamageCached(x, SpellSlot.E));
+                            }))
+                {
+                    E.CastMinimumHitchance(enemy, HitChance.High);
+                }
+            }
+
+            if (!R.IsReady() || !Settings.Combo.UseR || !Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name.Equals("dravenrdoublecast", StringComparison.CurrentCultureIgnoreCase))
                 return;
 
             var target = TargetSelector.GetTarget(Settings.Combo.RRangeKeybind, DamageType.Physical);
@@ -46,6 +66,7 @@ namespace Marksman_Master.Plugins.Draven.Modes
                 return;
 
             var rPrediciton = R.GetPrediction(target);
+
             if (rPrediciton.HitChance == HitChance.High)
             {
                 R.Cast(rPrediciton.CastPosition);

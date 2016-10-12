@@ -41,35 +41,36 @@ namespace Marksman_Master.Plugins.Draven.Modes
     {
         public static void Execute()
         {
-            if (DravenRMissile != null && Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name.ToLowerInvariant() == "dravenrdoublecast" && R.IsReady())
+            if (DravenRMissile != null &&
+                Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name.ToLowerInvariant() == "dravenrdoublecast" &&
+                R.IsReady())
             {
-                var pos = Player.Instance.Position.Extend(DravenRMissile.Position,
-                    DravenRMissile.Distance(Player.Instance));
+                var pos = Player.Instance.Position.Extend(DravenRMissile.Position, DravenRMissile.DistanceCached(Player.Instance));
                 var rectangle = new Geometry.Polygon.Rectangle(Player.Instance.Position.To2D(), pos, 160);
-                var entitiesInside =
-                    EntityManager.Heroes.Enemies.Where(x => x.IsValid() && rectangle.IsInside(x)).ToList();
+                var entitiesInside = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached() && rectangle.IsInside(x)).ToList();
 
                 if (entitiesInside.Count == 0)
                     return;
 
                 var cloesestEnemy = entitiesInside.OrderBy(x => x.Distance(DravenRMissile.Position)).First();
 
-                if (cloesestEnemy.TotalHealthWithShields() < Player.Instance.GetSpellDamage(cloesestEnemy, SpellSlot.R))
-                {
-                    var posAfter = Prediction.Position.PredictUnitPosition(cloesestEnemy, 1000 + (int)(cloesestEnemy.Distance(DravenRMissile.Position) / 1900) * 1000); // r return delay
+                var posAfter = Prediction.Position.PredictUnitPosition(cloesestEnemy, 
+                    (int) (cloesestEnemy.DistanceCached(DravenRMissile.Position)/1900)*1000); // r return delay
 
-                    if (rectangle.IsInside(posAfter))
-                    {
-                        R.Cast();
-                        Misc.PrintDebugMessage("hehe xd");
-                    }
+                if (rectangle.IsInside(posAfter))
+                {
+                    R.Cast();
+                    Misc.PrintDebugMessage("hehe xd");
                 }
             }
 
-            if (E.IsReady() && Settings.Combo.UseE && Player.Instance.Mana - 70 > 145)
+            if (E.IsReady() && Settings.Combo.UseE && !IsPreAttack && (Player.Instance.Mana - 70 > 45 + (R.IsReady() ? 100 : 0)))
             {
-                var target = TargetSelector.GetTarget(E.Range, DamageType.Physical);
-                if (target != null)
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(E.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                if (target != null && (IsAfterAttack || Player.Instance.IsInRangeCached(target, Player.Instance.GetAutoAttackRange() + 100)))
                 {
                     var ePrediction = E.GetPrediction(target);
 
@@ -80,19 +81,22 @@ namespace Marksman_Master.Plugins.Draven.Modes
                     }
                 }
             }
-            if (!R.IsReady() || !Settings.Combo.UseR)
+
+            if (!R.IsReady() || !Settings.Combo.UseR || IsPreAttack)
                 return;
-
-
-            if (Player.Instance.CountEnemiesInRange(900) == 1)
+            
+            if (Player.Instance.CountEnemiesInRangeCached(1200) <= 2 && Player.Instance.CountEnemiesInRangeCached(1200) > 0)
             {
-                var target = TargetSelector.GetTarget(900, DamageType.Physical);
-                if (target != null && Player.Instance.HealthPercent > target.HealthPercent && !target.HasUndyingBuffA() &&
-                    target.TotalHealthWithShields() <
-                    Player.Instance.GetSpellDamage(target, SpellSlot.R) +
-                     Player.Instance.GetAutoAttackDamage(target, true)*3 && target.TotalHealthWithShields() > Player.Instance.GetAutoAttackDamage(target, true) * 3)
+                var target = TargetSelector.GetTarget(1200, DamageType.Physical);
+
+                if (target != null && !target.HasUndyingBuffA() && (target.TotalHealthWithShields() <
+                    Player.Instance.GetSpellDamageCached(target, SpellSlot.R) + (Player.Instance.IsInAutoAttackRange(target) ? Player.Instance.GetAutoAttackDamageCached(target, true) * 3 : 0)))
                 {
+                    if(Player.Instance.IsInAutoAttackRange(target) && (target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(target, true) * 3))
+                        return;
+
                     var rPrediction = R.GetPrediction(target);
+
                     if (rPrediction.HitChance == HitChance.High)
                     {
                         R.Cast(rPrediction.CastPosition);
@@ -104,18 +108,18 @@ namespace Marksman_Master.Plugins.Draven.Modes
             if (Player.Instance.CountEnemiesInRange(1500) > Player.Instance.CountAlliesInRange(1500))
                 return;
             
-            foreach (var rPrediction in EntityManager.Heroes.Enemies.Where(unit => unit.IsValidTarget(3000)).Select(enemy => Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+            foreach (var rPrediction in EntityManager.Heroes.Enemies.Where(unit => unit.IsValidTarget(2200)).Select(enemy => Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
             {
                 CollisionTypes = new HashSet<CollisionType> { Prediction.Manager.PredictionSelected == "ICPrediction" ? CollisionType.AiHeroClient : CollisionType.ObjAiMinion },
                 Delay = .5f,
                 From = Player.Instance.Position,
-                Range = 3000,
+                Range = 2200,
                 Radius = 160,
                 RangeCheckFrom = Player.Instance.Position,
                 Speed = 2000,
                 Target = enemy,
                 Type = SkillShotType.Linear
-            })).Where(rPrediction => rPrediction.RealHitChancePercent >= 60).Where(rPrediction => rPrediction.GetCollisionObjects<AIHeroClient>().Length >= 2))
+            })).Where(rPrediction => rPrediction.RealHitChancePercent >= 60).Where(rPrediction => rPrediction.GetCollisionObjects<AIHeroClient>().Count(x => x.IsValidTargetCached()) >= 3))
             {
                 R.Cast(rPrediction.CastPosition);
                 return;
