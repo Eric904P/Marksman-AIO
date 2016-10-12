@@ -341,9 +341,6 @@ namespace Marksman_Master.Plugins.Draven
 
         private static void GameObject_OnDelete(GameObject sender, EventArgs args)
         {
-            if (Player.Instance.IsDead)
-                return;
-
             if (sender.Name.Contains("Q_reticle_self"))
             {
                 AxeObjects.Remove(AxeObjects.Find(data => data.NetworkId == sender.NetworkId));
