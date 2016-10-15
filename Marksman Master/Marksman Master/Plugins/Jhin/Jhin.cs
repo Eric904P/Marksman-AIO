@@ -213,16 +213,14 @@ namespace Marksman_Master.Plugins.Jhin
         
         public static bool IsInsideRRange(Obj_AI_Base unit)
         {
-            return
-                new Geometry.Polygon.Sector(Player.Instance.Position, REndPosition, (int) (Math.PI/180*71), R.Range)
-                    .IsInside(unit);
+            return new Geometry.Polygon.Sector(Player.Instance.Position, REndPosition, (float) (Math.PI/180f*55f), 3300)
+                .IsInside(unit);
         }
 
         public static bool IsInsideRRange(Vector3 position)
         {
-            return
-                new Geometry.Polygon.Sector(Player.Instance.Position, REndPosition, (int)(Math.PI / 180 * 71), R.Range)
-                    .IsInside(position);
+            return new Geometry.Polygon.Sector(Player.Instance.Position, REndPosition, (float) (Math.PI/180f*55f), 3300)
+                .IsInside(position);
         }
 
         private static float HandleDamageIndicator(Obj_AI_Base unit)

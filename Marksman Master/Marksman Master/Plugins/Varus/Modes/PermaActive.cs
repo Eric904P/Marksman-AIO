@@ -54,9 +54,28 @@ namespace Marksman_Master.Plugins.Varus.Modes
                                 Q.StartCharging();
                             }
                         }
-                        if (Q.IsCharging && targ != null && (targ.TotalHealthWithShields() <= Damage.GetQDamage(targ) + Damage.GetWDamage(targ)))
+                        if (!Q.IsCharging || targ == null || (targ.TotalHealthWithShields() > Damage.GetQDamage(targ) + Damage.GetWDamage(targ)))
+                            continue;
+
+                        var qPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
                         {
-                            Q.CastMinimumHitchance(targ, HitChance.Medium);
+                            CollisionTypes =
+                                Prediction.Manager.PredictionSelected == "ICPrediction"
+                                    ? new HashSet<CollisionType> { CollisionType.YasuoWall }
+                                    : new HashSet<CollisionType> { CollisionType.AiHeroClient, CollisionType.ObjAiMinion },
+                            Delay = 0,
+                            From = Player.Instance.Position,
+                            Radius = 70,
+                            Range = Q.Range,
+                            RangeCheckFrom = Player.Instance.Position,
+                            Speed = Q.Speed,
+                            Target = targ,
+                            Type = SkillShotType.Linear
+                        });
+
+                        if (qPrediction.HitChancePercent >= 60)
+                        {
+                            Q.Cast(qPrediction.CastPosition);
                         }
                     }
                 } else if (E.IsReady())
@@ -74,20 +93,20 @@ namespace Marksman_Master.Plugins.Varus.Modes
 
             if (Q.IsReady() && Settings.Harass.AutoHarassWithQ && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && !Player.Instance.IsRecalling())
             {
-                if (!Q.IsCharging && !IsPreAttack && (Player.Instance.CountEnemyHeroesInRangeWithPrediction(Settings.Combo.QMinDistanceToTarget, 350) == 0) && !Player.Instance.Position.IsVectorUnderEnemyTower() && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ) &&
-                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(
-                        x => x.IsValidTargetCached(Q.MaximumRange - 100) && Settings.Harass.IsAutoHarassEnabledFor(x)))
+                if (!Q.IsCharging && !IsPreAttack && !Orbwalker.ShouldWait && (Player.Instance.CountEnemyHeroesInRangeWithPrediction(Settings.Combo.QMinDistanceToTarget, 350) == 0) && !Player.Instance.Position.IsVectorUnderEnemyTower() && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ) &&
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.IsValidTargetCached(Q.MaximumRange - 100) && Settings.Harass.IsAutoHarassEnabledFor(x)))
                 {
                     Q.StartCharging();
                 }
                 else if (Q.IsCharging)
                 {
-                    foreach (
-                        var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                                x => x != null && x.IsValidTargetCached(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) &&
-                                    ((Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) > 0) || Q.IsFullyCharged)))
+                    foreach (var qPrediction in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x => x != null && x.IsValidTargetCached(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) &&
+                             ((Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) > 0) ||
+                              Q.IsFullyCharged))
+                        .Select(target => Q.GetPrediction(target)).Where(qPrediction => qPrediction.HitChancePercent >= 60))
                     {
-                        Q.CastMinimumHitchance(target, 60);
+                        Q.Cast(qPrediction.CastPosition);
                     }
                 }
             }
@@ -100,25 +119,34 @@ namespace Marksman_Master.Plugins.Varus.Modes
             if (t == null)
                 return;
 
-            var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+            if (Prediction.Manager.PredictionSelected == "ICPrediction")
             {
-                CollisionTypes =
-                    Prediction.Manager.PredictionSelected == "ICPrediction"
-                        ? new HashSet<CollisionType> {CollisionType.YasuoWall, CollisionType.AiHeroClient}
-                        : new HashSet<CollisionType> {CollisionType.ObjAiMinion},
-                Delay = .25f,
-                From = Player.Instance.Position,
-                Radius = R.Width,
-                Range = R.Range,
-                RangeCheckFrom = Player.Instance.Position,
-                Speed = R.Speed,
-                Target = t,
-                Type = SkillShotType.Linear
-            });
+                var rPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
+                {
+                    CollisionTypes = new HashSet<CollisionType> { CollisionType.YasuoWall, CollisionType.AiHeroClient },
+                    Delay = .25f,
+                    From = Player.Instance.Position,
+                    Radius = R.Width,
+                    Range = R.Range,
+                    RangeCheckFrom = Player.Instance.Position,
+                    Speed = R.Speed,
+                    Target = t,
+                    Type = SkillShotType.Linear
+                });
 
-            if (rPrediction.HitChancePercent >= 60)
+                if (rPrediction.HitChancePercent >= 60)
+                {
+                    R.Cast(rPrediction.CastPosition);
+                }
+            }
+            else
             {
-                R.Cast(rPrediction.CastPosition);
+                var rPrediction = R.GetPrediction(t);
+
+                if (rPrediction.HitChancePercent >= 60)
+                {
+                    R.Cast(rPrediction.CastPosition);
+                }
             }
         }
     }

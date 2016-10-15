@@ -79,7 +79,10 @@ namespace Marksman_Master.Plugins.Varus
             };
             W = new Spell.Active(SpellSlot.W);
             E = new Spell.Skillshot(SpellSlot.E, 925, SkillShotType.Circular, 250, 1500, 235);
-            R = new Spell.Skillshot(SpellSlot.R, 1250, SkillShotType.Linear, 250, 1950, 120);
+            R = new Spell.Skillshot(SpellSlot.R, 1250, SkillShotType.Linear, 250, 1950, 120)
+            {
+                AllowedCollisionCount = -1
+            };
 
             ComboDamages = Cache.Resolve<CustomCache<int, float>>(1000);
 
