@@ -27,7 +27,6 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using System;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -64,6 +63,12 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                         }
                     }
                 }
+            }
+
+            if (Settings.Combo.WEComboKeybind && W.IsReady() && E.IsReady())
+            {
+                W.Cast(Player.Instance.Position.Extend(Game.CursorPos, E.Range).To3D());
+                return;
             }
 
             if (Q.IsReady() && !Player.Instance.IsRecalling() && !IsPreAttack && Settings.Misc.KeepPassiveStacks && (GetPassiveBuffAmount >= 4) && (GetPassiveBuff.EndTime - Game.Time < 1.5f) && (GetPassiveBuff.EndTime - Game.Time > 0.3f) && (Player.Instance.ManaPercent > 25) && !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x=>x.IsValidTargetCached(Q.Range)))
@@ -131,7 +136,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
             {
                 var rKillable = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     x =>
-                        x.IsValidTarget(Settings.Misc.MaxRRangeKillsteal) && !x.HasUndyingBuffA() && !x.HasSpellShield())
+                        x.IsValidTarget(Settings.Misc.MaxRRangeKillsteal) && (x.CountAlliesInRangeCached(800) == 0) && !x.HasUndyingBuffA() && !x.HasSpellShield())
                     .ToList();
 
                 foreach (var rPrediction in
@@ -144,12 +149,13 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                     select rPrediction)
                 {
                     R.Cast(rPrediction.CastPosition);
+                    return;
                 }
             }
 
             var t = TargetSelector.GetTarget(2500, DamageType.Physical);
 
-            if (t == null || !Settings.Combo.RKeybind)
+            if ((t == null) || !Settings.Combo.RKeybind)
                 return;
 
             var rPrediciton = R.GetPrediction(t);

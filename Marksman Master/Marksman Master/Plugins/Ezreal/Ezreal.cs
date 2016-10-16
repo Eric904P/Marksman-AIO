@@ -84,6 +84,11 @@ namespace Marksman_Master.Plugins.Ezreal
 
         private static readonly Text Text;
 
+        protected static bool FarmMode
+            => (Orbwalker.ActiveModesFlags &
+                 (Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit |
+                  Orbwalker.ActiveModes.JungleClear)) != 0;
+
         static Ezreal()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 1300, SkillShotType.Linear, 250, 2000, 60);
@@ -121,8 +126,8 @@ namespace Marksman_Master.Plugins.Ezreal
                     DamageIndicator.Color = b.Color;
                 };
 
-            TearStacker.Initializer(new Dictionary<SpellSlot, float> {{SpellSlot.Q, 5000}, {SpellSlot.W, 15000}},
-                () => Player.Instance.CountEnemiesInRange(1000) == 0 && Player.Instance.CountEnemyMinionsInRange(1000) == 0 && !HasAnyOrbwalkerFlags());
+            TearStacker.Initializer(new Dictionary<SpellSlot, float> {{SpellSlot.Q, 3000}, {SpellSlot.W, 4200}},
+                () => (Player.Instance.CountEnemiesInRange(1000) == 0) && (Player.Instance.CountEnemyMinionsInRange(1000) == 0) && !HasAnyOrbwalkerFlags());
 
             Orbwalker.OnPreAttack += (a, b) =>
             {
@@ -138,10 +143,27 @@ namespace Marksman_Master.Plugins.Ezreal
                 IsPostAttack = true;
             };
 
+            Orbwalker.OnUnkillableMinion += (target, args) =>
+            {
+                if (FarmMode && Q.IsReady() && (Q.GetPrediction(target).Collision == false) && (Prediction.Health.GetPrediction(target,
+                    (int)((target.DistanceCached(Player.Instance) + Q.CastDelay) / Q.Speed * 1000)) > 0))
+                {
+                    Q.Cast(target.ServerPosition);
+                }
+            };
+
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
             ChampionTracker.OnPostBasicAttack += ChampionTracker_OnPostBasicAttack;
-        }
 
+            Obj_AI_Base.OnSpellCast += (sender, args) =>
+            {
+                if (Settings.Combo.WEComboKeybind && E.IsReady() && sender.IsMe && (args.Slot == SpellSlot.W))
+                {
+                    E.Cast(Player.Instance.Position.Extend(args.End, E.Range - 15).To3D());
+                }
+            };
+        }
+        
         private static void ChampionTracker_OnPostBasicAttack(object sender, PostBasicAttackArgs e)
         {
             if (!e.Sender.IsMe)
@@ -170,7 +192,7 @@ namespace Marksman_Master.Plugins.Ezreal
 
             var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-            if (target != null && !Player.Instance.HasSheenBuff() && !IsPreAttack)
+            if ((target != null) && !Player.Instance.HasSheenBuff() && !IsPreAttack)
             {
                 Q.CastMinimumHitchance(target, 65);
             }
@@ -178,12 +200,12 @@ namespace Marksman_Master.Plugins.Ezreal
 
         private static void Obj_AI_Base_OnBasicAttack(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (sender.IsMe || sender.GetType() != typeof(AIHeroClient) || sender.IsEnemy || !Settings.Misc.WToPushTowers)
+            if (sender.IsMe || (sender.GetType() != typeof(AIHeroClient)) || sender.IsEnemy || !Settings.Misc.WToPushTowers)
                 return;
 
-            if (W.IsReady() && sender.IsValidTargetCached(W.Range) && args.Target != null && args.Target.IsValid &&
-                (args.Target.Type == GameObjectType.obj_AI_Turret ||
-                 args.Target.Type == GameObjectType.obj_BarracksDampener || args.Target.Type == GameObjectType.obj_HQ))
+            if (W.IsReady() && sender.IsValidTargetCached(W.Range) && (args.Target != null) && args.Target.IsValid &&
+                ((args.Target.Type == GameObjectType.obj_AI_Turret) ||
+                 (args.Target.Type == GameObjectType.obj_BarracksDampener) || (args.Target.Type == GameObjectType.obj_HQ)))
             {
                 W.CastMinimumHitchance(sender, 85);
             }
@@ -308,6 +330,8 @@ namespace Marksman_Master.Plugins.Ezreal
 
             ComboMenu.AddLabel("Arcane Shift (E) settings :");
             ComboMenu.Add("Plugins.Ezreal.ComboMenu.UseE", new CheckBox("Use E"));
+            ComboMenu.AddSeparator(2);
+            ComboMenu.Add("Plugins.Ezreal.ComboMenu.WEComboKeybind", new KeyBind("W => E combo", false, KeyBind.BindTypes.HoldActive, 'T'));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Trueshot Barrage (R) settings :");
@@ -366,7 +390,8 @@ namespace Marksman_Master.Plugins.Ezreal
             LaneClearMenu.AddSeparator(5);
 
             LaneClearMenu.AddLabel("End of the Line (Q) settings :");
-            LaneClearMenu.Add("Plugins.Ezreal.LaneClearMenu.UseQInLaneClear", new CheckBox("Use Q to lasthit minions"));
+            LaneClearMenu.Add("Plugins.Ezreal.LaneClearMenu.UseQInLaneClear", new CheckBox("Use Q in Lane Clear"));
+            LaneClearMenu.Add("Plugins.Ezreal.LaneClearMenu.LaneClearQMode", new ComboBox("Q laneclear mode : ", 0, "Last Hit", "Push wave"));
             LaneClearMenu.AddSeparator(5);
             LaneClearMenu.Add("Plugins.Ezreal.LaneClearMenu.UseQInJungleClear", new CheckBox("Use Q in Jungle Clear"));
             LaneClearMenu.Add("Plugins.Ezreal.LaneClearMenu.MinManaQ", new Slider("Min mana percentage ({0}%) to use Q", 50, 1));
@@ -398,7 +423,7 @@ namespace Marksman_Master.Plugins.Ezreal
                     TearStacker.Enabled = b.NewValue;
                 };
 
-            MiscMenu.Add("Plugins.Ezreal.MiscMenu.StackOnlyInFountain", new CheckBox("Stack only in fountain")).OnValueChange +=
+            MiscMenu.Add("Plugins.Ezreal.MiscMenu.StackOnlyInFountain", new CheckBox("Stack only in fountain", false)).OnValueChange +=
                 (a, b) =>
                 {
                     TearStacker.OnlyInFountain = b.NewValue;
@@ -527,6 +552,9 @@ namespace Marksman_Master.Plugins.Ezreal
 
                 public static bool UseE => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseE"];
 
+                // ReSharper disable once InconsistentNaming
+                public static bool WEComboKeybind => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.WEComboKeybind"];
+                
                 public static bool UseR => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseR"];
 
                 public static bool UseROnlyToKillsteal => MenuManager.MenuValues["Plugins.Ezreal.ComboMenu.UseRToKillsteal"];
@@ -558,6 +586,12 @@ namespace Marksman_Master.Plugins.Ezreal
                 public static int AllowedEnemies => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.AllowedEnemies", true];
 
                 public static bool UseQInLaneClear => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.UseQInLaneClear"];
+
+                /// <summary>
+                /// 0 - "Last Hit",
+                /// 1 - "Push wave"
+                /// </summary>
+                public static int LaneClearQMode => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.LaneClearQMode", true];
 
                 public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Ezreal.LaneClearMenu.UseQInJungleClear"];
 
@@ -610,7 +644,7 @@ namespace Marksman_Master.Plugins.Ezreal
 
                 var polygon = new Geometry.Polygon.Rectangle(Player.Instance.Position, target.Position, 160);
                 var objects = ObjectManager
-                        .Get<Obj_AI_Base>().Count(x => x.NetworkId != target.NetworkId && x.IsEnemy &&
+                        .Get<Obj_AI_Base>().Count(x => (x.NetworkId != target.NetworkId) && x.IsEnemy &&
                             x.IsValidTarget() &&
                             new Geometry.Polygon.Circle(Prediction.Position.PredictUnitPosition(x, 1000 + (int)(x.DistanceCached(Player.Instance) / R.Speed)*1000), x.BoundingRadius).Points.Any(
                                 p => polygon.IsInside(p)));

@@ -44,7 +44,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
             if (!jungleMinions.Any())
                 return;
 
-            if (!Settings.LaneClear.UseQInJungleClear || Player.Instance.ManaPercent < Settings.LaneClear.MinManaQ)
+            if (!Settings.LaneClear.UseQInJungleClear || (Player.Instance.ManaPercent < Settings.LaneClear.MinManaQ))
                 return;
 
             if (HasMinigun && (jungleMinions.Count > 1) && !IsPreAttack &&

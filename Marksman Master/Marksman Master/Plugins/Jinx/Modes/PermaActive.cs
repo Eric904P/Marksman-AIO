@@ -106,12 +106,12 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                         {
                             return false;
                         }
-                        return x.IsValidTarget(Settings.Misc.RKillstealMaxRange) && (x.TotalHealthWithShields() < Damage.GetRDamage(x));
+                        return x.IsValidTarget(Settings.Misc.RKillstealMaxRange) && (x.CountAlliesInRangeCached(800) == 0) && (x.TotalHealthWithShields() < Damage.GetRDamage(x));
                     });
 
                 var t = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-                if (t != null && !t.HasUndyingBuffA() && (Player.Instance.CountEnemiesInRangeCached(550) == 0))
+                if ((t != null) && !t.HasUndyingBuffA() && (Player.Instance.CountEnemiesInRangeCached(550) == 0))
                 {
                     if(t.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(t) <= 50)
                         return;

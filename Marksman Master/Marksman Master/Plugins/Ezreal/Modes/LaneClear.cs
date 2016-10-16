@@ -38,7 +38,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
     {
         public static bool CanILaneClear()
         {
-            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
+            return !Settings.LaneClear.EnableIfNoEnemies || (Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies);
         }
 
         public static void Execute()
@@ -52,20 +52,46 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
 
-            foreach (var minion in 
-                (from minion in laneMinions.Where(
-                x => x.IsValidTargetCached(Q.Range) && Q.GetPrediction(x).HitChance == HitChance.High)
-                let health = Prediction.Health.GetPrediction(minion,
-                    (int) ((minion.DistanceCached(Player.Instance) + Q.CastDelay)/Q.Speed*1000))
-                where (health > 30) && (health < Player.Instance.GetSpellDamageCached(minion, SpellSlot.Q))
-                select minion).Where(minion => !Orbwalker.GetTarget().IdEquals(minion) && !IsPreAttack))
+            switch (Settings.LaneClear.LaneClearQMode)
             {
-                if ((Player.Instance.GetAutoAttackDamageCached(minion, true) > minion.Health) &&
-                    Player.Instance.IsInAutoAttackRange(minion))
-                    return;
+                case 0: //last hit
+                    foreach (var minion in
+                        (from minion in laneMinions
+                            where Q.GetPrediction(minion).HitChance >= HitChance.High
+                            let health = Prediction.Health.GetPrediction(minion,
+                                (int) ((minion.DistanceCached(Player.Instance) + Q.CastDelay)/Q.Speed*1000))
+                            where (health > 30) && (health < Player.Instance.GetSpellDamageCached(minion, SpellSlot.Q))
+                            select minion).Where(minion => !Orbwalker.GetTarget().IdEquals(minion) && !IsPreAttack))
+                    {
+                        if ((Player.Instance.GetAutoAttackDamageCached(minion, true) > minion.Health) &&
+                            Player.Instance.IsInAutoAttackRange(minion))
+                            return;
 
-                Q.Cast(minion);
-                return;
+                        Q.Cast(minion);
+                        return;
+                    }
+                    break;
+                case 1: // push
+
+                    if (Orbwalker.ShouldWait || IsPreAttack || Player.Instance.IsUnderTurret())
+                        break;
+
+                    var target = (from minion in laneMinions
+                        where
+                            (Q.GetPrediction(minion).HitChance >= HitChance.High) && !minion.IdEquals(Orbwalker.GetTarget()) &&
+                            (minion.Health - Player.Instance.GetSpellDamageCached(minion, SpellSlot.Q) >= 20)
+                            && !((Player.Instance.GetAutoAttackDamageCached(minion, true) > minion.Health) &&
+                                 Player.Instance.IsInAutoAttackRange(minion))
+                        select minion).OrderByDescending(x => x.Health).FirstOrDefault();
+
+                    if (target == null)
+                        return;
+
+                    Q.Cast(target.ServerPosition);
+
+                    break;
+                default:
+                    return;
             }
         }
     }

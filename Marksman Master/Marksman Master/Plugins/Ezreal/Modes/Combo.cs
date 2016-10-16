@@ -53,7 +53,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                         var endPos = Player.Instance.Position.Extend(target,
                             target.DistanceCached(Player.Instance) > E.Range ? E.Range : target.DistanceCached(Player.Instance));
 
-                        if (endPos.CountEnemiesInRangeCached(600) >= (Player.Instance.HealthPercent > 65 ? 2 : 1) || endPos.To3D().IsVectorUnderEnemyTower())
+                        if ((endPos.CountEnemiesInRangeCached(600) >= (Player.Instance.HealthPercent > 65 ? 2 : 1)) || endPos.To3D().IsVectorUnderEnemyTower())
                             continue;
 
                         var qPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
@@ -93,7 +93,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
 
                         if (firstOrDefault != null)
                         {
-                            if (!(melee.Count == 1 && (firstOrDefault.TotalHealthWithShields() < GetComboDamage(firstOrDefault))) || (melee2.Count > 1))
+                            if (!((melee.Count == 1) && (firstOrDefault.TotalHealthWithShields() < GetComboDamage(firstOrDefault))) || (melee2.Count > 1))
                             {
                                 var pos =
                                     Misc.SortVectorsByDistanceDescending(
@@ -150,7 +150,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
                     {
                         var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-                        if (target != null && !Player.Instance.HasSheenBuff() && !IsPreAttack)
+                        if ((target != null) && !Player.Instance.HasSheenBuff() && !IsPreAttack)
                         {
                             Q.CastMinimumHitchance(target, 65);
                             return;
@@ -163,7 +163,7 @@ namespace Marksman_Master.Plugins.Ezreal.Modes
             {
                 var target = W.GetTarget();
 
-                if (target != null && !target.HasUndyingBuffA() && !Player.Instance.HasSheenBuff())
+                if ((target != null) && !target.HasUndyingBuffA() && !Player.Instance.HasSheenBuff())
                 {
                     W.CastMinimumHitchance(target, 75);
                     return;
