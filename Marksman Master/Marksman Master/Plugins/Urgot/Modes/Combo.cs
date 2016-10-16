@@ -75,7 +75,12 @@ namespace Marksman_Master.Plugins.Urgot.Modes
 
             if (E.IsReady() && Settings.Combo.UseE)
             {
-                var target = TargetSelector.GetTarget(E.Range, DamageType.Physical);
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x =>
+                        x.IsValidTargetCached(E.Range) && !x.HasUndyingBuffA() &&
+                        (E.GetPrediction(x).HitChance >= HitChance.High));
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
                 if (target != null)
                 {
@@ -94,17 +99,16 @@ namespace Marksman_Master.Plugins.Urgot.Modes
 
             if (Q.IsReady() && Settings.Combo.UseQ)
             {
-                foreach (
-                    var corrosiveDebufTarget in
-                        CorrosiveDebufTargets.Where(
-                            unit => (unit.Type == GameObjectType.AIHeroClient) && unit.IsValidTargetCached(1300)))
+                var possibleTargets = CorrosiveDebufTargets.Where(unit => (unit.Type == GameObjectType.AIHeroClient) && unit.IsValidTargetCached(1300)).Cast<AIHeroClient>();
+                var corrosiveDebufTarget = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+                var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
+
+                if ((corrosiveDebufTarget != null) && ((target == null) || (TargetSelector.GetPriority(corrosiveDebufTarget) >= TargetSelector.GetPriority(target))))
                 {
                     Player.CastSpell(SpellSlot.Q, corrosiveDebufTarget.Position);
                     return;
                 }
-
-                var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
-
+                
                 if (target != null)
                 {
                     var qPrediciton = Q.GetPrediction(target);
