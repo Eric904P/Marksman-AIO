@@ -60,7 +60,7 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                 {
                     if (HasEDebuff(target))
                     {
-                        Player.CastSpell(SpellSlot.Q, target.Position);
+                        Player.Instance.Spellbook.CastSpell(SpellSlot.Q, target.Position);
                         return;
                     }
 
@@ -74,7 +74,12 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                 }
             }
 
-            if (!Settings.Misc.AutoHarass || !Settings.Combo.UseQ ||
+            if (Settings.Misc.AutoHarass && HasAnyOrbwalkerFlags)
+            {
+                Combo.ELogics();
+            }
+
+            if (!Settings.Misc.AutoHarass || !Settings.Combo.UseQ || !HasAnyOrbwalkerFlags || 
                 Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) ||
                 Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass))
                 return;
@@ -84,7 +89,7 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                     CorrosiveDebufTargets.Where(
                         unit => (unit.Type == GameObjectType.AIHeroClient) && unit.IsValidTargetCached(1300)))
             {
-                Player.CastSpell(SpellSlot.Q, corrosiveDebufTarget.Position);
+                Player.Instance.Spellbook.CastSpell(SpellSlot.Q, corrosiveDebufTarget.Position);
                 return;
             }
         }

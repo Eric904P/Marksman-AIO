@@ -73,39 +73,17 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                 }
             }
 
-            if (E.IsReady() && Settings.Combo.UseE)
-            {
-                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                    x =>
-                        x.IsValidTargetCached(E.Range) && !x.HasUndyingBuffA() &&
-                        (E.GetPrediction(x).HitChance >= HitChance.High));
-
-                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
-
-                if (target != null)
-                {
-                    var ePrediction = E.GetPrediction(target);
-
-                    if (ePrediction.HitChance >= HitChance.High)
-                    {
-                        if ((QCooldown < 1) || (target.Health < Player.Instance.GetSpellDamageCached(target, SpellSlot.E)))
-                        {
-                            E.Cast(ePrediction.CastPosition);
-                            return;
-                        }
-                    }
-                }
-            }
-
+            ELogics();
+            
             if (Q.IsReady() && Settings.Combo.UseQ)
             {
                 var possibleTargets = CorrosiveDebufTargets.Where(unit => (unit.Type == GameObjectType.AIHeroClient) && unit.IsValidTargetCached(1300)).Cast<AIHeroClient>();
                 var corrosiveDebufTarget = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
                 var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
 
-                if ((corrosiveDebufTarget != null) && ((target == null) || (TargetSelector.GetPriority(corrosiveDebufTarget) >= TargetSelector.GetPriority(target))))
+                if ((corrosiveDebufTarget != null) && ((target == null) || Q.GetPrediction(target).Collision || (TargetSelector.GetPriority(corrosiveDebufTarget) >= TargetSelector.GetPriority(target))))
                 {
-                    Player.CastSpell(SpellSlot.Q, corrosiveDebufTarget.Position);
+                    Player.Instance.Spellbook.CastSpell(SpellSlot.Q, corrosiveDebufTarget.Position);
                     return;
                 }
                 
@@ -131,6 +109,32 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                     return;
 
                 W.Cast();
+            }
+        }
+
+        public static void ELogics()
+        {
+            if (!E.IsReady() || !Settings.Combo.UseE)
+                return;
+
+            var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                x =>
+                    x.IsValidTargetCached(E.Range) && !x.HasUndyingBuffA() &&
+                    (E.GetPrediction(x).HitChance >= HitChance.High));
+
+            var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+            if (target == null)
+                return;
+
+            var ePrediction = E.GetPrediction(target);
+
+            if (ePrediction.HitChance < HitChance.High)
+                return;
+
+            if ((QCooldown < 1) || (target.Health < Player.Instance.GetSpellDamageCached(target, SpellSlot.E)))
+            {
+                E.Cast(ePrediction.CastPosition);
             }
         }
     }

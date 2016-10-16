@@ -67,7 +67,7 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                         CorrosiveDebufTargets.Where(
                             unit => (unit.Type == GameObjectType.AIHeroClient) && unit.IsValidTargetCached(1300)))
                 {
-                    Player.CastSpell(SpellSlot.Q, corrosiveDebufTarget.Position);
+                    Player.Instance.Spellbook.CastSpell(SpellSlot.Q, corrosiveDebufTarget.Position);
                     return;
                 }
 

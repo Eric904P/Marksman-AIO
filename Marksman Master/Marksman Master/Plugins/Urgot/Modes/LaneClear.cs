@@ -29,7 +29,6 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
 
 namespace Marksman_Master.Plugins.Urgot.Modes
 {
@@ -39,11 +38,14 @@ namespace Marksman_Master.Plugins.Urgot.Modes
     {
         public static bool CanILaneClear()
         {
-            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
+            return !Settings.LaneClear.EnableIfNoEnemies || (Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies);
         }
 
         public static void Execute()
         {
+            if (!CanILaneClear())
+                return;
+
             var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTarget() && IsInQRange(x)).ToList();
 
             if (!laneMinions.Any())
@@ -51,65 +53,29 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                 return;
             }
 
-            if (Q.IsReady() && (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
+            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear &&
+                (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
             {
-                if (CanILaneClear() && Settings.LaneClear.UseQInLaneClear && CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
+                foreach (var castPosition in laneMinions.Where(x =>
                 {
-                    if (CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
-                    {
-                        foreach (
-                            var minion in
-                                from minion in
-                                    CorrosiveDebufTargets.Where(
-                                        unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300))
-                                let hpPrediction = Prediction.Health.GetPrediction(minion,
-                                    (int) (minion.Distance(Player.Instance)/1550*1000 + 250))
-                                where
-                                    hpPrediction > 0 &&
-                                    hpPrediction < Player.Instance.GetSpellDamage(minion, SpellSlot.Q)
-                                select minion)
-                        {
-                            Q.Cast(minion.Position);
-                            return;
-                        }
-                    }
-                }
-                else if (CanILaneClear() && Settings.LaneClear.UseQInLaneClear)
+                    if (Player.Instance.IsInAutoAttackRange(x) && (x.Health <= Player.Instance.GetAutoAttackDamageCached(x, true)))
+                        return false;
+
+                    if (!HasEDebuff(x) && Q.GetPrediction(x).Collision)
+                        return false;
+
+                    var prediction = Prediction.Health.GetPrediction(x,
+                        Q.CastDelay + (int) (x.DistanceCached(Player.Instance)/Q.Speed*1000));
+
+                    return (prediction > 0) && (prediction <= Player.Instance.GetSpellDamageCached(x, SpellSlot.Q));
+                }).Select(x => HasEDebuff(x) ? x.Position : Q.GetPrediction(x).CastPosition))
                 {
-                    foreach (var minion in (from minion in laneMinions let hpPrediction = Prediction.Health.GetPrediction(minion,
-                        (int) (minion.Distance(Player.Instance)/1550*1000 + 250)) where (hpPrediction > 0) &&
-                                                                                        (hpPrediction < Player.Instance.GetSpellDamage(minion, SpellSlot.Q)) let qPrediction = Q.GetPrediction(minion) where qPrediction.Collision == false select minion).Where(minion => !minion.IsDead))
-                    {
-                        Q.Cast(minion);
-                        return;
-                    }
+                    Player.Instance.Spellbook.CastSpell(SpellSlot.Q, castPosition);
+                    return;
                 }
             }
 
-            if (!E.IsReady() || !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE))
-                return;
-
-            if (Settings.Combo.UseE && Settings.Misc.AutoHarass && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(E.Range)))
-            {
-                var target = TargetSelector.GetTarget(E.Range, DamageType.Physical);
-
-                if (target == null)
-                    return;
-
-                var ePrediction = E.GetPrediction(target);
-
-                if (ePrediction.HitChance < HitChance.High)
-                    return;
-
-                if (!(Player.Instance.Spellbook.GetSpell(SpellSlot.Q).CooldownExpires - Game.Time < 1) &&
-                    !(target.Health < Player.Instance.GetSpellDamage(target, SpellSlot.E)))
-                    return;
-
-                E.Cast(ePrediction.CastPosition);
-                return;
-            }
-
-            if (!CanILaneClear() || !Settings.LaneClear.UseEInLaneClear || (Player.Instance.CountEnemyMinionsInRangeCached(900) <= 3))
+            if (!Settings.LaneClear.UseEInLaneClear || (Player.Instance.CountEnemyMinionsInRangeCached(900) <= 3))
                 return;
 
             E.CastOnBestFarmPosition(1);

@@ -65,7 +65,22 @@ namespace Marksman_Master.Plugins.Urgot
 
         protected static int FleeRange { get; } = 375;
 
-        protected static bool HasEDebuff(Obj_AI_Base unit) => CorrosiveDebufTargets.Any(x => x.IdEquals(unit));
+        protected static bool HasEDebuff(Obj_AI_Base unit)
+        {
+            if (MenuManager.IsCacheEnabled && CachedHasBuff.Exist(unit.NetworkId))
+            {
+                return CachedHasBuff.Get(unit.NetworkId);
+            }
+
+            var result = CorrosiveDebufTargets.Any(x => x.IdEquals(unit));
+
+            if (MenuManager.IsCacheEnabled)
+            {
+                CachedHasBuff.Add(unit.NetworkId, result);
+            }
+
+            return result;
+        }
 
         protected static bool IsInQRange(Obj_AI_Base unit)
             => (unit.IsValidTarget(1300) && HasEDebuff(unit)) || unit.IsValidTarget(900);
@@ -79,10 +94,18 @@ namespace Marksman_Master.Plugins.Urgot
                 return cd > Q.Handle.Cooldown ? Q.Handle.Cooldown : cd;
             }
         }
+        
+        protected static bool HasAnyOrbwalkerFlags
+            =>
+                (Orbwalker.ActiveModesFlags &
+                 (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear |
+                  Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear)) != 0;
+
+        protected static Cache.Modules.CustomCache<int, bool> CachedHasBuff { get; } 
 
         static Urgot()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 900, SkillShotType.Linear, 150, 1500, 60)
+            Q = new Spell.Skillshot(SpellSlot.Q, 900, SkillShotType.Linear, 150, 1600, 60)
             {
                 AllowedCollisionCount = 0
             };
@@ -97,6 +120,8 @@ namespace Marksman_Master.Plugins.Urgot
 
             ColorPicker = new ColorPicker[4];
 
+            CachedHasBuff = StaticCacheProvider.Cache.Resolve<Cache.Modules.CustomCache<int, bool>>(200);
+
             ColorPicker[0] = new ColorPicker("UrgotQ", new ColorBGRA(10, 106, 138, 255));
             ColorPicker[1] = new ColorPicker("UrgotE", new ColorBGRA(177, 67, 191, 255));
             ColorPicker[2] = new ColorPicker("UrgotR", new ColorBGRA(177, 67, 191, 255));
@@ -110,7 +135,7 @@ namespace Marksman_Master.Plugins.Urgot
             TearStacker.Initializer(new Dictionary<SpellSlot, float> {{SpellSlot.Q, 2150}},
                 () =>
                     (Player.Instance.CountEnemiesInRangeCached(1500) == 0) &&
-                    (Player.Instance.CountEnemyMinionsInRangeCached(1500) == 0) && !HasAnyOrbwalkerFlags());
+                    (Player.Instance.CountEnemyMinionsInRangeCached(1500) == 0) && !HasAnyOrbwalkerFlags);
 
             ChampionTracker.Initialize(ChampionTrackerFlags.VisibilityTracker);
             ChampionTracker.OnLoseVisibility += ChampionTracker_OnLoseVisibility;
@@ -129,7 +154,7 @@ namespace Marksman_Master.Plugins.Urgot
 
             GameObject.OnCreate += (sender, args) =>
             {
-                if (!Settings.Combo.UseW || !HasAnyOrbwalkerFlags())
+                if (!Settings.Combo.UseW || !HasAnyOrbwalkerFlags)
                     return;
 
                 var missileClient = sender as MissileClient;
@@ -166,12 +191,7 @@ namespace Marksman_Master.Plugins.Urgot
                 Player.CastSpell(SpellSlot.Q, castPosition);
             }
         }
-
-        private static bool HasAnyOrbwalkerFlags()
-        {
-            return (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
-        }
-
+        
         private static void Game_OnTick(EventArgs args)
         {
             if (Core.GameTickCount - _lastScanTick < 100)
@@ -319,16 +339,16 @@ namespace Marksman_Master.Plugins.Urgot
             MiscMenu.AddGroupLabel("Misc settings for Urgot addon");
             MiscMenu.AddLabel("Basic settings :");
             MiscMenu.Add("Plugins.Urgot.MiscMenu.EnableKillsteal", new CheckBox("Enable Killsteal"));
+            MiscMenu.AddSeparator(2);
             MiscMenu.Add("Plugins.Urgot.MiscMenu.EnableTearStacker", new CheckBox("Enable Tear Stacker"));
             MiscMenu.Add("Plugins.Urgot.MiscMenu.TearStackerMinMana", new Slider("Tear Stacker => Min mana percentage : {0}%", 75));
-
             MiscMenu.Add("Plugins.Urgot.MiscMenu.EnableTearStacker", new CheckBox("Enable Tear Stacker")).OnValueChange +=
                 (a, b) =>
                 {
                     TearStacker.Enabled = b.NewValue;
                 };
 
-            MiscMenu.Add("Plugins.Urgot.MiscMenu.StackOnlyInFountain", new CheckBox("Stack only in fountain")).OnValueChange +=
+            MiscMenu.Add("Plugins.Urgot.MiscMenu.StackOnlyInFountain", new CheckBox("Stack only in fountain", false)).OnValueChange +=
                 (a, b) =>
                 {
                     TearStacker.OnlyInFountain = b.NewValue;

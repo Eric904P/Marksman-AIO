@@ -51,66 +51,15 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                         (x.Health <= Player.Instance.GetAutoAttackDamageCached(x, true)))
                         return false;
 
-                    if (!HasEDebuff(x))
-                        return Q.GetPrediction(x).Collision;
-
-                    var prediction = Prediction.Health.GetPrediction(x,
-                        Q.CastDelay + (int) (x.DistanceCached(Player.Instance)/Q.Speed*1000));
-
-                    return (prediction > 0) && (prediction <= Player.Instance.GetSpellDamageCached(x, SpellSlot.Q));
+                    return HasEDebuff(x) || Q.GetPrediction(x).Collision;
                 }))
                 {
-
-                    Player.CastSpell(SpellSlot.Q, target.Position);
+                    Player.Instance.Spellbook.CastSpell(SpellSlot.Q, target.Position);
                 }
-
-                //var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
-
-                //if (target != null)
-                //{
-                //    var qPrediciton = Q.GetPrediction(target);
-
-                //    if (qPrediciton.HitChance >= EloBuddy.SDK.Enumerations.HitChance.High)
-                //    {
-                //        Q.Cast(qPrediciton.CastPosition);
-
-                //        return;
-                //    }
-                //}
-
-
-                //if (Settings.LaneClear.UseQInLaneClear && CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
-                //{
-                //    if (CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
-                //    {
-                //        foreach (
-                //            var minion in
-                //                from minion in
-                //                    CorrosiveDebufTargets.Where(
-                //                        unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300))
-                //                select minion)
-                //        {
-                //            Q.Cast(minion.Position);
-                //            return;
-                //        }
-                //    }
-                //}
-                //else if (Settings.LaneClear.UseQInLaneClear)
-                //{
-                //    foreach (var minion in from minion in jungleMinions
-                //        let qPrediction = Q.GetPrediction(minion)
-                //        where qPrediction.Collision == false
-                //        select minion)
-                //    {
-                //        Q.Cast(minion);
-                //        return;
-                //    }
-                //}
             }
-
-
+            
             if (!E.IsReady() || !Settings.LaneClear.UseEInJungleClear ||
-                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaE) || (jungleMinions.Count < 3))
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaE))
                 return;
 
             E.CastOnBestFarmPosition(1);
