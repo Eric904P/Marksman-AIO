@@ -39,30 +39,54 @@ namespace Marksman_Master.Plugins.Urgot.Modes
     {
         public static void Execute()
         {
+            if (W.IsReady())
+            {
+                var incomingDamage = IncomingDamage.GetIncomingDamage(Player.Instance);
+
+                if ((incomingDamage / Player.Instance.TotalHealthWithShields() * 100 >= Settings.Misc.MinDamage) ||
+                    (incomingDamage > Player.Instance.Health))
+                {
+                    W.Cast();
+                }
+            }
+
             if (Settings.Misc.EnableKillsteal && !Player.Instance.IsRecalling())
             {
                 foreach (
-                    var qPrediction in
-                        EntityManager.Heroes.Enemies.Where(
-                            x => x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q))
-                            .Select(source => Q.GetPrediction(source))
-                            .Where(qPrediction => qPrediction.HitChance == HitChance.High))
+                    var target in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x =>
+                            x.IsValidTargetCached() && IsInQRange(x) && !x.HasUndyingBuffA() &&
+                            (x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.Q))))
                 {
+                    if (HasEDebuff(target))
+                    {
+                        Player.CastSpell(SpellSlot.Q, target.Position);
+                        return;
+                    }
+
+                    var qPrediction = Q.GetPrediction(target);
+
+                    if (qPrediction.HitChance != HitChance.High)
+                        continue;
+
                     Q.Cast(qPrediction.CastPosition);
                     return;
                 }
             }
-            if (!W.IsReady())
+
+            if (!Settings.Misc.AutoHarass || !Settings.Combo.UseQ ||
+                Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) ||
+                Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass))
                 return;
 
-            var incomingDamage = IncomingDamage.GetIncomingDamage(Player.Instance);
-
-            if (!(incomingDamage/Player.Instance.TotalHealthWithShields()*100 > Settings.Misc.MinDamage) &&
-                !(incomingDamage > Player.Instance.Health))
+            foreach (
+                var corrosiveDebufTarget in
+                    CorrosiveDebufTargets.Where(
+                        unit => (unit.Type == GameObjectType.AIHeroClient) && unit.IsValidTargetCached(1300)))
+            {
+                Player.CastSpell(SpellSlot.Q, corrosiveDebufTarget.Position);
                 return;
-
-            Misc.PrintDebugMessage("casting W too much incoming damage...");
-            W.Cast();
+            }
         }
     }
 }

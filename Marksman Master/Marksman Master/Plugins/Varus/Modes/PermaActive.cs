@@ -54,7 +54,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                                 Q.StartCharging();
                             }
                         }
-                        if (!Q.IsCharging || targ == null || (targ.TotalHealthWithShields() > Damage.GetQDamage(targ) + Damage.GetWDamage(targ)))
+                        if (!Q.IsCharging || (targ == null) || (targ.TotalHealthWithShields() > Damage.GetQDamage(targ) + Damage.GetWDamage(targ)))
                             continue;
 
                         var qPrediction = Prediction.Manager.GetPrediction(new Prediction.Manager.PredictionInput
@@ -83,7 +83,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                     foreach (
                         var targ in
                             StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                                x => x != null && x.IsValidTargetCached(E.Range) &&
+                                x => (x != null) && x.IsValidTargetCached(E.Range) &&
                                     (x.TotalHealthWithShields() <= Player.Instance.GetSpellDamageCached(x, SpellSlot.E) + Damage.GetWDamage(x))))
                     {
                         E.CastMinimumHitchance(targ, HitChance.Medium);
@@ -101,7 +101,7 @@ namespace Marksman_Master.Plugins.Varus.Modes
                 else if (Q.IsCharging)
                 {
                     foreach (var qPrediction in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                        x => x != null && x.IsValidTargetCached(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) &&
+                        x => (x != null) && x.IsValidTargetCached(Q.Range) && Settings.Harass.IsAutoHarassEnabledFor(x) &&
                              ((Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) > 0) ||
                               Q.IsFullyCharged))
                         .Select(target => Q.GetPrediction(target)).Where(qPrediction => qPrediction.HitChancePercent >= 60))

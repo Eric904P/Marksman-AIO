@@ -26,6 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
 namespace Marksman_Master.Extensions.SkinHack
 {
     using System;
@@ -181,18 +182,6 @@ namespace Marksman_Master.Extensions.SkinHack
                     ChangeSkin(SkinId.CurrentValue, ChromaId.CurrentValue);
                 } else ChangeSkin(SkinId.CurrentValue);
             }
-
-            Obj_AI_Base.OnUpdateModel += Obj_AI_Base_OnUpdateModel;
-        }
-
-        private void Obj_AI_Base_OnUpdateModel(Obj_AI_Base sender, UpdateModelEventArgs args)
-        {
-            if (!sender.IsMe || !IsEnabled)
-                return;
-            
-
-            if (args.Model != BaseSkinNames[Player.Instance.Hero] || args.SkinId != SkinId.CurrentValue)
-                args.Process = false;
         }
 
         private void MainMenu_OnClose(object sender, EventArgs args)
@@ -218,6 +207,8 @@ namespace Marksman_Master.Extensions.SkinHack
             SkinHackMenu.AddGroupLabel("Skin hack settings : ");
 
             SkinId = SkinHackMenu.Add("SkinId." + Player.Instance.ChampionName, new ComboBox("Skin : ", skins));
+            SkinId.CurrentValue = LoadSkinId;
+
             SkinHackMenu.AddSeparator(5);
 
             BuildChroma();
@@ -299,11 +290,11 @@ namespace Marksman_Master.Extensions.SkinHack
         }
 
         private bool HasChromaPack(int id)
-            => Chromas != null && Chromas.ContainsKey(new KeyValuePair<Champion, byte>(Player.Instance.Hero, (byte) id));
+            => (Chromas != null) && Chromas.ContainsKey(new KeyValuePair<Champion, byte>(Player.Instance.Hero, (byte) id));
 
         private string GetChromaName(int id, int chromaId)
         {
-            if (Chromas == null || !Chromas.ContainsKey(new KeyValuePair<Champion, byte>(Player.Instance.Hero, (byte) id)))
+            if ((Chromas == null) || !Chromas.ContainsKey(new KeyValuePair<Champion, byte>(Player.Instance.Hero, (byte) id)))
                 return string.Empty;
 
             var dictionary = GetChromaList(id);
@@ -321,7 +312,7 @@ namespace Marksman_Master.Extensions.SkinHack
             =>
                 !HasChromaPack(id)
                     ? null
-                    : Chromas.FirstOrDefault(x => x.Key.Key == Player.Instance.Hero && x.Key.Value == id).Value;
+                    : Chromas.FirstOrDefault(x => (x.Key.Key == Player.Instance.Hero) && (x.Key.Value == id)).Value;
 
         private void ChangeSkin(int id, int? chromaId = null)
         {
@@ -347,17 +338,25 @@ namespace Marksman_Master.Extensions.SkinHack
 
                     if (chromaIdT != 0)
                     {
-                        Player.Instance.SetSkin(BaseSkinNames[Player.Instance.Hero], chromaIdT);
+                        SetSkin(chromaIdT);
                         return;
                     }
                 }
             }
 
-            Player.Instance.SetSkin(BaseSkinNames[Player.Instance.Hero], skinId);
+            SetSkin(skinId);
 
             CurrentSkin = skinId;
         }
 
+        private void SetSkin(int id)
+        {
+            if (Player.Instance.Model.Equals(Player.Instance.BaseSkinName))
+            {
+                Player.Instance.SetSkinId(id);
+            } else Player.Instance.SetSkin(BaseSkinNames[Player.Instance.Hero], id);
+        }
+        
         public override void Dispose()
         {
             IsEnabled = false;
@@ -367,9 +366,7 @@ namespace Marksman_Master.Extensions.SkinHack
 
             MainMenu.OnClose -= MainMenu_OnClose;
 
-            Obj_AI_Base.OnUpdateModel -= Obj_AI_Base_OnUpdateModel;
-
-            Player.Instance.SetSkin(BaseSkinNames[Player.Instance.Hero], LoadSkinId);
+            SetSkin(LoadSkinId);
         }
 
         public class SkinData
@@ -479,7 +476,7 @@ namespace Marksman_Master.Extensions.SkinHack
                     {
                         using (var response = result as HttpWebResponse)
                         {
-                            if (response == null || response.StatusCode != HttpStatusCode.OK)
+                            if ((response == null) || (response.StatusCode != HttpStatusCode.OK))
                             {
                                 return string.Empty;
                             }

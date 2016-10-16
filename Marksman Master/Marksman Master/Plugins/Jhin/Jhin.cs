@@ -87,27 +87,27 @@ namespace Marksman_Master.Plugins.Jhin
         public static BuffInstance GetSpottedBuff(AIHeroClient unit)
             =>
                 unit.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.Name.ToLowerInvariant() == "jhinespotteddebuff");
+                    b => b.IsActive && (b.Name.ToLowerInvariant() == "jhinespotteddebuff"));
 
         public static bool HasReloadingBuff
             =>
                 Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.Name.ToLowerInvariant() == "jhinpassivereload");
+                    b => b.IsActive && (b.Name.ToLowerInvariant() == "jhinpassivereload"));
 
         public static BuffInstance GetReloadingBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.Name.ToLowerInvariant() == "jhinpassivereload");
+                    b => b.IsActive && (b.Name.ToLowerInvariant() == "jhinpassivereload"));
 
         public static bool HasAttackBuff
             =>
                 Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.Name.ToLowerInvariant() == "jhinpassiveattackbuff");
+                    b => b.IsActive && (b.Name.ToLowerInvariant() == "jhinpassiveattackbuff"));
 
         public static BuffInstance GetAttackBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.Name.ToLowerInvariant() == "jhinpassiveattackbuff");
+                    b => b.IsActive && (b.Name.ToLowerInvariant() == "jhinpassiveattackbuff"));
 
 
         public static bool IsCastingR { get; private set; }
@@ -169,7 +169,7 @@ namespace Marksman_Master.Plugins.Jhin
 
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
-            if (args.Slot == SpellSlot.E && (Game.Time * 1000 - _lastETime < 3000 && _lastEPosition.DistanceCached(args.EndPosition) < 300))
+            if ((args.Slot == SpellSlot.E) && ((Game.Time * 1000 - _lastETime < 3000) && (_lastEPosition.DistanceCached(args.EndPosition) < 300)))
             {
                 args.Process = false;
             } else if (args.Slot == SpellSlot.E)
@@ -178,11 +178,11 @@ namespace Marksman_Master.Plugins.Jhin
                 _lastEPosition = args.EndPosition;
             }
 
-            if (args.Slot == SpellSlot.R && Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name == "JhinRShot" && (Game.Time * 1000 - _lastRTime < Settings.Combo.RDelay+1000))
+            if ((args.Slot == SpellSlot.R) && (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name == "JhinRShot") && (Game.Time * 1000 - _lastRTime < Settings.Combo.RDelay+1000))
             {
                 args.Process = false;
             }
-            else if (args.Slot == SpellSlot.R && Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name == "JhinRShot")
+            else if ((args.Slot == SpellSlot.R) && (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name == "JhinRShot"))
             {
                 _lastRTime = Game.Time * 1000;
             }
@@ -286,13 +286,13 @@ namespace Marksman_Master.Plugins.Jhin
             if (Settings.Drawings.DrawE && (!Settings.Drawings.DrawSpellRangesWhenReady || E.IsReady()))
                 Circle.Draw(ColorPicker[2].Color, E.Range, Player.Instance);
             if (Settings.Drawings.DrawR && (!Settings.Drawings.DrawSpellRangesWhenReady || R.IsReady()) &&
-                Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name == "JhinR")
+                (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name == "JhinR"))
                 Circle.Draw(ColorPicker[3].Color, R.Range, Player.Instance);
 
             if (!Settings.Drawings.DrawInfo)
                 return;
 
-            foreach (var unit in EntityManager.MinionsAndMonsters.EnemyMinions.Where(x=>x.IsValidTarget(Q.Range) && x.Health < Damage.GetQDamage(x)))
+            foreach (var unit in EntityManager.MinionsAndMonsters.EnemyMinions.Where(x=>x.IsValidTarget(Q.Range) && (x.Health < Damage.GetQDamage(x))))
             {
                 Circle.Draw(Color.Green, 25, unit);
             }
@@ -304,7 +304,7 @@ namespace Marksman_Master.Plugins.Jhin
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if(W.IsReady() && Settings.Misc.WAntiGapcloser && args.End.DistanceCached(Player.Instance) < 350)
+            if(W.IsReady() && Settings.Misc.WAntiGapcloser && (args.End.DistanceCached(Player.Instance) < 350))
             {
                 if (args.Delay == 0)
                 {
@@ -318,7 +318,7 @@ namespace Marksman_Master.Plugins.Jhin
                 }
             }
 
-            if (E.IsReady() && Settings.Misc.EAntiGapcloser && Player.Instance.Mana - 50 > 100 && args.End.DistanceCached(Player.Instance) < 350)
+            if (E.IsReady() && Settings.Misc.EAntiGapcloser && (Player.Instance.Mana - 50 > 100) && (args.End.DistanceCached(Player.Instance) < 350))
             {
                 if (args.Delay == 0)
                 {
@@ -509,8 +509,8 @@ namespace Marksman_Master.Plugins.Jhin
             Orbwalker.DisableAttacking = IsCastingR;
             Orbwalker.DisableMovement = IsCastingR;
 
-            if (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name.ToLowerInvariant() == "jhinr" && !R.IsReady() &&
-                Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name.ToLowerInvariant() != "jhinrshot")
+            if ((Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name.ToLowerInvariant() == "jhinr") && !R.IsReady() &&
+                (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name.ToLowerInvariant() != "jhinrshot"))
             {
                 IsCastingR = false;
                 REndPosition = Vector3.Zero;
@@ -733,11 +733,11 @@ namespace Marksman_Master.Plugins.Jhin
 
                 for (var i = 0f; i < 1; i += 0.1f)
                 {
-                    if (Player.Instance.FlatCritChanceMod >= i && Player.Instance.FlatCritChanceMod < i + 0.1f)
+                    if ((Player.Instance.FlatCritChanceMod >= i) && (Player.Instance.FlatCritChanceMod < i + 0.1f))
                     {
                         addicionalAdFromCritChance = Player.Instance.TotalAttackDamage*(0.04f*(i*10));
                     }
-                    if (additionalAttackSpeed >= i && additionalAttackSpeed < i + 0.1f)
+                    if ((additionalAttackSpeed >= i) && (additionalAttackSpeed < i + 0.1f))
                     {
                         additionalAdFromAttackSpeed = Player.Instance.TotalAttackDamage*(0.025f*(i*10));
                     }
@@ -764,7 +764,7 @@ namespace Marksman_Master.Plugins.Jhin
                 var bonusDamage = 0f;
                 if (Player.Instance.Level < 6)
                     bonusDamage = 0.15f;
-                else if (Player.Instance.Level < 11 && Player.Instance.Level >= 6)
+                else if ((Player.Instance.Level < 11) && (Player.Instance.Level >= 6))
                     bonusDamage = 0.20f;
                 else if (Player.Instance.Level >= 11)
                     bonusDamage = 0.25f;

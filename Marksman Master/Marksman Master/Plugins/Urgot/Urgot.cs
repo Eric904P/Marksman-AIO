@@ -26,25 +26,26 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-using EloBuddy.SDK.Menu;
-using EloBuddy.SDK.Menu.Values;
-using Color = System.Drawing.Color;
-using EloBuddy.SDK.Rendering;
-using Marksman_Master.Utils;
-using SharpDX;
 
 namespace Marksman_Master.Plugins.Urgot
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Constants;
+    using EloBuddy.SDK.Enumerations;
+    using EloBuddy.SDK.Menu;
+    using EloBuddy.SDK.Menu.Values;
+    using Color = System.Drawing.Color;
+    using EloBuddy.SDK.Rendering;
+    using Utils;
+    using SharpDX;
+
     internal class Urgot : ChampionPlugin
     {
         protected static Spell.Skillshot Q { get; }
-        protected static Spell.Skillshot SecondQ { get; }
         protected static Spell.Active W { get; }
         protected static Spell.Skillshot E { get; }
         protected static Spell.Targeted R { get; }
@@ -57,27 +58,42 @@ namespace Marksman_Master.Plugins.Urgot
 
         private static readonly ColorPicker[] ColorPicker;
 
-        protected static List<Obj_AI_Base> CorrosiveDebufTargets { get; }=
-            new List<Obj_AI_Base>();
+        protected static List<Obj_AI_Base> CorrosiveDebufTargets { get; }
 
         private static float _lastScanTick;
         private static bool _changingRangeScan;
 
         protected static int FleeRange { get; } = 375;
 
-        protected static bool HasSpottedBuff(Obj_AI_Base unit) => CorrosiveDebufTargets.Contains(unit);
+        protected static bool HasEDebuff(Obj_AI_Base unit) => CorrosiveDebufTargets.Any(x => x.IdEquals(unit));
+
+        protected static bool IsInQRange(Obj_AI_Base unit)
+            => (unit.IsValidTarget(1300) && HasEDebuff(unit)) || unit.IsValidTarget(900);
+
+        protected static float QCooldown
+        {
+            get
+            {
+                var cd = Q.Handle.CooldownExpires - Game.Time < 0 ? 0 : Q.Handle.CooldownExpires - Game.Time;
+
+                return cd > Q.Handle.Cooldown ? Q.Handle.Cooldown : cd;
+            }
+        }
 
         static Urgot()
         {
-            Q = new Spell.Skillshot(SpellSlot.Q, 900, SkillShotType.Linear, 150, 1600, 60);
-            SecondQ = new Spell.Skillshot(SpellSlot.Q, 1200, SkillShotType.Linear, 250, 1600, 60)
+            Q = new Spell.Skillshot(SpellSlot.Q, 900, SkillShotType.Linear, 150, 1500, 60)
+            {
+                AllowedCollisionCount = 0
+            };
+            W = new Spell.Active(SpellSlot.W);
+            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 250, 1500, 250)
             {
                 AllowedCollisionCount = int.MaxValue
             };
-
-            W = new Spell.Active(SpellSlot.W);
-            E = new Spell.Skillshot(SpellSlot.E, 900, SkillShotType.Circular, 250, 1500, 250);
             R = new Spell.Targeted(SpellSlot.R, 500);
+
+            CorrosiveDebufTargets = new List<Obj_AI_Base>();
 
             ColorPicker = new ColorPicker[4];
 
@@ -86,43 +102,89 @@ namespace Marksman_Master.Plugins.Urgot
             ColorPicker[2] = new ColorPicker("UrgotR", new ColorBGRA(177, 67, 191, 255));
             ColorPicker[3] = new ColorPicker("UrgotHpBar", new ColorBGRA(255, 134, 0, 255));
 
-
             DamageIndicator.Initalize(ColorPicker[3].Color);
             DamageIndicator.DamageDelegate = HandleDamageIndicator;
 
             ColorPicker[3].OnColorChange += (a, b) => DamageIndicator.Color = b.Color;
 
-            Game.OnTick += Game_OnTick;
-            Game.OnPostTick += args =>
+            TearStacker.Initializer(new Dictionary<SpellSlot, float> {{SpellSlot.Q, 2150}},
+                () =>
+                    (Player.Instance.CountEnemiesInRangeCached(1500) == 0) &&
+                    (Player.Instance.CountEnemyMinionsInRangeCached(1500) == 0) && !HasAnyOrbwalkerFlags());
+
+            ChampionTracker.Initialize(ChampionTrackerFlags.VisibilityTracker);
+            ChampionTracker.OnLoseVisibility += ChampionTracker_OnLoseVisibility;
+
+            Game.OnPreTick += args =>
             {
-                Q.Range = 900;
-                Q.AllowedCollisionCount = 0;
+                if (Core.GameTickCount - _lastScanTick < 100)
+                {
+                    return;
+                }
+
+                CorrosiveDebufTargets.Clear();
             };
-            Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
+
+            Game.OnTick += Game_OnTick;
+
+            GameObject.OnCreate += (sender, args) =>
+            {
+                if (!Settings.Combo.UseW || !HasAnyOrbwalkerFlags())
+                    return;
+
+                var missileClient = sender as MissileClient;
+
+                if ((missileClient != null) && missileClient.SpellCaster.IsMe && W.IsReady() &&
+                    ((missileClient.IsAutoAttack() && (missileClient.Target?.Type == GameObjectType.AIHeroClient)) || StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x =>
+                            x.IsValidTarget() &&
+                            missileClient.EndPosition.IsInRange(x, missileClient.SData.LineWidth)).Any()))
+                {
+                    W.Cast();
+                }
+            };
         }
 
-        private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
+        private static void ChampionTracker_OnLoseVisibility(object sender, ChampionTracker.OnLoseVisibilityEventArgs e)
         {
-            if (target is AIHeroClient && Settings.Combo.UseW && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Player.Instance.Mana - 50 + 5*(E.Level - 1) > 150)
+            if (!Q.IsReady() || (e?.LastPosition.Distance(Player.Instance) > 1300) || (e?.Data == null) || (e.Hero == null) ||
+                (CorrosiveDebufTargets.Any(
+                    x =>
+                        (x.Type == GameObjectType.AIHeroClient) && x.IsValidTargetCached(1300)) && (e.Data?.LastHealth > Player.Instance.GetSpellDamageCached(e.Hero, SpellSlot.Q))))
+                return;
+
+            var data = e.Data;
+            var castPosition =
+                data.LastPosition.Extend(data.LastPath, e.Hero.MoveSpeed * Game.Time - data.LastVisibleGameTime).To3D();
+
+            if (castPosition.IsInRange(Player.Instance, 1300) && data.LastBuffs.Any(
+                x =>
+                    (x.EndTime - Game.Time > .25f) &&
+                    (x.Name.Equals("urgotcorrosivedebuff", StringComparison.CurrentCultureIgnoreCase) ||
+                     x.DisplayName.Equals("urgotcorrosivedebuff", StringComparison.CurrentCultureIgnoreCase))))
             {
-                W.Cast();
+                Player.CastSpell(SpellSlot.Q, castPosition);
             }
+        }
+
+        private static bool HasAnyOrbwalkerFlags()
+        {
+            return (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
         }
 
         private static void Game_OnTick(EventArgs args)
         {
-            if (Game.Time*1000 - _lastScanTick < 66)
+            if (Core.GameTickCount - _lastScanTick < 100)
             {
                 return;
             }
 
-            CorrosiveDebufTargets.Clear();
+            var union = CorrosiveDebufTargets.Union(
+                    ObjectManager.Get<Obj_AI_Base>().Where(x => x.IsValidTarget() && x.HasBuff("urgotcorrosivedebuff")));
 
-            foreach (var enemy in ObjectManager.Get<Obj_AI_Base>().Where(x=> !x.IsDead && x.Team != Player.Instance.Team && x.HasBuff("urgotcorrosivedebuff")).Where(enemy => !CorrosiveDebufTargets.Contains(enemy)))
-            {
-                CorrosiveDebufTargets.Add(enemy);
-            }
-            _lastScanTick = Game.Time*1000;
+            CorrosiveDebufTargets.AddRange(union);
+            
+            _lastScanTick = Core.GameTickCount;
         }
 
         protected override void OnDraw()
@@ -152,7 +214,7 @@ namespace Marksman_Master.Plugins.Urgot
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (!R.IsReady() || !(args.End.Distance(Player.Instance) < 350) || !Settings.Misc.UseRAgainstGapclosers ||
+            if (!R.IsReady() || (args.End.Distance(Player.Instance) > 350) || !Settings.Misc.UseRAgainstGapclosers ||
                 !sender.IsValidTarget(R.Range) || sender.IsUnderTurret())
                 return;
 
@@ -175,13 +237,14 @@ namespace Marksman_Master.Plugins.Urgot
             if (enemy == null)
                 return 0;
             
-            var damage = 0f;
+            float damage = 0;
+
             if (Q.IsReady() && unit.IsValidTarget(Q.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
-            if(E.IsReady() && unit.IsValidTarget(Q.Range))
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.Q);
+            if(E.IsReady() && unit.IsValidTarget(E.Range))
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.E);
             if (unit.IsValidTarget(Player.Instance.GetAutoAttackRange()))
-                damage += Player.Instance.GetAutoAttackDamage(unit);
+                damage += Player.Instance.GetAutoAttackDamageCached(unit, true);
 
             return damage;
         }
@@ -256,6 +319,31 @@ namespace Marksman_Master.Plugins.Urgot
             MiscMenu.AddGroupLabel("Misc settings for Urgot addon");
             MiscMenu.AddLabel("Basic settings :");
             MiscMenu.Add("Plugins.Urgot.MiscMenu.EnableKillsteal", new CheckBox("Enable Killsteal"));
+            MiscMenu.Add("Plugins.Urgot.MiscMenu.EnableTearStacker", new CheckBox("Enable Tear Stacker"));
+            MiscMenu.Add("Plugins.Urgot.MiscMenu.TearStackerMinMana", new Slider("Tear Stacker => Min mana percentage : {0}%", 75));
+
+            MiscMenu.Add("Plugins.Urgot.MiscMenu.EnableTearStacker", new CheckBox("Enable Tear Stacker")).OnValueChange +=
+                (a, b) =>
+                {
+                    TearStacker.Enabled = b.NewValue;
+                };
+
+            MiscMenu.Add("Plugins.Urgot.MiscMenu.StackOnlyInFountain", new CheckBox("Stack only in fountain")).OnValueChange +=
+                (a, b) =>
+                {
+                    TearStacker.OnlyInFountain = b.NewValue;
+                };
+
+            MiscMenu.Add("Plugins.Urgot.MiscMenu.TearStackerMinMana", new Slider("Tear Stacker => Min mana percentage : {0}%", 75)).OnValueChange +=
+                (a, b) =>
+                {
+                    TearStacker.MinimumManaPercent = b.NewValue;
+                };
+            
+            TearStacker.Enabled = Settings.Misc.EnableTearStacker;
+            TearStacker.OnlyInFountain = Settings.Misc.StackOnlyInFountain;
+            TearStacker.MinimumManaPercent = Settings.Misc.TearStackerMinMana;
+
             MiscMenu.AddSeparator(5);
 
             MiscMenu.AddLabel("Acid Hunter (Q) settings :");
@@ -447,6 +535,12 @@ namespace Marksman_Master.Plugins.Urgot
             internal static class Misc
             {
                 public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.EnableKillsteal"];
+
+                public static bool EnableTearStacker => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.EnableTearStacker"];
+
+                public static bool StackOnlyInFountain => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.StackOnlyInFountain"]; 
+
+                public static int TearStackerMinMana => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.TearStackerMinMana", true];
 
                 public static bool AutoHarass => MenuManager.MenuValues["Plugins.Urgot.MiscMenu.AutoHarass"];
 

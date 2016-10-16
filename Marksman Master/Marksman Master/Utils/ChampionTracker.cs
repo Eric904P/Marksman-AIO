@@ -124,7 +124,7 @@ namespace Marksman_Master.Utils
 
             var missile = sender as MissileClient;
 
-            if (missile != null && missile.IsAutoAttack())
+            if ((missile != null) && missile.IsAutoAttack())
             {
                 Missiles.Remove(missile);
             }
@@ -137,8 +137,8 @@ namespace Marksman_Master.Utils
 
             var missile = sender as MissileClient;
 
-            if (missile != null && missile.IsAutoAttack() && missile.SpellCaster != null && missile.Target != null &&
-                missile.SpellCaster.Type != GameObjectType.obj_AI_Turret)
+            if ((missile != null) && missile.IsAutoAttack() && (missile.SpellCaster != null) && (missile.Target != null) &&
+                (missile.SpellCaster.Type != GameObjectType.obj_AI_Turret))
             {
                 Missiles[missile] = Game.Time * 1000;
             }
@@ -159,13 +159,13 @@ namespace Marksman_Master.Utils
 
             var hero = sender as AIHeroClient;
 
-            if (hero == null || sender.IsAlly)
+            if ((hero == null) || sender.IsAlly)
                 return;
 
-            if (hero.Hero == Champion.Pantheon && args.SData.Name == "PantheonRJump")
+            if ((hero.Hero == Champion.Pantheon) && (args.SData.Name == "PantheonRJump"))
             {
                 OnLongSpellCast?.Invoke(null, new OnLongSpellCastEventArgs(hero, args.Start, args.End, args.SData, args.Slot));
-            } else if (LongCastSpells.Any(x => x.Hero == hero.Hero && args.Slot == x.SpellSlot))
+            } else if (LongCastSpells.Any(x => (x.Hero == hero.Hero) && (args.Slot == x.SpellSlot)))
             {
                 OnLongSpellCast?.Invoke(null, new OnLongSpellCastEventArgs(hero, args.Start, args.End, args.SData, args.Slot));
             } else if (args.SData.Name == "SummonerTeleport")
@@ -193,14 +193,14 @@ namespace Marksman_Master.Utils
             foreach (var visibilityTracker in ChampionVisibility.Where(x=> Game.Time * 1000 - x.LastVisibleGameTime * 1000 < 1000))
             {
                 foreach (var unit in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, 
-                        x => x.Hero == visibilityTracker.Hero.Hero && !visibilityTracker.Hero.IsDead && !visibilityTracker.Hero.IsZombie && !visibilityTracker.Hero.IsHPBarRendered))
+                        x => (x.Hero == visibilityTracker.Hero.Hero) && !visibilityTracker.Hero.IsDead && !visibilityTracker.Hero.IsZombie && !visibilityTracker.Hero.IsHPBarRendered))
                 {
-                    if (unit.Hero == Champion.KogMaw && unit.Buffs.Any(x=>x.Name.ToLowerInvariant() == "kogmawicathiansurprise"))
+                    if ((unit.Hero == Champion.KogMaw) && unit.Buffs.Any(x=>x.Name.ToLowerInvariant() == "kogmawicathiansurprise"))
                         return;
 
                     OnLoseVisibility?.Invoke(null,
                         new OnLoseVisibilityEventArgs(unit, visibilityTracker.LastVisibleGameTime,
-                            visibilityTracker.LastPosition));
+                            visibilityTracker.LastPosition, GetVisibilityTrackerData(unit)));
                 }
             }
 
@@ -216,6 +216,7 @@ namespace Marksman_Master.Utils
                 hero.LastPath = aiHeroClient.Path.Last();
                 hero.LastHealth = aiHeroClient.Health;
                 hero.LastHealthPercent = aiHeroClient.HealthPercent;
+                hero.LastBuffs = aiHeroClient.Buffs;
             }
             _lastTick = Game.Time*1000;
         }
@@ -235,9 +236,9 @@ namespace Marksman_Master.Utils
             if (!Flags.HasFlag(ChampionTrackerFlags.VisibilityTracker))
                 return false;
 
-            var hero = ChampionVisibility.FirstOrDefault(x => Game.Time*1000 - x.LastVisibleGameTime*1000 > time && Game.Time * 1000 - x.LastVisibleGameTime * 1000 < 4000 && x.Hero.NetworkId == unit.NetworkId);
+            var hero = ChampionVisibility.FirstOrDefault(x => (Game.Time*1000 - x.LastVisibleGameTime*1000 > time) && (Game.Time * 1000 - x.LastVisibleGameTime * 1000 < 4000) && (x.Hero.NetworkId == unit.NetworkId));
 
-            return hero != null && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.NetworkId == hero.Hero.NetworkId && !x.IsDead && !x.IsHPBarRendered);
+            return (hero != null) && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => (x.NetworkId == hero.Hero.NetworkId) && !x.IsDead && !x.IsHPBarRendered);
         }
 
         public class VisibilityTracker
@@ -248,6 +249,23 @@ namespace Marksman_Master.Utils
             public float LastHealthPercent { get; set; }
             public Vector3 LastPosition { get; set; }
             public Vector3 LastPath { get; set; }
+            public List<BuffInstance> LastBuffs { get; set; }
+        }
+        
+        public class OnLoseVisibilityEventArgs : EventArgs
+        {
+            public AIHeroClient Hero { get; private set; }
+            public float LastVisibleGameTime { get; private set; }
+            public Vector3 LastPosition { get; private set; }
+            public VisibilityTracker Data { get; private set; }
+
+            public OnLoseVisibilityEventArgs(AIHeroClient hero, float lastVisibleGameTime, Vector3 lastPosition, VisibilityTracker data)
+            {
+                Hero = hero;
+                LastVisibleGameTime = lastVisibleGameTime;
+                LastPosition = lastPosition;
+                Data = data;
+            }
         }
 
         public class BasicAttack
@@ -260,20 +278,6 @@ namespace Marksman_Master.Utils
                 Missile = missile;
                 StartTime = startTime;
             }
-        }
-    }
-
-    public class OnLoseVisibilityEventArgs : EventArgs
-    {
-        public AIHeroClient Hero { get; private set; }
-        public float LastVisibleGameTime { get; private set; }
-        public Vector3 LastPosition { get; private set; }
-
-        public OnLoseVisibilityEventArgs(AIHeroClient hero, float lastVisibleGameTime, Vector3 lastPosition)
-        {
-            Hero = hero;
-            LastVisibleGameTime = lastVisibleGameTime;
-            LastPosition = lastPosition;
         }
     }
 

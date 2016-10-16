@@ -32,62 +32,88 @@ using EloBuddy.SDK;
 
 namespace Marksman_Master.Plugins.Urgot.Modes
 {
+    using Utils;
+
     internal class JungleClear : Urgot
     {
         public static void Execute()
         {
-            var jungleMinions =
-                EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Q.Range).ToList();
+            var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTarget() && IsInQRange(x)).ToList();
 
             if (!jungleMinions.Any())
                 return;
 
-            if (Q.IsReady() && Settings.LaneClear.UseQInJungleClear &&
-                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ)
+            if (Q.IsReady() && Settings.LaneClear.UseQInJungleClear && (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
             {
-                if (Settings.LaneClear.UseQInLaneClear && CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
+                foreach (var target in jungleMinions.Where(x =>
                 {
-                    if (CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
-                    {
-                        foreach (
-                            var minion in
-                                from minion in
-                                    CorrosiveDebufTargets.Where(
-                                        unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300))
-                                select minion)
-                        {
-                            Q.Cast(minion.Position);
-                            return;
-                        }
-                    }
-                }
-                else if (Settings.LaneClear.UseQInLaneClear)
+                    if (Player.Instance.IsInAutoAttackRange(x) &&
+                        (x.Health <= Player.Instance.GetAutoAttackDamageCached(x, true)))
+                        return false;
+
+                    if (!HasEDebuff(x))
+                        return Q.GetPrediction(x).Collision;
+
+                    var prediction = Prediction.Health.GetPrediction(x,
+                        Q.CastDelay + (int) (x.DistanceCached(Player.Instance)/Q.Speed*1000));
+
+                    return (prediction > 0) && (prediction <= Player.Instance.GetSpellDamageCached(x, SpellSlot.Q));
+                }))
                 {
-                    foreach (var minion in from minion in jungleMinions
-                        let qPrediction = Q.GetPrediction(minion)
-                        where qPrediction.Collision == false
-                        select minion)
-                    {
-                        Q.Cast(minion);
-                        return;
-                    }
+
+                    Player.CastSpell(SpellSlot.Q, target.Position);
                 }
+
+                //var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
+
+                //if (target != null)
+                //{
+                //    var qPrediciton = Q.GetPrediction(target);
+
+                //    if (qPrediciton.HitChance >= EloBuddy.SDK.Enumerations.HitChance.High)
+                //    {
+                //        Q.Cast(qPrediciton.CastPosition);
+
+                //        return;
+                //    }
+                //}
+
+
+                //if (Settings.LaneClear.UseQInLaneClear && CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
+                //{
+                //    if (CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
+                //    {
+                //        foreach (
+                //            var minion in
+                //                from minion in
+                //                    CorrosiveDebufTargets.Where(
+                //                        unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300))
+                //                select minion)
+                //        {
+                //            Q.Cast(minion.Position);
+                //            return;
+                //        }
+                //    }
+                //}
+                //else if (Settings.LaneClear.UseQInLaneClear)
+                //{
+                //    foreach (var minion in from minion in jungleMinions
+                //        let qPrediction = Q.GetPrediction(minion)
+                //        where qPrediction.Collision == false
+                //        select minion)
+                //    {
+                //        Q.Cast(minion);
+                //        return;
+                //    }
+                //}
             }
 
 
             if (!E.IsReady() || !Settings.LaneClear.UseEInJungleClear ||
-                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaE))
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaE) || (jungleMinions.Count < 3))
                 return;
 
-            var farmPosition =
-                EntityManager.MinionsAndMonsters.GetCircularFarmLocation(
-                    EntityManager.MinionsAndMonsters.Monsters.Where(
-                        x => x.IsValidTarget(E.Range) && x.HealthPercent > 10), 250, 900, 250, 1550);
-
-            if (farmPosition.HitNumber <= 1)
-                return;
-
-            E.Cast(farmPosition.CastPosition);
+            E.CastOnBestFarmPosition(1);
         }
     }
 }

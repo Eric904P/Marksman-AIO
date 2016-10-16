@@ -33,6 +33,8 @@ using EloBuddy.SDK.Enumerations;
 
 namespace Marksman_Master.Plugins.Urgot.Modes
 {
+    using Utils;
+
     internal class LaneClear : Urgot
     {
         public static bool CanILaneClear()
@@ -42,29 +44,16 @@ namespace Marksman_Master.Plugins.Urgot.Modes
 
         public static void Execute()
         {
-            var laneMinions =
-                EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy, Player.Instance.Position,
-                    1200).ToList();
+            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTarget() && IsInQRange(x)).ToList();
 
             if (!laneMinions.Any())
             {
                 return;
             }
-            if (Q.IsReady() && Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ)
+
+            if (Q.IsReady() && (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ))
             {
-                if (Settings.Misc.AutoHarass && Settings.Combo.UseQ && CorrosiveDebufTargets.Any(unit => unit is AIHeroClient && unit.IsValidTarget(1300)))
-                {
-                    foreach (
-                        var corrosiveDebufTarget in
-                            CorrosiveDebufTargets.Where(unit => unit is AIHeroClient && unit.IsValidTarget(1300)))
-                    {
-                        Q.Range = 1300;
-                        Q.AllowedCollisionCount = -1;
-                        Q.Cast(corrosiveDebufTarget.Position);
-                        return;
-                    }
-                }
-                else if (CanILaneClear() && Settings.LaneClear.UseQInLaneClear && CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
+                if (CanILaneClear() && Settings.LaneClear.UseQInLaneClear && CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
                 {
                     if (CorrosiveDebufTargets.Any(unit => unit is Obj_AI_Minion && unit.IsValidTarget(1300)))
                     {
@@ -88,8 +77,8 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                 else if (CanILaneClear() && Settings.LaneClear.UseQInLaneClear)
                 {
                     foreach (var minion in (from minion in laneMinions let hpPrediction = Prediction.Health.GetPrediction(minion,
-                        (int) (minion.Distance(Player.Instance)/1550*1000 + 250)) where hpPrediction > 0 &&
-                                                                                        hpPrediction < Player.Instance.GetSpellDamage(minion, SpellSlot.Q) let qPrediction = Q.GetPrediction(minion) where qPrediction.Collision == false select minion).Where(minion => !minion.IsDead))
+                        (int) (minion.Distance(Player.Instance)/1550*1000 + 250)) where (hpPrediction > 0) &&
+                                                                                        (hpPrediction < Player.Instance.GetSpellDamage(minion, SpellSlot.Q)) let qPrediction = Q.GetPrediction(minion) where qPrediction.Collision == false select minion).Where(minion => !minion.IsDead))
                     {
                         Q.Cast(minion);
                         return;
@@ -120,19 +109,10 @@ namespace Marksman_Master.Plugins.Urgot.Modes
                 return;
             }
 
-            if (!CanILaneClear() || !Settings.LaneClear.UseEInLaneClear ||
-                Player.Instance.CountEnemyMinionsInRange(900) <= 3)
+            if (!CanILaneClear() || !Settings.LaneClear.UseEInLaneClear || (Player.Instance.CountEnemyMinionsInRangeCached(900) <= 3))
                 return;
 
-            var farmPosition =
-                EntityManager.MinionsAndMonsters.GetCircularFarmLocation(
-                    EntityManager.MinionsAndMonsters.EnemyMinions.Where(
-                        x => x.IsValidTarget(E.Range) && x.HealthPercent > 10), 250, 900, 250, 1550);
-
-            if (farmPosition.HitNumber <= 2)
-                return;
-
-            E.Cast(farmPosition.CastPosition);
+            E.CastOnBestFarmPosition(1);
         }
     }
 }
