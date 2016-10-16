@@ -91,6 +91,11 @@ namespace Marksman_Master.Plugins.Draven
         protected static bool IsPreAttack { get; private set; }
         protected static bool IsAfterAttack { get; private set; }
 
+        protected static bool ValidOrbwalkerMode
+            => (Orbwalker.ActiveModesFlags &
+                 (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit |
+                  Orbwalker.ActiveModes.JungleClear)) != 0;
+
         static Draven()
         {
             Q = new Spell.Active(SpellSlot.Q);
@@ -129,10 +134,10 @@ namespace Marksman_Master.Plugins.Draven
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
-            if (target?.GetType() != typeof(AIHeroClient) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+            if ((target?.GetType() != typeof(AIHeroClient)) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
-            if (Q.IsReady() && GetAxesCount() != 0 && GetAxesCount() < Settings.Combo.MaxAxesAmount)
+            if (Q.IsReady() && (GetAxesCount() != 0) && (GetAxesCount() < Settings.Combo.MaxAxesAmount))
                 Q.Cast();
         }
 
@@ -177,7 +182,7 @@ namespace Marksman_Master.Plugins.Draven
                 }
             }
 
-            if (target.GetType() != typeof(AIHeroClient) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+            if ((target.GetType() != typeof(AIHeroClient)) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                 return;
 
             if (Q.IsReady() && (GetAxesCount() == 0))
@@ -202,7 +207,7 @@ namespace Marksman_Master.Plugins.Draven
 
         private static Vector3? OverrideOrbwalkPosition()
         {
-            if (!Settings.Axe.CatchAxes || !AxeObjects.Any() || GetAxesCount() == 0)
+            if (!Settings.Axe.CatchAxes || !AxeObjects.Any() || (GetAxesCount() == 0))
             {
                 return null;
             }
@@ -210,14 +215,14 @@ namespace Marksman_Master.Plugins.Draven
             foreach (
                 var axeObjectData in
                     AxeObjects.Where(
-                        x =>
-                            Game.CursorPos.IsInRangeCached(x.EndPosition, Settings.Axe.AxeCatchRange) &&
+                        x => 
+                            Settings.Axe.CatchAxesMode == 2 ? Player.Instance.IsInRange(x.EndPosition, Settings.Axe.AxeCatchRange) : Game.CursorPos.IsInRange(x.EndPosition, Settings.Axe.AxeCatchRange) &&
                             CanPlayerCatchAxe(x)).OrderBy(x => x.EndPosition.DistanceCached(Player.Instance)))
             {
-                var isOutside = !Player.Instance.Position.IsInRangeCached(axeObjectData.EndPosition, 120);
-                var isInside = Player.Instance.Position.IsInRangeCached(axeObjectData.EndPosition, 120);
+                var isOutside = !Player.Instance.Position.IsInRange(axeObjectData.EndPosition, 120);
+                var isInside = Player.Instance.Position.IsInRange(axeObjectData.EndPosition, 120);
 
-                if ((Settings.Axe.CatchAxesMode == 0) && !Player.Instance.Position.IsInRangeCached(axeObjectData.EndPosition, 250))
+                if ((Settings.Axe.CatchAxesMode == 0) && !Player.Instance.Position.IsInRange(axeObjectData.EndPosition, 250))
                     return null;
 
                 if (isOutside)
@@ -226,7 +231,7 @@ namespace Marksman_Master.Plugins.Draven
                     {
                         var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 350,DamageType.Physical);
 
-                        if (target != null && (target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(target) * 2))
+                        if ((target != null) && (target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(target) * 2))
                         {
                             var pos = Prediction.Position.PredictUnitPosition(target, (int)(GetEta(axeObjectData, Player.Instance.MoveSpeed) * 1000));
 
@@ -245,6 +250,7 @@ namespace Marksman_Master.Plugins.Draven
                     {
                         W.Cast();
                     }
+
                     return axeObjectData.EndPosition;
                 }
 
@@ -257,15 +263,16 @@ namespace Marksman_Master.Plugins.Draven
 
                     var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 100, DamageType.Physical);
 
-                    if (target != null &&
+                    if ((target != null) &&
                         (target.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(target, true) * 2) &&
                         !Prediction.Position.PredictUnitPosition(target, (int)(axeObjectData.EndTick - Core.GameTickCount))
                             .IsInRangeCached(Player.Instance, Player.Instance.GetAutoAttackRange()))
                     {
                         return null;
                     }
+
                     var position =
-                        new Geometry.Polygon.Circle(axeObjectData.EndPosition, 120).Points.Where(
+                        new Geometry.Polygon.Circle(axeObjectData.EndPosition, 110).Points.Where(
                             x =>
                                 axeObjectData.EndPosition.To2D()
                                     .ProjectOn(axeObjectData.EndPosition.To2D(), Game.CursorPos.To2D())
@@ -282,7 +289,7 @@ namespace Marksman_Master.Plugins.Draven
 
         private static bool CanPlayerCatchAxe(AxeObjectData axe)
         {
-            if (!Settings.Axe.CatchAxes || (Settings.Axe.CatchAxesWhen == 0 && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear)) || (Settings.Axe.CatchAxesWhen == 1 && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)))
+            if (!Settings.Axe.CatchAxes || !ValidOrbwalkerMode)
             {
                 return false;
             }
@@ -330,7 +337,7 @@ namespace Marksman_Master.Plugins.Draven
 
             var missile = sender as MissileClient;
 
-            if (missile == null || !missile.IsValidMissile())
+            if ((missile == null) || !missile.IsValidMissile())
                 return;
 
             if (missile.SData.Name.Equals("dravenr", StringComparison.CurrentCultureIgnoreCase) && missile.SpellCaster.IsMe)
@@ -359,19 +366,19 @@ namespace Marksman_Master.Plugins.Draven
 
         protected static int GetAxesCount()
         {
-            if (!HasSpinningAxeBuff && AxeObjects == null)
+            if (!HasSpinningAxeBuff && (AxeObjects == null))
                 return 0;
 
-            if (!HasSpinningAxeBuff && AxeObjects?.Count > 0)
+            if (!HasSpinningAxeBuff && (AxeObjects?.Count > 0))
                 return AxeObjects.Count;
 
-            if (GetSpinningAxeBuff?.Count == 0 && AxeObjects?.Count > 0)
+            if ((GetSpinningAxeBuff?.Count == 0) && (AxeObjects?.Count > 0))
                 return AxeObjects.Count;
 
-            if (GetSpinningAxeBuff?.Count > 0 && AxeObjects?.Count == 0)
+            if ((GetSpinningAxeBuff?.Count > 0) && (AxeObjects?.Count == 0))
                 return GetSpinningAxeBuff.Count;
 
-            if (GetSpinningAxeBuff?.Count > 0 && AxeObjects?.Count > 0)
+            if ((GetSpinningAxeBuff?.Count > 0) && (AxeObjects?.Count > 0))
                 return GetSpinningAxeBuff.Count + AxeObjects.Count;
 
             return 0;
@@ -388,6 +395,9 @@ namespace Marksman_Master.Plugins.Draven
 
             if (Settings.Drawings.DrawE && (!Settings.Drawings.DrawSpellRangesWhenReady || E.IsReady()))
                 Circle.Draw(ColorPicker[0].Color, E.Range, Player.Instance);
+
+            if (Settings.Drawings.DrawAxesCatchRange && (Settings.Axe.CatchAxesMode != 2))
+                Circle.Draw(ColorPicker[1].Color, Settings.Axe.AxeCatchRange, Game.CursorPos);
 
             foreach (var axeObjectData in AxeObjects)
             {
@@ -410,8 +420,20 @@ namespace Marksman_Master.Plugins.Draven
                 Text.Draw();
             }
 
-            if (Settings.Drawings.DrawAxesCatchRange)
-                Circle.Draw(ColorPicker[1].Color, Settings.Axe.AxeCatchRange, Game.CursorPos);
+            var buff =
+                Player.Instance.Buffs.Where(
+                    x => x.Name.Equals("dravenspinningattack", StringComparison.CurrentCultureIgnoreCase))
+                    .OrderByDescending(x => x.EndTime)
+                    .FirstOrDefault();
+
+            if (buff != null)
+            {
+                var timeLeft = Math.Max(0, buff.EndTime - Game.Time);
+                Text.Color = new Misc.HsvColor(111, 1, 1).ColorFromHsv();
+                Text.Position = Drawing.WorldToScreen(Player.Instance.Position - 50);
+                Text.TextValue = $"Q remaining time : {timeLeft.ToString("F1")} s";
+                Text.Draw();
+            }
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
@@ -480,17 +502,29 @@ namespace Marksman_Master.Plugins.Draven
             AxeSettingsMenu.AddSeparator(5);
 
             AxeSettingsMenu.AddLabel("Catching settings :");
-            AxeSettingsMenu.Add("Plugins.Draven.AxeSettingsMenu.CatchAxesWhen",
-                new ComboBox("When should I catch them", 0, "Lane clear and combo", " Only in Combo"));
-            AxeSettingsMenu.Add("Plugins.Draven.AxeSettingsMenu.CatchAxesMode",
-                new ComboBox("Catch mode", 0, "Default", "Brutal"));
+            var axeMode = AxeSettingsMenu.Add("Plugins.Draven.AxeSettingsMenu.CatchAxesMode",
+                new ComboBox("Catch mode", 0, "Default", "Brutal", "Yorik"));
+
             AxeSettingsMenu.AddSeparator(2);
-            AxeSettingsMenu.AddLabel("Default mode only tries to catch axe if distance to from player to axe is less than 250.\nBrutal catches all axes within range of desired catch radius.");
+            AxeSettingsMenu.AddLabel("Default mode only tries to catch axe if distance to from player to axe is less than 250.\nBrutal catches all axes within range of desired catch radius.\n" +
+                                     "Yorik mode catches axes around player insead of catching axes inside circle around your mouse");
             AxeSettingsMenu.AddSeparator(5);
 
-            AxeSettingsMenu.Add("Plugins.Draven.AxeSettingsMenu.AxeCatchRange",
-                new Slider("Axe Catch Range", 450, 200, 1000));
-            AxeSettingsMenu.AddSeparator(5);
+            AxeSettingsMenu.Add("Plugins.Draven.AxeSettingsMenu.AxeCatchRange", new Slider("Axe Catch Range", 450, 200, 1000));
+            AxeSettingsMenu.AddSeparator(2);
+
+            var label = AxeSettingsMenu.Add("YorikMode",
+                new Label(
+                    "This sets the range around your player within you will catch the axe.\nDon't set this too high."));
+
+            label.IsVisible = axeMode.CurrentValue == 2;
+
+            axeMode.OnValueChange += (sender, args) =>
+            {
+                label.IsVisible = args.NewValue == 2;
+            };
+
+            AxeSettingsMenu.AddSeparator();
 
             AxeSettingsMenu.AddLabel("Additional settings :");
             AxeSettingsMenu.Add("Plugins.Draven.AxeSettingsMenu.CatchAxesUnderTower",
@@ -638,16 +672,11 @@ namespace Marksman_Master.Plugins.Draven
                 public static bool CatchAxes => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.CatchAxes"];
 
                 public static bool UseWToCatch => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.UseWToCatch"];
-
-                /// <summary>
-                /// 0 - Lane clear and combo
-                /// 1 - Only in Combo
-                /// </summary>
-                public static int CatchAxesWhen => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.CatchAxesWhen", true];
-
+                
                 /// <summary>
                 /// 0 - Default
                 /// 1 - Brutal
+                /// 2 - Yorik
                 /// </summary>
                 public static int CatchAxesMode => MenuManager.MenuValues["Plugins.Draven.AxeSettingsMenu.CatchAxesMode", true];
 
