@@ -42,21 +42,30 @@ namespace Marksman_Master.Plugins.Urgot.Modes
         {
             if (R.IsReady() && Settings.Combo.UseR && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.IsValidTargetCached(R.Range)) && (Player.Instance.Mana >= 300))
             {
-                var target = TargetSelector.GetTarget(R.Range, DamageType.Physical);
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => x.IsValidTargetCached(R.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
                 if (target != null)
                 {
-                    var damage = Player.Instance.GetAutoAttackDamage(target, true) * 2;
+                    var damage = Player.Instance.GetAutoAttackDamage(target, true)*4;
 
                     if (IsInQRange(target))
-                        damage += Player.Instance.GetSpellDamageCached(target, SpellSlot.Q)*2;
+                        damage += Player.Instance.GetSpellDamageCached(target, SpellSlot.Q)*4;
 
-                    if ((damage > target.Health) && (target.HealthPercent > 40) && (target.Position.CountEnemiesInRange(600) < 2) && (Player.Instance.HealthPercent > target.HealthPercent) && !target.IsUnderTurret())
+                    if (E.Handle.CooldownExpires - Game.Time < 2)
+                        damage += Player.Instance.GetSpellDamageCached(target, SpellSlot.E);
+
+                    if ((damage > target.Health) && (target.HealthPercent > 20) &&
+                        (target.Position.CountEnemiesInRangeCached(1100) <= 2) &&
+                        (Player.Instance.HealthPercent > target.HealthPercent) && !target.IsUnderTurret())
                     {
                         R.Cast(target);
                         return;
                     }
-                    if (Player.Instance.IsUnderTurret() && (Player.Instance.HealthPercent > 25) && (Player.Instance.HealthPercent > target.HealthPercent))
+                    if (Player.Instance.IsUnderTurret() && (target.Position.CountEnemiesInRangeCached(1100) <= 2) &&
+                        (Player.Instance.HealthPercent > 25) && (Player.Instance.HealthPercent > target.HealthPercent))
                     {
                         R.Cast(target);
                         return;
