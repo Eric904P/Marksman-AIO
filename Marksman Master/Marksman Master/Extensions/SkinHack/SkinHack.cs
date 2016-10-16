@@ -207,7 +207,9 @@ namespace Marksman_Master.Extensions.SkinHack
             SkinHackMenu.AddGroupLabel("Skin hack settings : ");
 
             SkinId = SkinHackMenu.Add("SkinId." + Player.Instance.ChampionName, new ComboBox("Skin : ", skins));
-            SkinId.CurrentValue = LoadSkinId;
+
+            if(LoadSkinId != 0)
+                SkinId.CurrentValue = LoadSkinId;
 
             SkinHackMenu.AddSeparator(5);
 

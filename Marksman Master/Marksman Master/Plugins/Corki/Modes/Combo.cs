@@ -29,6 +29,7 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
+using EloBuddy.SDK.Enumerations;
 using Marksman_Master.Utils;
 
 namespace Marksman_Master.Plugins.Corki.Modes
@@ -37,70 +38,88 @@ namespace Marksman_Master.Plugins.Corki.Modes
     {
         public static void Execute()
         {
-
-
-            if (W.IsReady() && Settings.Combo.UseW && !HasPackagesBuff && Player.Instance.CountEnemiesInRange(1500) == 1 && Player.Instance.Mana > QMana[Q.Level] + WMana + EMana + RMana)
+            if (W.IsReady() && Settings.Combo.UseW && !HasPackagesBuff && (Player.Instance.CountEnemiesInRange(1500) == 1) && (Player.Instance.Mana > QMana[Q.Level] + WMana + EMana + RMana))
             {
-                var target = TargetSelector.GetTarget(W.Range, DamageType.Physical);
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x =>
+                        x.IsValidTargetCached(W.Range) && !x.HasUndyingBuffA() && !x.Position.IsVectorUnderEnemyTower() &&
+                        (x.HealthPercent < Player.Instance.HealthPercent) && (x.Health < Damage.GetComboDamage(x, 2, 2)));
 
-                if (target != null && !target.IsUnderHisturret() && target.HealthPercent < Player.Instance.HealthPercent && target.Health < Damage.GetComboDamage(target, 2, 2))
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+                if (target != null)
                 {
                     W.Cast(Player.Instance.Position.Extend(target, 580).To3D());
-                    Misc.PrintInfoMessage("Engaging on <font color=\"#ff1493\">" + target.Hero + "</font> because he can be killed from combo.");
+                    return;
                 }
             }
 
-            if (Q.IsReady() && Settings.Combo.UseQ && !HasSheenBuff)
+            if (Q.IsReady() && Settings.Combo.UseQ)
             {
-                var target = TargetSelector.GetTarget(Q.Range, DamageType.Magical);
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => x.IsValidTargetCached(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
 
-                if (target != null && !target.HasUndyingBuffA() && !target.HasSpellShield())
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Magical);
+
+                if (target != null)
                 {
                     var prediction = Q.GetPrediction(target);
 
-                    if (prediction.HitChancePercent >= 80)
+                    if (prediction.HitChance >= HitChance.High)
                     {
                         Q.Cast(prediction.CastPosition);
+                        return;
                     }
                 }
             }
 
-            if (E.IsReady() && Settings.Combo.UseE && !HasSheenBuff)
+            if (E.IsReady() && Settings.Combo.UseE)
             {
-                var target = TargetSelector.GetTarget(650, DamageType.Mixed);
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => x.IsValidTargetCached(500) && !x.HasUndyingBuffA());
 
-                if (target != null && !target.HasUndyingBuffA() && target.Distance(Player.Instance) < 500)
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Mixed);
+
+                if (target != null)
                 {
                     E.Cast();
+                    return;
                 }
             }
 
-            if (R.IsReady() && Settings.Combo.UseR && Player.Instance.Spellbook.GetSpell(SpellSlot.R).Ammo >= Settings.Combo.MinStacksForR && !HasSheenBuff)
+            if (!R.IsReady() || !Settings.Combo.UseR || (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Ammo < Settings.Combo.MinStacksForR))
+                return;
             {
-                var target = TargetSelector.GetTarget(R.Range, DamageType.Magical);
+                var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => x.IsValidTargetCached(R.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
 
-                if (target != null && !target.HasUndyingBuffA() && !target.HasSpellShield())
+                var target = TargetSelector.GetTarget(possibleTargets, DamageType.Magical);
+
+                if (target == null)
+                    return;
+
+                var prediction = R.GetPrediction(target);
+
+                if (prediction.Collision && Settings.Combo.RAllowCollision)
                 {
-                    var prediction = R.GetPrediction(target);
+                    var first =
+                        prediction.CollisionObjects.OrderBy(x => x.DistanceCached(Player.Instance)).FirstOrDefault();
 
-                    if (prediction.Collision && prediction.CollisionObjects != null && Settings.Combo.RAllowCollision)
-                    {
-                        var first =
-                            prediction.CollisionObjects.OrderBy(x => x.Distance(Player.Instance))
-                                .FirstOrDefault();
+                    if (first == null)
+                        return;
 
-                        if (first != null)
-                        {
-                            var enemy = GetCollisionObjects<Obj_AI_Base>(first).FirstOrDefault(x=>x.NetworkId == target.NetworkId);
-                            if (enemy != null)
-                            {
-                                R.Cast(first);
-                            }
-                        }
-                    } else if (target.HealthPercent <= 50 ? prediction.HitChancePercent >= 25 : prediction.HitChancePercent >= 40)
+                    var enemy =
+                        GetCollisionObjects<Obj_AI_Base>(first).FirstOrDefault(x => x.NetworkId == target.NetworkId);
+
+                    if (enemy != null)
                     {
-                        R.Cast(prediction.CastPosition);
+                        R.Cast(first);
                     }
+                }
+                else if (target.HealthPercent <= 50 ? prediction.HitChance >= HitChance.Medium
+                    : prediction.HitChance >= HitChance.High)
+                {
+                    R.Cast(prediction.CastPosition);
                 }
             }
         }

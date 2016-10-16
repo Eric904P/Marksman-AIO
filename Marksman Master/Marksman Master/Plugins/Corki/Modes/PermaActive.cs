@@ -37,50 +37,89 @@ namespace Marksman_Master.Plugins.Corki.Modes
     {
         public static void Execute()
         {
-            if (R.IsReady())
+            foreach (
+                var target in
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x => (x.HealthPercent <= 30) &&
+                             !x.IsZombie && x.IsValidTargetCached(1500) && !x.HasSpellShield() && !x.HasUndyingBuffA()))
             {
-                foreach (var pred in EntityManager.Heroes.Enemies.Where(x=> !x.IsDead && x.IsValidTarget(R.Range) && x.Health < Damage.GetSpellDamage(x, SpellSlot.R)).Select(unit => R.GetPrediction(unit)).Where(pred => !pred.Collision))
+                if (Q.IsReady() && target.IsValidTarget(Q.Range) && (Damage.GetSpellDamage(target, SpellSlot.Q) <= target.TotalHealthWithShields(true)))
                 {
-                    R.Cast(pred.CastPosition);
+                    var qPrediction = Q.GetPrediction(target);
+                    if (qPrediction.HitChance >= EloBuddy.SDK.Enumerations.HitChance.Medium)
+                    {
+                        Q.Cast(qPrediction.CastPosition);
+                        return;
+                    }
                 }
-            }
+                if (!R.IsReady() || !target.IsValidTarget(R.Range) || (Damage.GetSpellDamage(target, SpellSlot.R) > target.TotalHealthWithShields(true)))
+                    continue;
 
-            if (R.IsReady() && Settings.Misc.AutoHarassEnabled && !Player.Instance.IsRecalling() && Player.Instance.Spellbook.GetSpell(SpellSlot.R).Ammo >= Settings.Misc.MinStacksToUseR && !HasSheenBuff)
-            {
-                if (HasBigRMissile && !(HasBigRMissile && Settings.Misc.UseBigBomb))
-                    return;
+                var rPrediction = R.GetPrediction(target);
 
-                foreach (
-                    var enemy in
-                        EntityManager.Heroes.Enemies.Where(
-                            hero =>
-                                !hero.IsDead && hero.IsValidTarget(R.Range) && !hero.HasSpellShield() &&
-                                !hero.HasUndyingBuffA() && Settings.Misc.IsAutoHarassEnabledFor(hero))
-                            .OrderByDescending(TargetSelector.GetPriority).ThenBy(x => x.Distance(Player.Instance)))
+                if (rPrediction.Collision && Settings.Combo.RAllowCollision)
                 {
-                    var prediction = R.GetPrediction(enemy);
+                    var first =
+                        rPrediction.CollisionObjects.OrderBy(x => x.DistanceCached(Player.Instance)).FirstOrDefault();
 
-                    if (prediction.Collision && prediction.CollisionObjects != null && Settings.Combo.RAllowCollision)
-                    {
-                        var first =
-                            prediction.CollisionObjects.OrderBy(x => x.Distance(Player.Instance))
-                                .FirstOrDefault();
+                    if (first == null)
+                        return;
 
-                        if (first != null)
-                        {
-                            var e =
-                                GetCollisionObjects<Obj_AI_Base>(first)
-                                    .FirstOrDefault(x => x.NetworkId == enemy.NetworkId);
-                            if (e != null)
-                            {
-                                R.Cast(first);
-                            }
-                        }
-                    }
-                    else if (prediction.HitChancePercent >= 60)
+                    var enemy =
+                        GetCollisionObjects<Obj_AI_Base>(first).FirstOrDefault(x => x.NetworkId == target.NetworkId);
+
+                    if (enemy == null)
+                        continue;
+
+                    R.Cast(first);
+                    return;
+                }
+
+                if (rPrediction.HitChance < EloBuddy.SDK.Enumerations.HitChance.Medium)
+                    continue;
+
+                R.Cast(rPrediction.CastPosition);
+                return;
+            }
+            
+            if (!R.IsReady() || Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) || Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass) || !Settings.Misc.AutoHarassEnabled || Player.Instance.IsRecalling() ||
+                (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Ammo < Settings.Misc.MinStacksToUseR))
+                return;
+
+            if (HasBigRMissile && !(HasBigRMissile && Settings.Misc.UseBigBomb))
+                return;
+
+            foreach (
+                var target in
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        hero => Settings.Misc.IsAutoHarassEnabledFor(hero) &&
+                                !hero.IsZombie && hero.IsValidTarget(R.Range) && !hero.HasSpellShield() &&
+                                !hero.HasUndyingBuffA())
+                        .OrderByDescending(TargetSelector.GetPriority))
+            {
+                var prediction = R.GetPrediction(target);
+
+                if (prediction.Collision && Settings.Combo.RAllowCollision)
+                {
+                    var first =
+                        prediction.CollisionObjects.OrderBy(x => x.DistanceCached(Player.Instance)).FirstOrDefault();
+
+                    if (first == null)
+                        return;
+
+                    var enemy =
+                        GetCollisionObjects<Obj_AI_Base>(first).FirstOrDefault(x => x.NetworkId == target.NetworkId);
+
+                    if (enemy != null)
                     {
-                        R.Cast(prediction.CastPosition);
+                        R.Cast(first);
                     }
+                }
+                else if (target.HealthPercent <= 50
+                    ? prediction.HitChance >= EloBuddy.SDK.Enumerations.HitChance.Medium
+                    : prediction.HitChance >= EloBuddy.SDK.Enumerations.HitChance.High)
+                {
+                    R.Cast(prediction.CastPosition);
                 }
             }
         }

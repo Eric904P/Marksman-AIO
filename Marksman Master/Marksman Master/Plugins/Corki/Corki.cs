@@ -39,6 +39,7 @@ using EloBuddy.SDK.Utils;
 using Marksman_Master.Utils;
 using SharpDX;
 using Color = System.Drawing.Color;
+using Marksman_Master.Cache.Modules;
 
 namespace Marksman_Master.Plugins.Corki
 {
@@ -68,44 +69,45 @@ namespace Marksman_Master.Plugins.Corki
         protected static BuffInstance GetRBigMissileBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkimissilebarragecounterbig");
+                    b => b.IsActive && b.DisplayName.Equals("corkimissilebarragecounterbig", StringComparison.CurrentCultureIgnoreCase));
 
         protected static bool HasBigRMissile
             =>
                 Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkimissilebarragecounterbig");
+                    b => b.IsActive && b.DisplayName.Equals("corkimissilebarragecounterbig", StringComparison.CurrentCultureIgnoreCase));
 
         protected static BuffInstance GetRNormalMissileBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkimissilebarragecounternormal");
+                    b => b.IsActive && b.DisplayName.Equals("corkimissilebarragecounternormal", StringComparison.CurrentCultureIgnoreCase));
 
         protected static bool HasNormalRMissile
             =>
                 Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkimissilebarragecounternormal");
+                    b => b.IsActive && b.DisplayName.Equals("corkimissilebarragecounternormal", StringComparison.CurrentCultureIgnoreCase));
 
         protected static bool HasPackagesBuff
             =>
                 Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkiloaded");
+                    b => b.IsActive && b.DisplayName.Equals("corkiloaded", StringComparison.CurrentCultureIgnoreCase));
 
         protected static BuffInstance GetPackagesBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "corkiloaded");
-
-        protected static bool HasSheenBuff
-            =>
-                Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "sheen");
-
+                    b => b.IsActive && b.DisplayName.Equals("corkiloaded"));
+        
         protected static BuffInstance GetSheenBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "sheen");
+                    b => b.IsActive && b.DisplayName.Equals("sheen", StringComparison.CurrentCultureIgnoreCase));
 
+        protected static Cache.Cache Cache => StaticCacheProvider.Cache;
 
+        protected static bool IsPreAttack { get; private set; }
+
+        protected static float R_ETA(Vector3 position) => Player.Instance.DistanceCached(position) / R.Speed * 1000 + R.CastDelay;
+        protected static float R_ETA(Obj_AI_Base unit) => Player.Instance.DistanceCached(unit) / R.Speed * 1000 + R.CastDelay;
+        
         static Corki()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 825, SkillShotType.Circular, 250, 1000, 250)
@@ -136,6 +138,16 @@ namespace Marksman_Master.Plugins.Corki
             {
                 DamageIndicator.Color = args.Color;
             };
+
+            ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
+            ChampionTracker.OnPostBasicAttack += (sender, args) => IsPreAttack = false;
+            Orbwalker.OnPreAttack += (target, args) => IsPreAttack = true;
+
+            Obj_AI_Base.OnBuffGain += (sender, args) =>
+            {
+                if(sender.IsMe)
+                    R.Range = HasBigRMissile ? (uint)1500 : 1300;
+            };
         }
 
         private static float HandleDamageIndicator(Obj_AI_Base unit)
@@ -143,7 +155,7 @@ namespace Marksman_Master.Plugins.Corki
             if (!Settings.Drawings.DrawDamageIndicator)
                 return 0;
 
-            var enemy = (AIHeroClient) unit;
+            var enemy = unit as AIHeroClient;
             return enemy != null ? Damage.GetComboDamage(enemy) : 0f;
         }
 
@@ -160,7 +172,6 @@ namespace Marksman_Master.Plugins.Corki
             if (_changingRangeScan)
                 Circle.Draw(SharpDX.Color.White,
                     LaneClearMenu["Plugins.Corki.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue, Player.Instance);
-            
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
@@ -190,7 +201,7 @@ namespace Marksman_Master.Plugins.Corki
 
             ComboMenu.AddLabel("Missile Barrage (R) settings :");
             ComboMenu.Add("Plugins.Corki.ComboMenu.UseR", new CheckBox("Use R"));
-            ComboMenu.Add("Plugins.Corki.ComboMenu.MinStacksForR", new Slider("Minimum stacks to use R", 0, 0, 7));
+            ComboMenu.Add("Plugins.Corki.ComboMenu.MinStacksForR", new Slider("Minimum stacks to use R", 1, 1, 7));
             ComboMenu.AddSeparator(1);
             ComboMenu.Add("Plugins.Corki.ComboMenu.RAllowCollision", new CheckBox("Allow collision on minions", false));
             ComboMenu.AddLabel("Allow collision on minions if damage will be applied on enemy champion.");
@@ -211,7 +222,7 @@ namespace Marksman_Master.Plugins.Corki
             HarassMenu.AddLabel("Missile Barrage (R) settings :");
             HarassMenu.Add("Plugins.Corki.HarassMenu.UseR", new CheckBox("Use R"));
             HarassMenu.Add("Plugins.Corki.HarassMenu.MinManaToUseR", new Slider("Min mana percentage ({0}%) to use R", 50, 1));
-            HarassMenu.Add("Plugins.Corki.HarassMenu.MinStacksToUseR", new Slider("Minimum stacks to use R", 3, 0, 7));
+            HarassMenu.Add("Plugins.Corki.HarassMenu.MinStacksToUseR", new Slider("Minimum stacks to use R", 3, 1, 7));
             HarassMenu.AddSeparator(1);
             HarassMenu.Add("Plugins.Corki.HarassMenu.RAllowCollision", new CheckBox("Allow collision on minions"));
             HarassMenu.AddLabel("Allow collision on minions if damage will be applied on enemy champion.");
@@ -250,10 +261,8 @@ namespace Marksman_Master.Plugins.Corki
             LaneClearMenu.AddLabel("Missile Barrage (R) settings :");
             LaneClearMenu.Add("Plugins.Corki.LaneClearMenu.UseR", new CheckBox("Use R"));
             LaneClearMenu.Add("Plugins.Corki.LaneClearMenu.MinManaToUseR", new Slider("Min mana percentage ({0}%) to use R", 50, 1));
-            LaneClearMenu.Add("Plugins.Corki.LaneClearMenu.MinStacksToUseR", new Slider("Minimum stacks to use R", 6, 0, 7));
-            LaneClearMenu.AddSeparator(1);
-            LaneClearMenu.Add("Plugins.Corki.LaneClearMenu.RAllowCollision", new CheckBox("Allow collision on minions"));
-            LaneClearMenu.AddLabel("Allow collision on minions if damage will be applied on other minions.");
+            LaneClearMenu.Add("Plugins.Corki.LaneClearMenu.MinStacksToUseR", new Slider("Minimum stacks to use R", 6, 1, 7));
+            LaneClearMenu.Add("Plugins.Corki.LaneClearMenu.MinMinionsHitToUseR", new Slider("Minimum minions hit to use R", 3, 1, 4));
 
             JungleClearMenu = MenuManager.Menu.AddSubMenu("Jungle clear");
             JungleClearMenu.AddGroupLabel("Jungle clear mode settings for Corki addon");
@@ -271,7 +280,7 @@ namespace Marksman_Master.Plugins.Corki
             JungleClearMenu.AddLabel("Missile Barrage (R) settings :");
             JungleClearMenu.Add("Plugins.Corki.JungleClearMenu.UseR", new CheckBox("Use R"));
             JungleClearMenu.Add("Plugins.Corki.JungleClearMenu.MinManaToUseR", new Slider("Min mana percentage ({0}%) to use R", 50, 1));
-            JungleClearMenu.Add("Plugins.Corki.JungleClearMenu.MinStacksToUseR", new Slider("Minimum stacks to use R", 5, 0, 7));
+            JungleClearMenu.Add("Plugins.Corki.JungleClearMenu.MinStacksToUseR", new Slider("Minimum stacks to use R", 5, 1, 7));
             JungleClearMenu.AddSeparator(1);
             JungleClearMenu.Add("Plugins.Corki.JungleClearMenu.RAllowCollision", new CheckBox("Allow collision on minions"));
             JungleClearMenu.AddLabel("Allow collision on minions if damage will be applied on other minions.");
@@ -282,7 +291,7 @@ namespace Marksman_Master.Plugins.Corki
             MiscMenu.Add("Plugins.Corki.MiscMenu.AutoHarassEnabled",
                 new KeyBind("Enable auto harass", true, KeyBind.BindTypes.PressToggle, 'T'));
             MiscMenu.Add("Plugins.Corki.MiscMenu.UseBigBomb", new CheckBox("Use big bomb", false));
-            MiscMenu.Add("Plugins.Corki.MiscMenu.MinStacksToUseR", new Slider("Minimum stacks to use R", 3, 0, 7));
+            MiscMenu.Add("Plugins.Corki.MiscMenu.MinStacksToUseR", new Slider("Minimum stacks to use R", 3, 1, 7));
             MiscMenu.AddSeparator(5);
             MiscMenu.AddLabel("Auto harass enabled for : ");
 
@@ -353,12 +362,11 @@ namespace Marksman_Master.Plugins.Corki
         {
             try
             {
-                var minions =
-                    EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
-                        obj => obj.Position.Distance(unit) < (HasBigRMissile ? 280 : 130)).ToList();
-                var enemies =
-                    EntityManager.Heroes.Enemies.Where(
-                        obj => obj.Position.Distance(unit) < (HasBigRMissile ? 280 : 130)).ToList();
+                var minions = StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
+                        obj => obj.IsValidTargetCached() && Prediction.Position.PredictUnitPosition(obj, (int)R_ETA(obj)).IsInRangeCached(unit, HasBigRMissile ? 280 : 130)).ToList();
+
+                var enemies = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        obj => obj.IsValidTargetCached() && Prediction.Position.PredictUnitPosition(obj, (int)R_ETA(obj)).IsInRangeCached(unit, HasBigRMissile ? 280 : 130)).ToList();
 
                 if (typeof(T) == typeof(Obj_AI_Base))
                 {
@@ -383,19 +391,23 @@ namespace Marksman_Master.Plugins.Corki
 
         protected override void PermaActive()
         {
-            R.Range = HasBigRMissile ? (uint)1500 : 1300;
-
             Modes.PermaActive.Execute();
         }
 
         protected override void ComboMode()
         {
-            Modes.Combo.Execute();
+            if (!Player.Instance.HasSheenBuff() && !IsPreAttack)
+            {
+                Modes.Combo.Execute();
+            }
         }
 
         protected override void HarassMode()
         {
-            Modes.Harass.Execute();
+            if (!Player.Instance.HasSheenBuff() && !IsPreAttack)
+            {
+                Modes.Harass.Execute();
+            }
         }
 
         protected override void LaneClear()
@@ -474,11 +486,11 @@ namespace Marksman_Master.Plugins.Corki
 
                 public static bool UseR => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.UseR"];
 
-                public static bool RAllowCollision => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.RAllowCollision"];
-
                 public static int MinManaToUseR => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.MinManaToUseR", true];
 
                 public static int MinStacksToUseR => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.MinStacksToUseR", true];
+
+                public static int MinMinionsHitToUseR => MenuManager.MenuValues["Plugins.Corki.LaneClearMenu.MinMinionsHitToUseR", true]; 
             }
 
             internal static class JungleClear
@@ -543,20 +555,31 @@ namespace Marksman_Master.Plugins.Corki
             private static float[] RDamageBigTotalAdMod { get; } = { 0, 0.3f, 0.75f, 1.2f };
             private static float RDamageBigTotalApMod { get; } = 0.45f;
 
+            private static CustomCache<Tuple<int, uint, uint>, float> CachedComboDamage => Cache.Resolve<CustomCache<Tuple<int, uint, uint>, float>>(1000);
+            private static CustomCache<int, float> CachedQDamage => Cache.Resolve<CustomCache<int, float>>(1000);
+            private static CustomCache<KeyValuePair<int, float>, float> CachedEDamage => Cache.Resolve<CustomCache<KeyValuePair<int, float>, float>>(1000);
+            private static CustomCache<int, float> CachedRDamage => Cache.Resolve<CustomCache<int, float>>(1000);
+
             public static float GetComboDamage(AIHeroClient enemy, uint autos = 1, uint bombs = 1)
             {
+                if (MenuManager.IsCacheEnabled &&
+                    CachedComboDamage.Exist(new Tuple<int, uint, uint>(enemy.NetworkId, autos, bombs)))
+                {
+                    return CachedComboDamage.Get(new Tuple<int, uint, uint>(enemy.NetworkId, autos, bombs));
+                }
+
                 float damage = 0;
 
                 if (Q.IsReady())
                     damage += GetSpellDamage(enemy, SpellSlot.Q);
 
-                if (Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing] != null && Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing].ToItem().IsReady())
+                if ((Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing] != null) && Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing].ToItem().IsReady())
                     damage += Player.Instance.GetItemDamage(enemy, ItemId.Blade_of_the_Ruined_King);
 
-                if (Activator.Activator.Items[ItemsEnum.Cutlass] != null && Activator.Activator.Items[ItemsEnum.Cutlass].ToItem().IsReady())
+                if ((Activator.Activator.Items[ItemsEnum.Cutlass] != null) && Activator.Activator.Items[ItemsEnum.Cutlass].ToItem().IsReady())
                     damage += Player.Instance.GetItemDamage(enemy, ItemId.Bilgewater_Cutlass);
 
-                if (Activator.Activator.Items[ItemsEnum.Gunblade] != null && Activator.Activator.Items[ItemsEnum.Gunblade].ToItem().IsReady())
+                if ((Activator.Activator.Items[ItemsEnum.Gunblade] != null) && Activator.Activator.Items[ItemsEnum.Gunblade].ToItem().IsReady())
                     damage += Player.Instance.GetItemDamage(enemy, ItemId.Hextech_Gunblade);
 
                 if (E.IsReady())
@@ -565,8 +588,12 @@ namespace Marksman_Master.Plugins.Corki
                 if (R.IsReady())
                     damage += GetSpellDamage(enemy, SpellSlot.R) * bombs;
 
-                damage += Player.Instance.GetAutoAttackDamage(enemy, true) * autos;
+                damage += Player.Instance.GetAutoAttackDamageCached(enemy, true) * autos;
 
+                if (MenuManager.IsCacheEnabled)
+                {
+                    CachedComboDamage.Add(new Tuple<int, uint, uint>(enemy.NetworkId, autos, bombs), damage);
+                }
                 return damage;
             }
 
@@ -596,33 +623,56 @@ namespace Marksman_Master.Plugins.Corki
 
             private static float GetQDamage(Obj_AI_Base unit)
             {
-                if (unit == null || !Q.IsReady())
+                if (unit == null)
                     return 0f;
 
+                if (MenuManager.IsCacheEnabled && CachedQDamage.Exist(unit.NetworkId))
+                {
+                    return CachedQDamage.Get(unit.NetworkId);
+                }
+                
                 float damage;
 
-                if (!(unit is AIHeroClient))
+                if (unit.GetType() != typeof(AIHeroClient))
                 {
                     damage = QDamage[Q.Level] + Player.Instance.FlatPhysicalDamageMod*QDamageBounsAdMod +
                              Player.Instance.FlatMagicDamageMod*QDamageTotalApMod;
 
-                    return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage);
+                    damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage);
+                    
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        CachedQDamage.Add(unit.NetworkId, damage);
+                    }
+                    return damage;
                 }
 
-                var client = (AIHeroClient) unit;
-                if (client.HasSpellShield() || client.HasUndyingBuffA())
+                var client = unit as AIHeroClient;
+
+                if ((client == null) || client.HasSpellShield() || client.HasUndyingBuffA())
                     return 0f;
 
                 damage = QDamage[Q.Level] + Player.Instance.FlatPhysicalDamageMod * QDamageBounsAdMod +
                              Player.Instance.FlatMagicDamageMod*QDamageTotalApMod;
 
-                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage);
+                damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage);
+
+                if (MenuManager.IsCacheEnabled)
+                {
+                    CachedQDamage.Add(unit.NetworkId, damage);
+                }
+                return damage;
             }
 
             private static float GetEDamage(Obj_AI_Base unit, float time = 4)
             {
-                if (unit == null || !E.IsReady() || time < 0.25f || time > 4)
+                if ((unit == null) || (time < 0.25f) || (time > 4))
                     return 0f;
+
+                if (MenuManager.IsCacheEnabled && CachedEDamage.Exist(new KeyValuePair<int, float>(unit.NetworkId, time)))
+                {
+                    return CachedEDamage.Get(new KeyValuePair<int, float>(unit.NetworkId, time));
+                }
 
                 float damage;
 
@@ -633,31 +683,47 @@ namespace Marksman_Master.Plugins.Corki
                     actualTIme = time - time % 0.25f;
                 }
 
-                if (!(unit is AIHeroClient))
+                if (unit.GetType() != typeof(AIHeroClient))
                 {
                     damage = EDamage[Q.Level] / 16 + Player.Instance.FlatPhysicalDamageMod * EDamageBounsAdMod / 16;
 
-                    return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Mixed, damage * (16 / (4 / actualTIme)));
+                    damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Mixed, damage * (16 / (4 / actualTIme)));
+                    
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        CachedEDamage.Add(new KeyValuePair<int, float>(unit.NetworkId, time), damage);
+                    }
+                    return damage;
                 }
 
-                var client = (AIHeroClient) unit;
+                var client = unit as AIHeroClient;
 
-                if (client.HasUndyingBuffA())
+                if ((client == null) || client.HasUndyingBuffA())
                     return 0f;
                 
                 damage = EDamage[Q.Level] / 16 + Player.Instance.FlatPhysicalDamageMod * EDamageBounsAdMod / 16;
+                damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Mixed, damage * (16 / (4 / actualTIme)));
 
-                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Mixed, damage  * (16 / (4 / actualTIme)));
+                if (MenuManager.IsCacheEnabled)
+                {
+                    CachedEDamage.Add(new KeyValuePair<int, float>(unit.NetworkId, time), damage);
+                }
+                return damage;
             }
 
             private static float GetRDamage(Obj_AI_Base unit)
             {
-                if (unit == null || !R.IsReady())
+                if (unit == null)
                     return 0f;
+
+                if (MenuManager.IsCacheEnabled && CachedRDamage.Exist(unit.NetworkId))
+                {
+                    return CachedRDamage.Get(unit.NetworkId);
+                }
 
                 float damage;
 
-                if (!(unit is AIHeroClient))
+                if (unit.GetType() != typeof(AIHeroClient))
                 {
                     if (HasBigRMissile)
                     {
@@ -670,12 +736,18 @@ namespace Marksman_Master.Plugins.Corki
                                  Player.Instance.FlatMagicDamageMod * RDamageNormalTotalApMod;
                     }
 
-                    return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage);
+                    damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage);
+
+                    if (MenuManager.IsCacheEnabled)
+                    {
+                        CachedRDamage.Add(unit.NetworkId, damage);
+                    }
+                    return damage;
                 }
 
-                var client = (AIHeroClient) unit;
+                var client = unit as AIHeroClient;
 
-                if (client.HasSpellShield() || client.HasUndyingBuffA())
+                if ((client == null) || client.HasSpellShield() || client.HasUndyingBuffA())
                     return 0f;
                 
                 if (HasBigRMissile)
@@ -689,7 +761,13 @@ namespace Marksman_Master.Plugins.Corki
                              Player.Instance.FlatMagicDamageMod*RDamageNormalTotalApMod;
                 }
 
-                return Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage);
+                damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical, damage);
+                
+                if (MenuManager.IsCacheEnabled)
+                {
+                    CachedRDamage.Add(unit.NetworkId, damage);
+                }
+                return damage;
             }
         }
     }

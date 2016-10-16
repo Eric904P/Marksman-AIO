@@ -26,78 +26,62 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 
 namespace Marksman_Master.Plugins.Corki.Modes
 {
+    using Utils;
+
     internal class JungleClear : Corki
     {
         public static void Execute()
         {
-            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position,
-                Player.Instance.GetAutoAttackRange() + 250);
+            var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange() + 250)).ToList();
 
-            if (jungleMinions == null)
+            if (!jungleMinions.Any())
                 return;
 
-            var minions = jungleMinions as IList<Obj_AI_Minion> ?? jungleMinions.ToList();
+            var target = Orbwalker.GetTarget() as Obj_AI_Base;
 
             if (Q.IsReady() && Settings.JungleClear.UseQ &&
-                Player.Instance.ManaPercent >= Settings.JungleClear.MinManaToUseQ && !HasSheenBuff)
+                (Player.Instance.ManaPercent >= Settings.JungleClear.MinManaToUseQ))
             {
-                var farmLoc = EntityManager.MinionsAndMonsters.GetCircularFarmLocation(minions, 250, 825, 250, 1000);
+                if (target == null)
+                    return;
 
-                if (farmLoc.HitNumber >= 1)
+                var qPrediction = Q.GetPrediction(target);
+
+                if (qPrediction.HitChance >= EloBuddy.SDK.Enumerations.HitChance.High)
                 {
-                    Q.Cast(farmLoc.CastPosition);
+                    Q.Cast(qPrediction.CastPosition);
                 }
             }
 
             if (E.IsReady() && Settings.JungleClear.UseE &&
-                Player.Instance.ManaPercent >= Settings.JungleClear.MinManaToUseE && !HasSheenBuff)
+                (Player.Instance.ManaPercent >= Settings.JungleClear.MinManaToUseE))
             {
-                if (minions.ToList().Any(x => x.Distance(Player.Instance) < 450))
+                if (jungleMinions.Any(x => Player.Instance.IsInRangeCached(x, 500)))
                 {
                     E.Cast();
+                    return;
                 }
             }
 
-            if (R.IsReady() && Settings.JungleClear.UseR &&
-                Player.Instance.ManaPercent >= Settings.JungleClear.MinManaToUseR && Player.Instance.Spellbook.GetSpell(SpellSlot.R).Ammo >= Settings.JungleClear.MinStacksToUseR && !HasSheenBuff)
+            if (!R.IsReady() || !Settings.JungleClear.UseR ||
+                (Player.Instance.ManaPercent < Settings.JungleClear.MinManaToUseR) ||
+                (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Ammo < Settings.JungleClear.MinStacksToUseR))
+                return;
+
+            if (target == null)
+                return;
+
+            var rPrediction = R.GetPrediction(target);
+
+            if (rPrediction.HitChance >= EloBuddy.SDK.Enumerations.HitChance.High)
             {
-                var target = minions.OrderBy(x => x.Distance(Player.Instance)).FirstOrDefault();
-
-                if (target != null)
-                {
-                    var prediction = R.GetPrediction(target);
-
-                    if (prediction.CollisionObjects != null && Settings.JungleClear.RAllowCollision)
-                    {
-                        var first =
-                            prediction.CollisionObjects.OrderBy(x => x.Distance(Player.Instance))
-                                .FirstOrDefault();
-
-                        if (first != null)
-                        {
-                            var enemy =
-                                GetCollisionObjects<Obj_AI_Minion>(first)
-                                    .FirstOrDefault(x => x.NetworkId == target.NetworkId);
-                            if (enemy != null)
-                            {
-                                R.Cast(first);
-                            }
-                        }
-                    }
-                    else if (target.HealthPercent <= 50
-                        ? prediction.HitChancePercent >= 50
-                        : prediction.HitChancePercent >= 80)
-                    {
-                        R.Cast(prediction.CastPosition);
-                    }
-                }
+                R.Cast(rPrediction.CastPosition);
             }
         }
     }

@@ -32,28 +32,30 @@ using EloBuddy.SDK;
 
 namespace Marksman_Master.Plugins.Corki.Modes
 {
+    using Utils;
+
     internal class LaneClear : Corki
     {
         public static bool CanILaneClear()
         {
-            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
+            return !Settings.LaneClear.EnableIfNoEnemies ||
+                   (Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <=
+                    Settings.LaneClear.AllowedEnemies);
         }
 
         public static void Execute()
         {
-            var laneMinions = EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
-                Player.Instance.Position,
-                Player.Instance.GetAutoAttackRange() + 250).ToList();
+            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTarget(Player.Instance.GetAutoAttackRange() + 250)).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
-            
-            var minions = laneMinions;
 
             if (Q.IsReady() && Settings.LaneClear.UseQ &&
-                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaToUseQ && !HasSheenBuff)
+                (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaToUseQ))
             {
-                var farmLoc = EntityManager.MinionsAndMonsters.GetCircularFarmLocation(minions.Where(x => x.Health < Damage.GetSpellDamage(x, SpellSlot.Q)), 250, 825, 250, 1000);
+#pragma warning disable 618
+                var farmLoc = EntityManager.MinionsAndMonsters.GetCircularFarmLocation(laneMinions.Where(x => x.Health < Damage.GetSpellDamage(x, SpellSlot.Q)), 250, 825, 250, 1000);
+#pragma warning restore 618
 
                 if (farmLoc.HitNumber >= Settings.LaneClear.MinMinionsKilledToUseQ)
                 {
@@ -62,47 +64,27 @@ namespace Marksman_Master.Plugins.Corki.Modes
             }
 
             if (E.IsReady() && Settings.LaneClear.UseE &&
-                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaToUseE && !HasSheenBuff)
+                (Player.Instance.ManaPercent >= Settings.LaneClear.MinManaToUseE))
             {
-                if (minions.ToList().Any(x => x.Distance(Player.Instance) < 450))
+                if (laneMinions.Count(x => x.IsValidTarget(500)) >= 3)
                 {
                     E.Cast();
+                    return;
                 }
             }
 
-            if (R.IsReady() && Settings.LaneClear.UseR &&
-                Player.Instance.ManaPercent >= Settings.LaneClear.MinManaToUseR && Player.Instance.Spellbook.GetSpell(SpellSlot.R).Ammo >= Settings.LaneClear.MinStacksToUseR && !HasSheenBuff)
+            if (!R.IsReady() || !Settings.LaneClear.UseR ||
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaToUseR) ||
+                (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Ammo < Settings.LaneClear.MinStacksToUseR))
+                return;
+
+            foreach (var target in from target in laneMinions.Where(x => x.IsValidTarget())
+                let count = GetCollisionObjects<Obj_AI_Minion>(target).Count(x => x.IsValidTarget())
+                where count >= Settings.LaneClear.MinMinionsHitToUseR
+                select target)
             {
-                var target = minions.OrderBy(x => x.Distance(Player.Instance)).FirstOrDefault();
-
-                if (target != null)
-                {
-                    var prediction = R.GetPrediction(target);
-
-                    if (prediction.CollisionObjects != null && Settings.LaneClear.RAllowCollision)
-                    {
-                        var first =
-                            prediction.CollisionObjects.OrderBy(x => x.Distance(Player.Instance))
-                                .FirstOrDefault();
-
-                        if (first != null)
-                        {
-                            var enemy =
-                                GetCollisionObjects<Obj_AI_Minion>(first)
-                                    .FirstOrDefault(x => x.NetworkId == target.NetworkId);
-                            if (enemy != null)
-                            {
-                                R.Cast(first);
-                            }
-                        }
-                    }
-                    else if (target.HealthPercent <= 50
-                        ? prediction.HitChancePercent >= 50
-                        : prediction.HitChancePercent >= 80)
-                    {
-                        R.Cast(prediction.CastPosition);
-                    }
-                }
+                R.Cast(target.ServerPosition);
+                break;
             }
         }
     }
