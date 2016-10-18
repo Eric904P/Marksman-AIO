@@ -102,11 +102,11 @@ namespace Marksman_Master.Plugins.Tristana
                     return;
 
                 var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                    x => x.IsValidTarget(W.Range) && HasExplosiveChargeBuff(x) && CountEStacks(x) == 2);
+                    x => x.IsValidTarget(W.Range) && HasExplosiveChargeBuff(x) && (CountEStacks(x) == 2));
 
                 var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-                if (target == null || target.Position.IsVectorUnderEnemyTower())
+                if ((target == null) || target.Position.IsVectorUnderEnemyTower())
                     return;
                 
                     var buff = target.Buffs.Find(x => x.Name.ToLowerInvariant() == "tristanaechargesound").EndTime;
@@ -134,7 +134,7 @@ namespace Marksman_Master.Plugins.Tristana
             {
                 var target = args.Target as AIHeroClient;
 
-                if (target != null && args.Sender.IsMe && CountEStacks(target) == 2 && (target.TotalHealthWithShields() <= Damage.GetEPhysicalDamage(target, 3) + Damage.GetRDamage(target)))
+                if ((target != null) && args.Sender.IsMe && (CountEStacks(target) == 2) && (target.TotalHealthWithShields() <= Damage.GetEPhysicalDamage(target, 3) + Damage.GetRDamage(target)))
                 {
                     R.Cast(target);
                 }
@@ -153,7 +153,7 @@ namespace Marksman_Master.Plugins.Tristana
 
             var particle = sender as Obj_GeneralParticleEmitter;
 
-            if (particle == null ||
+            if ((particle == null) ||
                 !particle.Name.Equals("Tristana_Base_W_launch.troy", StringComparison.CurrentCultureIgnoreCase))
                 return;
 
@@ -164,9 +164,12 @@ namespace Marksman_Master.Plugins.Tristana
 
         private static void Messages_OnMessage(Messages.WindowMessage args)
         {
+            if(Keybind?.Keys == null)
+                return;
+
             if (args.Message == WindowMessages.KeyDown)
             {
-                if (args.Handle.WParam == Keybind.Keys.Item1 || args.Handle.WParam == Keybind.Keys.Item2)
+                if ((args.Handle.WParam == Keybind.Keys.Item1) || (args.Handle.WParam == Keybind.Keys.Item2))
                 {
                     Orbwalker.ActiveModesFlags |= Orbwalker.ActiveModes.Combo;
                 }
@@ -175,7 +178,7 @@ namespace Marksman_Master.Plugins.Tristana
             if (args.Message != WindowMessages.KeyUp)
                 return;
 
-            if (args.Handle.WParam == Keybind.Keys.Item1 || args.Handle.WParam == Keybind.Keys.Item2)
+            if ((args.Handle.WParam == Keybind.Keys.Item1) || (args.Handle.WParam == Keybind.Keys.Item2))
             {
                 Orbwalker.ActiveModesFlags = Orbwalker.ActiveModes.None;
             }
@@ -187,33 +190,37 @@ namespace Marksman_Master.Plugins.Tristana
 
             if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Settings.Combo.FocusE)
             {
-                foreach (var enemy in
-                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && HasExplosiveChargeBuff(x)))
+                var hero = args.Target as AIHeroClient;
+
+                if (((hero != null) && (hero.TotalHealthWithShields() >= GetComboDamage(hero))) || ((TargetSelector.SelectedTarget != null) && TargetSelector.SelectedEnabled))
                 {
-                    Orbwalker.ForcedTarget = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x =>
-                        x.IsValidTarget(Player.Instance.GetAutoAttackRange()) &&
-                        (x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(x, true)*2) &&
-                        x.NetworkId != enemy.NetworkId)
-                        ?
-                        null : enemy;
+                    foreach (var enemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()) && (TargetSelector.GetPriority(hero) - TargetSelector.GetPriority(x) < 2) && HasExplosiveChargeBuff(x))
+                        .OrderByDescending(CountEStacks))
+                    {
+                        Orbwalker.ForcedTarget = enemy;
+                        return;
+                    }
                 }
             }
-            else if (!Settings.Combo.FocusE || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(
-                         x => x.IsValidTarget(Player.Instance.GetAutoAttackRange())))
+            
+            if (!Settings.Combo.FocusE || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(
+                         x => x.IsValidTarget(Player.Instance.GetAutoAttackRange())) || (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && (Orbwalker.ForcedTarget?.GetType() != typeof(AIHeroClient))))
             {
                 Orbwalker.ForcedTarget = null;
             }
 
-            if (!Settings.LaneClear.UseEOnTowers || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) || Player.Instance.ManaPercent < Settings.LaneClear.MinManaE || !E.IsReady())
+            if (!Settings.LaneClear.UseEOnTowers || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) || (Player.Instance.ManaPercent < Settings.LaneClear.MinManaE) || !E.IsReady())
                 return;
 
-            if (args.Target.GetType() != typeof (Obj_AI_Turret) || !args.Target.IsValidTargetCached() ||
+            if ((args.Target.GetType() != typeof (Obj_AI_Turret)) || !args.Target.IsValidTargetCached() ||
                 (args.Target.Health < Player.Instance.GetAutoAttackDamageCached(args.Target as Obj_AI_Base)*2.5f))
                 return;
 
             if (Settings.LaneClear.UseQInLaneClear && Q.IsReady())
             {
                 Q.Cast();
+                return;
             }
 
             E.Cast(args.Target as Obj_AI_Base);
@@ -356,8 +363,9 @@ namespace Marksman_Master.Plugins.Tristana
 
             ComboMenu.AddLabel("Explosive Charge (E) settings :");
             ComboMenu.Add("Plugins.Tristana.ComboMenu.UseE", new CheckBox("Use E"));
-            ComboMenu.Add("Plugins.Tristana.ComboMenu.FocusE", new CheckBox("Focus target with E first"));
             ComboMenu.AddSeparator(2);
+            ComboMenu.Add("Plugins.Tristana.ComboMenu.FocusE", new CheckBox("Focus target with E first"));
+            ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Champion's whitelist :");
             foreach (var enemy in EntityManager.Heroes.Enemies)
@@ -451,9 +459,11 @@ namespace Marksman_Master.Plugins.Tristana
             E.Range = (uint)(630 + 7 * Player.Instance.Level);
             R.Range = (uint)(630 + 7 * Player.Instance.Level);
 
-            if (Orbwalker.ShouldWait && Orbwalker.ForcedTarget != null)
+            if ((Orbwalker.ForcedTarget != null) && !Orbwalker.ForcedTarget.IsValidTarget(Player.Instance.GetAutoAttackRange()))
+            {
                 Orbwalker.ForcedTarget = null;
-
+            }
+            
             Modes.PermaActive.Execute();
         }
 
@@ -563,6 +573,7 @@ namespace Marksman_Master.Plugins.Tristana
 
             private static CustomCache<KeyValuePair<int, int>, float> GetEPhysicalDamages => Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>();
             private static CustomCache<int, bool> IsKillableFromR => Cache.Resolve<CustomCache<int, bool>>();
+            private static CustomCache<int, float> RDamageCached => Cache.Resolve<CustomCache<int, float>>();
 
             public static float GetEMagicDamage(Obj_AI_Base unit)
             {
@@ -600,7 +611,19 @@ namespace Marksman_Master.Plugins.Tristana
 
             public static float GetRDamage(Obj_AI_Base unit)
             {
-                return Player.Instance.GetSpellDamageCached(unit, SpellSlot.R);
+                if (MenuManager.IsCacheEnabled && RDamageCached.Exist(unit.NetworkId))
+                {
+                    return RDamageCached.Get(unit.NetworkId);
+                }
+
+                var damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.Magical,
+                    RDamage[R.Level] + Player.Instance.TotalMagicalDamage);
+
+                if (MenuManager.IsCacheEnabled)
+                {
+                    RDamageCached.Add(unit.NetworkId, damage);
+                }
+                return damage;
             }
 
             public static bool IsTargetKillableFromR(Obj_AI_Base unit)

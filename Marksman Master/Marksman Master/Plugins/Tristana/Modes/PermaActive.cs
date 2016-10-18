@@ -55,14 +55,17 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                     break;
                 }
 
-                var damage = Damage.GetEPhysicalDamage(target) + Damage.GetRDamage(target) - 25;
+                var damage = Damage.GetRDamage(target);
 
-                if (target.Hero == Champion.Blitzcrank && !target.HasBuff("BlitzcrankManaBarrierCD") && !target.HasBuff("ManaBarrier"))
+                if (HasExplosiveChargeBuff(target))
+                    damage += Damage.GetEPhysicalDamage(target);
+
+                if ((target.Hero == Champion.Blitzcrank) && !target.HasBuff("BlitzcrankManaBarrierCD") && !target.HasBuff("ManaBarrier"))
                 {
                     damage -= target.Mana / 2;
                 }
 
-                if (target.TotalHealthWithShields() < damage)
+                if (target.TotalHealthWithShields(true) < damage)
                 {
                     R.Cast(target);
                 }

@@ -40,15 +40,14 @@ namespace Marksman_Master.Plugins.Tristana.Modes
         {
             if (Q.IsReady() && IsPreAttack && Settings.Combo.UseQ)
             {
-                if (
-                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
                         .Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange() - 50)))
                 {
                     Q.Cast();
                 }
             }
 
-            if (WTarget != null && W.IsReady() && Settings.Combo.DoubleWKeybind)
+            if ((WTarget != null) && W.IsReady() && Settings.Combo.DoubleWKeybind)
             {
                 var target =
                     StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
@@ -86,7 +85,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
             {
                 var target = TargetSelector.GetTarget(900, DamageType.Physical);
 
-                if (target != null && target.CountEnemiesInRangeCached(500) == 1 &&
+                if ((target != null) && (target.CountEnemiesInRangeCached(500) == 1) &&
                     (target.DistanceCached(Player.Instance) > R.Range))
                 {
                     var damage = IncomingDamage.GetIncomingDamage(target) + Damage.GetRDamage(target) +
@@ -108,7 +107,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                 }
             }
 
-            if (E.IsReady() && Settings.Combo.UseE && IsPreAttack)
+            if (E.IsReady() && Settings.Combo.UseE)
             {
                 var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     x => x.IsValidTargetCached(E.Range + 200) && Settings.Combo.IsEnabledFor(x));
@@ -116,13 +115,13 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                 var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
                 var target2 = TargetSelector.GetTarget(E.Range, DamageType.Physical);
 
-                if (target2 != null && Settings.Combo.IsEnabledFor(target) &&
+                if ((target2 != null) && Settings.Combo.IsEnabledFor(target) &&
                     (target2.TotalHealthWithShields() <
                      Damage.GetEPhysicalDamage(target2, 2) + Player.Instance.GetAutoAttackDamageCached(target2)))
                 {
                     E.Cast(target2);
                 }
-                else if (target != null && Settings.Combo.IsEnabledFor(target) && target.IsValidTargetCached(E.Range) &&
+                else if ((target != null) && Settings.Combo.IsEnabledFor(target) && target.IsValidTargetCached(E.Range) &&
                          Player.Instance.IsInRangeCached(target, Player.Instance.GetAutoAttackRange() - 50))
                 {
                     E.Cast(target);
@@ -139,7 +138,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                     StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         x =>
                             x.IsMelee && x.IsMovingTowards(Player.Instance, 500) && x.IsValidTarget(500) &&
-                            x.HealthPercent > 50)
+                            (x.HealthPercent > 50))
                         .OrderByDescending(TargetSelector.GetPriority)
                         .ThenBy(x => x.DistanceCached(Player.Instance)))
             {

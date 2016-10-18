@@ -52,7 +52,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                 "SRU_Dragon_Water", "SRU_Baron"
             };
 
-            if (Q.IsReady() && !IsPreAttack && Settings.LaneClear.UseQInJungleClear &&
+            if (Q.IsReady() && Settings.LaneClear.UseQInJungleClear &&
                 (jungleMinions.Count(
                     x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase)) >= 1))
             {
@@ -67,7 +67,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                 jungleMinions.FirstOrDefault(
                     x => allowedMonsters.Contains(x.BaseSkinName, StringComparer.CurrentCultureIgnoreCase));
 
-            if (minion != null && (minion.Health > Player.Instance.GetAutoAttackDamageCached(minion, true)*2))
+            if ((minion != null) && (minion.Health > Player.Instance.GetAutoAttackDamageCached(minion, true)*2))
             {
                 E.Cast(minion);
             }

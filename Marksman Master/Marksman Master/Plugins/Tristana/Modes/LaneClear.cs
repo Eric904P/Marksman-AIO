@@ -37,7 +37,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
     {
         public static bool CanILaneClear()
         {
-            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
+            return !Settings.LaneClear.EnableIfNoEnemies || (Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies);
         }
 
         public static void Execute()
@@ -47,7 +47,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
 
-            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear && !IsPreAttack && (laneMinions.Count >= 3))
+            if (Q.IsReady() && Settings.LaneClear.UseQInLaneClear && (laneMinions.Count >= 3))
             {
                 Q.Cast();
             }
@@ -75,7 +75,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
 
             var minion = laneMinions.OrderByDescending(x => x.CountEnemyMinionsInRangeCached(200)).ToArray();
 
-            if (minion.Any() && minion[0].CountEnemyMinionsInRangeCached(200) >= 3)
+            if (minion.Any() && (minion[0].CountEnemyMinionsInRangeCached(200) >= 3))
             {
                 E.Cast(minion[0]);
             }
