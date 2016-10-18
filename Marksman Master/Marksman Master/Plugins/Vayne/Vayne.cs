@@ -742,7 +742,7 @@ namespace Marksman_Master.Plugins.Vayne
                         .Where(
                             x =>
                                 !x.To3D().IsVectorUnderEnemyTower() && (x.Distance(Player.Instance) < 475) &&
-                                (x.Distance(target) > 250) && FlashCondemnCheck(target, x.To3D()))
+                                (x.Distance(target) > 150) && FlashCondemnCheck(target, x.To3D()))
                         .ToList();
 
                 foreach (var vector2 in points)
@@ -903,6 +903,8 @@ namespace Marksman_Master.Plugins.Vayne
             MiscMenu.Add("Plugins.Vayne.MiscMenu.Eks", new CheckBox("Use E to killsteal"));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.PushDistance", new Slider("Push distance", 420, 400, 470));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EHitchance", new Slider("Condemn hitchance : {0}%", 65));
+            MiscMenu.AddLabel("More often condemn attempts the lower Hitchance option is.\nRecomended value : between 50 and 70.");
+            MiscMenu.AddSeparator(5);
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EMode", new ComboBox("E Mode", 1, "Always", "Only in Combo"));
             MiscMenu.AddSeparator(5);
 
