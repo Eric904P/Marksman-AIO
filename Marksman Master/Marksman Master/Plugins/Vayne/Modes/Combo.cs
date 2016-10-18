@@ -40,9 +40,9 @@ namespace Marksman_Master.Plugins.Vayne.Modes
         public static void Execute()
         {
             if (IsPostAttack && Q.IsReady() && Settings.Combo.UseQ && (!Settings.Combo.UseQOnlyToProcW ||
-                 (Orbwalker.LastTarget.GetType() == typeof (AIHeroClient) &&
+                 ((Orbwalker.LastTarget.GetType() == typeof (AIHeroClient)) &&
                   HasSilverDebuff((AIHeroClient) Orbwalker.LastTarget) &&
-                  GetSilverDebuff((AIHeroClient) Orbwalker.LastTarget).Count == 1)))
+                  (GetSilverDebuff((AIHeroClient) Orbwalker.LastTarget).Count == 1))))
             {
                 var enemies = Player.Instance.CountEnemiesInRangeCached(2000);
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 320, DamageType.Physical);
@@ -68,14 +68,14 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                     switch (Settings.Misc.QMode)
                     {
                         case 1:
-                            if (target != null && Player.Instance.HealthPercent >  target.HealthPercent && Player.Instance.HealthPercent > 10 &&
-                                target.CountEnemiesInRangeCached(1000) <= 2)
+                            if ((target != null) && (Player.Instance.HealthPercent > target.HealthPercent) && (Player.Instance.HealthPercent > 10) &&
+                                (target.CountEnemiesInRangeCached(1000) <= 2))
                             {
-                                if (!Player.Instance.Position.Extend(Game.CursorPos, 285)
+                                if ((!Player.Instance.Position.Extend(Game.CursorPos, 285)
                                     .To3D()
                                     .IsVectorUnderEnemyTower() &&
-                                    (!target.IsMelee ||
-                                     !Player.Instance.Position.Extend(Game.CursorPos, 285).IsInRangeCached(target.Position, target.GetAutoAttackRange()*1.5f)) || !target.IsMovingTowards(Player.Instance, 300))
+                                     (!target.IsMelee ||
+                                      !Player.Instance.Position.Extend(Game.CursorPos, 285).IsInRangeCached(target.Position, target.GetAutoAttackRange()*1.5f))) || !target.IsMovingTowards(Player.Instance, 300))
                                 {
                                     var qPosition = Player.Instance.Position.Extend(Game.CursorPos, 300).To3D();
                                     var unitPosition = Prediction.Position.PredictUnitPosition(target, 300);
@@ -100,7 +100,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                     SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
                                         2000, 600)
                                         .Where(
-                                            x => x.Key.CutVectorNearWall(320).Distance(Player.Instance) > 250 && x.Value <= 1)
+                                            x => (x.Key.CutVectorNearWall(320).Distance(Player.Instance) > 250) && (x.Value <= 1))
                                         .Select(source => source.Key)
                                         .ToList();
 
@@ -113,8 +113,8 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                             x => x.IsValidTargetCached(2000))
                                             .Count(x => x.IsMovingTowards(Player.Instance, range < x.GetAutoAttackRange() ? (int)x.GetAutoAttackRange() : range));
 
-                                    if (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange()) ==
-                                        0 || paths == 0)
+                                    if ((Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange()) ==
+                                         0) || (paths == 0))
                                     {
                                         if (Settings.Combo.BlockQsOutOfAaRange)
                                         {
@@ -135,7 +135,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
 
                                         Misc.PrintDebugMessage("Paths low sorting Ascending");
                                     }
-                                    else if (Player.Instance.CountEnemiesInRangeCached(1000) <= 2 &&
+                                    else if ((Player.Instance.CountEnemiesInRangeCached(1000) <= 2) &&
                                              (paths <= 2) &&
                                              list.Any(
                                                  x =>
@@ -176,9 +176,9 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                 }
                             }
 
-                            if (position != Vector3.Zero &&
+                            if ((position != Vector3.Zero) &&
                                 StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                                    x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange() + 300) && Prediction.Health.GetPrediction(x, 500) > 0).Any())
+                                    x => x.IsValidTargetCached(Player.Instance.GetAutoAttackRange() + 300) && (Prediction.Health.GetPrediction(x, 500) > 0)).Any())
                             {
                                 Q.Cast(Player.Instance.Position.Extend(position, 285).To3D());
                                 return;
@@ -206,7 +206,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                             return;
                                         }
                                     }
-                                    else if (enemies == 2 && Player.Instance.CountAlliesInRangeCached(400) > 1)
+                                    else if ((enemies == 2) && (Player.Instance.CountAlliesInRangeCached(400) > 1))
                                     {
                                         if (Settings.Combo.BlockQsOutOfAaRange)
                                         {
@@ -245,7 +245,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                         x => x.IsValidTargetCached(1300))
                                         .Count(x => x.IsMovingTowards(Player.Instance, 300));
 
-                                if (closest != null && Player.Instance.CountEnemiesInRangeCached(350) >= 1 && paths >= 1 && pos.DistanceCached(closest) > Player.Instance.DistanceCached(closest))
+                                if ((closest != null) && (Player.Instance.CountEnemiesInRangeCached(350) >= 1) && (paths >= 1) && (pos.DistanceCached(closest) > Player.Instance.DistanceCached(closest)))
                                 {
                                     Q.Cast(pos);
                                 }
@@ -263,9 +263,9 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 300, DamageType.Physical);
                 var position = Player.Instance.Position.Extend(Game.CursorPos, 299).To3D();
 
-                if (target != null && !target.IsMovingTowards(Player.Instance, 300) &&
+                if ((target != null) && !target.IsMovingTowards(Player.Instance, 300) &&
                     (Player.Instance.HealthPercent > target.HealthPercent) &&
-                    !Player.Instance.IsInAutoAttackRange(target) && enemies == 1)
+                    !Player.Instance.IsInAutoAttackRange(target) && (enemies == 1))
                 {
                     var targetPos = Prediction.Position.PredictUnitPosition(target, 370);
 
@@ -277,7 +277,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 }
             }
 
-            if (E.IsReady() && Settings.Combo.UseE && Settings.Misc.EMode == 1)
+            if (E.IsReady() && Settings.Combo.UseE && (Settings.Misc.EMode == 1))
             {
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 300, DamageType.Physical);
 
@@ -311,7 +311,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 var enemies = Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 330);
                 var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 330, DamageType.Physical);
 
-                if (target == null || Orbwalker.LastTarget.GetType() != typeof (AIHeroClient) || enemies < 3 ||
+                if ((target == null) || (Orbwalker.LastTarget.GetType() != typeof (AIHeroClient)) || (enemies < 3) ||
                     !(Player.Instance.HealthPercent > 25))
                     return;
 

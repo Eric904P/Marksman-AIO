@@ -65,32 +65,32 @@ namespace Marksman_Master.Plugins.Vayne
         protected static BuffInstance GetTumbleBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vaynetumble");
+                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynetumble"));
 
         protected static bool HasTumbleBuff
             =>
                 Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vaynetumble");
+                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynetumble"));
 
         protected static bool HasSilverDebuff(Obj_AI_Base unit)
             =>
                 unit.Buffs.Any(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff");
+                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff"));
 
         protected static BuffInstance GetSilverDebuff(Obj_AI_Base unit)
             =>
                 unit.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff");
+                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff"));
 
         protected static bool HasInquisitionBuff
             =>
                 Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vayneinquisition");
+                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vayneinquisition"));
 
         protected static BuffInstance GetInquisitionBuff
             =>
                 Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "vayneinquisition");
+                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vayneinquisition"));
 
         private static bool _changingRangeScan;
         private static float _lastQCastTime;
@@ -137,7 +137,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             var flashSlot = Player.Instance.GetSpellSlotFromName("summonerflash");
 
-            if (flashSlot == SpellSlot.Summoner1 || flashSlot == SpellSlot.Summoner2)
+            if ((flashSlot == SpellSlot.Summoner1) || (flashSlot == SpellSlot.Summoner2))
             {
                 Flash = new Spell.Skillshot(flashSlot, 475, SkillShotType.Linear);
             }
@@ -159,13 +159,13 @@ namespace Marksman_Master.Plugins.Vayne
 
         private static void Player_OnIssueOrder(Obj_AI_Base sender, PlayerIssueOrderEventArgs args)
         {
-            if (sender.IsMe && (Core.GameTickCount - LastQ < 400) && args.Order == GameObjectOrder.MoveTo)
+            if (sender.IsMe && (Core.GameTickCount - LastQ < 400) && (args.Order == GameObjectOrder.MoveTo))
                 args.Process = false;
         }
 
         private static void Obj_AI_Base_OnPlayAnimation(Obj_AI_Base sender, GameObjectPlayAnimationEventArgs args)
         {
-            if (sender.IsMe && args.Animation == "Spell1")
+            if (sender.IsMe && (args.Animation == "Spell1"))
             {
                 Orbwalker.ResetAutoAttack();
             }
@@ -174,7 +174,7 @@ namespace Marksman_Master.Plugins.Vayne
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
 #region Q
-            if (Q.IsReady() && sender.IsEnemy && sender.Type == GameObjectType.AIHeroClient)
+            if (Q.IsReady() && sender.IsEnemy && (sender.Type == GameObjectType.AIHeroClient))
             {
                 var enemy = sender as AIHeroClient;
                 
@@ -416,7 +416,7 @@ namespace Marksman_Master.Plugins.Vayne
                 Orbwalker.ResetAutoAttack();
             }
 
-            if (args.Slot != SpellSlot.E || args.Target == null)
+            if ((args.Slot != SpellSlot.E) || (args.Target == null))
                 return;
             
             if (FlashPosition != Vector3.Zero)
@@ -438,7 +438,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             if (args.Message == WindowMessages.KeyDown)
             {
-                if (args.Handle.WParam == FlashCondemnKeybind.Keys.Item1 || args.Handle.WParam == FlashCondemnKeybind.Keys.Item2)
+                if ((args.Handle.WParam == FlashCondemnKeybind.Keys.Item1) || (args.Handle.WParam == FlashCondemnKeybind.Keys.Item2))
                 {
                     Orbwalker.ActiveModesFlags |= Orbwalker.ActiveModes.Combo;
                 }
@@ -447,7 +447,7 @@ namespace Marksman_Master.Plugins.Vayne
             if (args.Message != WindowMessages.KeyUp)
                 return;
 
-            if (args.Handle.WParam == FlashCondemnKeybind.Keys.Item1 || args.Handle.WParam == FlashCondemnKeybind.Keys.Item2)
+            if ((args.Handle.WParam == FlashCondemnKeybind.Keys.Item1) || (args.Handle.WParam == FlashCondemnKeybind.Keys.Item2))
             {
                 Orbwalker.ActiveModesFlags = Orbwalker.ActiveModes.None;
                 FlashPosition = Vector3.Zero;
@@ -456,7 +456,7 @@ namespace Marksman_Master.Plugins.Vayne
 
         private static void ChampionTracker_OnPostBasicAttack(object sender, PostBasicAttackArgs e)
         {
-            if (e.Sender == null || !e.Sender.IsMe)
+            if ((e.Sender == null) || !e.Sender.IsMe)
                 return;
 
             if (LastQ > 0)
@@ -465,22 +465,22 @@ namespace Marksman_Master.Plugins.Vayne
             IsPreAttack = false;
             IsPostAttack = true;
 
-            if ((e.Target.Type == GameObjectType.obj_AI_Turret ||
-                 e.Target.Type == GameObjectType.obj_BarracksDampener || e.Target.Type == GameObjectType.obj_HQ) && Q.IsReady() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) && Settings.LaneClear.UseQToLaneClear)
+            if (((e.Target.Type == GameObjectType.obj_AI_Turret) ||
+                 (e.Target.Type == GameObjectType.obj_BarracksDampener) || (e.Target.Type == GameObjectType.obj_HQ)) && Q.IsReady() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) && Settings.LaneClear.UseQToLaneClear)
             {
-                if (Player.Instance.CountEnemiesInRangeCached(1000) == 0 &&
+                if ((Player.Instance.CountEnemiesInRangeCached(1000) == 0) &&
                     (Player.Instance.ManaPercent >= Settings.LaneClear.MinMana))
                 {
                     Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
                 }
             }
 
-            if (e.Target == null || e.Target.GetType() != typeof(AIHeroClient) || !Settings.Misc.EKs || !e.Target.IsValid)
+            if ((e.Target == null) || (e.Target.GetType() != typeof(AIHeroClient)) || !Settings.Misc.EKs || !e.Target.IsValid)
                 return;
 
             var enemy = (AIHeroClient) e.Target;
 
-            if (!enemy.IsValidTargetCached(E.Range) || !HasSilverDebuff(enemy) || GetSilverDebuff(enemy).Count != 1)
+            if (!enemy.IsValidTargetCached(E.Range) || !HasSilverDebuff(enemy) || (GetSilverDebuff(enemy).Count != 1))
                 return;
 
             if (!Damage.IsKillableFromSilverEAndAuto(enemy) ||
@@ -505,7 +505,7 @@ namespace Marksman_Master.Plugins.Vayne
             if (!Settings.Misc.NoAaWhileStealth || !HasInquisitionBuff)
                 return;
 
-            if (args.Slot == SpellSlot.Q && HasAnyOrbwalkerFlags())
+            if ((args.Slot == SpellSlot.Q) && HasAnyOrbwalkerFlags())
             {
                 _lastQCastTime = Core.GameTickCount;
             }
@@ -513,10 +513,10 @@ namespace Marksman_Master.Plugins.Vayne
 
         private static void Obj_AI_Base_OnCreate(GameObject sender, EventArgs args)
         {
-            if (sender == null || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.Hero == Champion.Rengar).Any())
+            if ((sender == null) || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.Hero == Champion.Rengar).Any())
                 return;
 
-            if (sender.Name != "Rengar_LeapSound.troy" || !E.IsReady() || Player.Instance.IsDead || !Settings.Misc.EAntiRengar)
+            if ((sender.Name != "Rengar_LeapSound.troy") || !E.IsReady() || Player.Instance.IsDead || !Settings.Misc.EAntiRengar)
                 return;
 
             foreach (var rengar in EntityManager.Heroes.Enemies.Where(x => x.ChampionName == "Rengar").Where(rengar => rengar.Distance(Player.Instance.Position) < 1000).Where(rengar => rengar.IsValidTarget(E.Range) && E.IsReady()))
@@ -536,7 +536,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             var client = target as AIHeroClient;
 
-            if (client != null && client.Health > Player.Instance.GetAutoAttackDamageCached(client, true)*3)
+            if ((client != null) && (client.Health > Player.Instance.GetAutoAttackDamageCached(client, true)*3))
             {
                 IsPreAttack = false;
                 args.Process = false;
@@ -592,10 +592,10 @@ namespace Marksman_Master.Plugins.Vayne
 
         protected static bool WillEStun(Obj_AI_Base target, Vector3 from = default(Vector3), int customHitchance = -1)
         {
-            if (target == null || !IsECastableOnEnemy(target))
+            if ((target == null) || !IsECastableOnEnemy(target))
                 return false;
 
-            var hitchance = customHitchance > 0 ? customHitchance : Settings.Misc.EHitchance;
+            var hitchance = customHitchance > 0 ? customHitchance : (Settings.Misc.EHitchance > 80 ? 80 : Settings.Misc.EHitchance);
             var checkFrom = @from != default(Vector3) ? @from : Player.Instance.Position;
             var pushDistance = Settings.Misc.PushDistance;
             var eta = target.DistanceCached(checkFrom) / 1300;
@@ -692,17 +692,17 @@ namespace Marksman_Master.Plugins.Vayne
 
         protected static void PerformFlashCondemn()
         {
-            if(Game.Time * 1000 - LastTick < 500 || !E.IsReady() || (/*!Q.IsReady() &&*/ !Flash.IsReady()))
+            if((Game.Time * 1000 - LastTick < 500) || !E.IsReady() || (/*!Q.IsReady() &&*/ !Flash.IsReady()))
                 return;
 
             LastTick = Game.Time * 1000;
 
-            var target = TargetSelector.SelectedTarget != null &&
+            var target = (TargetSelector.SelectedTarget != null) &&
                          TargetSelector.SelectedTarget.IsValidTargetCached(E.Range + 475)
                 ? TargetSelector.SelectedTarget
                 : TargetSelector.GetTarget(E.Range + 475, DamageType.Physical);
 
-            if (target == null || FlashCondemnCheck(target))
+            if ((target == null) || FlashCondemnCheck(target))
                 return;
 
             List<Vector2> points;
@@ -801,7 +801,7 @@ namespace Marksman_Master.Plugins.Vayne
                 FlashCondemnText.Draw();
             }
 
-            if (Game.Time*1000 - LastE < 2000 && EEndPosition != default(Vector3))
+            if ((Game.Time*1000 - LastE < 2000) && (EEndPosition != default(Vector3)))
             {
                 var polygon = new Geometry.Polygon.Rectangle(ETarget.Position, EEndPosition, 15);
 
@@ -1147,7 +1147,7 @@ namespace Marksman_Master.Plugins.Vayne
 
                 var damage = Math.Max(WMinimumDamage[W.Level], unit.MaxHealth*WPercentageDamage[W.Level]);
 
-                if (damage > 200 && !(unit is AIHeroClient))
+                if ((damage > 200) && !(unit is AIHeroClient))
                     damage = 200;
 
                 damage = Player.Instance.CalculateDamageOnUnit(unit, DamageType.True, damage);
@@ -1223,12 +1223,12 @@ namespace Marksman_Master.Plugins.Vayne
                         .ToList()
                         .Find(x => x.NetworkId == buff.Caster.NetworkId);
 
-                if (target == null || !target.IsValidTargetCached(E.Range) || target.DistanceCached(Player.Instance) < 150)
+                if ((target == null) || !target.IsValidTargetCached(E.Range) || (target.DistanceCached(Player.Instance) < 150))
                     return;
 
                 var data = GetMenuData(target.Hero, SpellSlot.Q);
 
-                if (data == null || !data.Enabled)
+                if ((data == null) || !data.Enabled)
                     return;
 
                 if (data.OnlyInCombo && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
@@ -1245,18 +1245,18 @@ namespace Marksman_Master.Plugins.Vayne
 
             private static void OnProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
             {
-                if (!E.IsReady() || sender.IsMe || Player.Instance.IsDead || sender.GetType() != typeof (AIHeroClient) ||
+                if (!E.IsReady() || sender.IsMe || Player.Instance.IsDead || (sender.GetType() != typeof (AIHeroClient)) ||
                     !sender.IsEnemy || !sender.IsValidTargetCached(E.Range))
                     return;
 
                 var hero = sender as AIHeroClient;
 
-                if (hero == null || hero.Hero == Champion.Kled || hero.Hero == Champion.Rengar)
+                if ((hero == null) || (hero.Hero == Champion.Kled) || (hero.Hero == Champion.Rengar))
                     return;
 
                 var data = GetMenuData(hero.Hero, args.Slot);
 
-                if (data == null || !data.Enabled)
+                if ((data == null) || !data.Enabled)
                     return;
 
                 if (data.OnlyInCombo && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
@@ -1290,18 +1290,18 @@ namespace Marksman_Master.Plugins.Vayne
 
             public static TargetedSpell GetMenuData(Champion champion, SpellSlot slot)
             {
-                if (!SpellsList.Any(x => x.Champion == champion && x.SpellSlot == slot))
+                if (!SpellsList.Any(x => (x.Champion == champion) && (x.SpellSlot == slot)))
                     return null;
 
                 if (EEvadeMenu == null)
-                    return SpellsList.Find(x => x.Champion == champion && x.SpellSlot == slot);
+                    return SpellsList.Find(x => (x.Champion == champion) && (x.SpellSlot == slot));
 
                 var myMinHealth = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.MyMinHealth"];
                 var casterMinHealth = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.CasterMinHealth"];
                 var casterMinDistance = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.CasterMinDistance"];
                 var onlyInCombo = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.OnlyInCombo"];
                 var enabled = EEvadeMenu[$"Plugins.Vayne.EEvadeMenu.{champion}.{slot}.Enabled"];
-                var spellData = SpellsList.Find(x => x.Champion == champion && x.SpellSlot == slot);
+                var spellData = SpellsList.Find(x => (x.Champion == champion) && (x.SpellSlot == slot));
 
                 var output = new TargetedSpell(champion, spellData.SpellName, slot, spellData.EnabledByDefault,
                     myMinHealth?.Cast<Slider>().CurrentValue ?? spellData.MyHealthMinimumPercent,

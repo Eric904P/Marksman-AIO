@@ -107,7 +107,7 @@ namespace Marksman_Master.Plugins.Tristana.Modes
                 }
             }
 
-            if (E.IsReady() && Settings.Combo.UseE)
+            if (E.IsReady() && IsPreAttack && Settings.Combo.UseE)
             {
                 var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     x => x.IsValidTargetCached(E.Range + 200) && Settings.Combo.IsEnabledFor(x));
