@@ -37,24 +37,9 @@ namespace Marksman_Master.Plugins.Vayne.Modes
     {
         public static void Execute()
         {
-            if (!E.IsReady() || !Settings.Combo.UseE || Player.Instance.IsRecalling() || Settings.Misc.EMode != 0)
+            if (!E.IsReady() || !Settings.Combo.UseE || Player.Instance.IsRecalling() || (Settings.Misc.EMode != 0))
                 return;
-
-            var target = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 300, DamageType.Physical);
-
-            if (target == null)
-                return;
-
-            var enemies = Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 300);
-
-            if (WillEStun(target))
-            {
-                E.Cast(target);
-                return;
-            }
-            if (enemies <= 1)
-                return;
-
+            
             foreach (
                 var enemy in
                     StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
