@@ -55,7 +55,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                             let health = enemy.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(enemy)
                             let wDamage = Player.Instance.GetSpellDamageCached(enemy, SpellSlot.W)
                             let wPrediction = W.GetPrediction(enemy)
-                            where (health <= wDamage) && wPrediction.HitChance == HitChance.High
+                            where (health <= wDamage) && (wPrediction.HitChance == HitChance.High)
                             select wPrediction)
                     {
                         W.Cast(wPrediction.CastPosition);
@@ -68,7 +68,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                     foreach (var wPrediction in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         x =>
                             x.IsValidTargetCached(W.Range) && Settings.Harass.IsWHarassEnabledFor(x) &&
-                            x.Distance(Player.Instance) > GetRealRocketLauncherRange())
+                            (x.Distance(Player.Instance) > GetRealRocketLauncherRange()))
                         .Where(enemy => enemy.IsValidTargetCached(W.Range))
                         .Select(enemy => W.GetPrediction(enemy))
                         .Where(wPrediction => wPrediction.HitChancePercent > 70))
@@ -145,7 +145,7 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                     var buffTime = enemy.Buffs.FirstOrDefault(m => m.Name.Equals("zhonyasringshield", StringComparison.CurrentCultureIgnoreCase) ||
                                                                    m.Name.Equals("bardrstasis", StringComparison.CurrentCultureIgnoreCase));
 
-                    if (buffTime != null && (buffTime.EndTime - Game.Time < 1) && (buffTime.EndTime - Game.Time > .3f) && enemy.IsValidTargetCached(E.Range))
+                    if ((buffTime != null) && (buffTime.EndTime - Game.Time < 1) && (buffTime.EndTime - Game.Time > .3f) && enemy.IsValidTargetCached(E.Range))
                     {
                         E.Cast(enemy.ServerPosition);
                     }

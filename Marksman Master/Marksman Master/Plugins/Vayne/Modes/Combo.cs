@@ -206,7 +206,8 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                                             return;
                                         }
                                     }
-                                    else if ((enemies == 2) && (Player.Instance.CountAlliesInRangeCached(400) > 1))
+                                    else if ((enemies == 2) && ((Player.Instance.CountAlliesInRangeCached(400) > 1) ||
+                                                (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTarget(1200) && x.IsMovingTowards(Player.Instance, 450)).Count() <= 1)))
                                     {
                                         if (Settings.Combo.BlockQsOutOfAaRange)
                                         {

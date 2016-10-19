@@ -37,11 +37,11 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
     {
         public static void Execute()
         {
-            if (Q.IsReady() && Settings.Combo.UseQ && Player.Instance.Mana - 40 > 80)
+            if (Q.IsReady() && Settings.Combo.UseQ && (Player.Instance.Mana - 40 > 80))
             {
                 var target = TargetSelector.GetTarget(Q.Range, DamageType.Magical);
 
-                if (target != null && !target.HasSpellShield() && !target.HasUndyingBuffA())
+                if ((target != null) && !target.HasSpellShield() && !target.HasUndyingBuffA())
                 {
                     var qPrediction = Q.GetPrediction(target);
 
@@ -55,11 +55,11 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
                 W.Cast();
             }
 
-            if (E.IsReady() && Settings.Combo.UseE && Player.Instance.Mana - EMana[E.Level] > 80)
+            if (E.IsReady() && Settings.Combo.UseE && (Player.Instance.Mana - EMana[E.Level] > 80))
             {
                 var target = TargetSelector.GetTarget(E.Range, DamageType.Magical);
 
-                if (target != null && !target.HasSpellShield() && !target.HasUndyingBuffA())
+                if ((target != null) && !target.HasSpellShield() && !target.HasUndyingBuffA())
                 {
                     var ePrediction = E.GetPrediction(target);
 
@@ -72,9 +72,9 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
             {
                 var target = TargetSelector.GetTarget(R.Range, DamageType.Magical);
                 
-                if (((HasKogMawRBuff && (GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks)) || !HasKogMawRBuff) && (Player.Instance.Mana - 50*(HasKogMawRBuff ? GetKogMawRBuff.Count + 1 : 1) > 80))
+                if (((HasKogMawRBuff && (GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks)) || !HasKogMawRBuff) && (Player.Instance.Mana - 40*(HasKogMawRBuff ? GetKogMawRBuff.Count + 1 : 1) > 80))
                 {
-                    if (target != null && (target.HealthPercent <= Settings.Combo.RMaxHealth) && !target.HasSpellShield() && !target.HasUndyingBuffA())
+                    if ((target != null) && (target.HealthPercent <= Settings.Combo.RMaxHealth) && !target.HasSpellShield() && !target.HasUndyingBuffA())
                     {
                         var rPrediction = R.GetPrediction(target);
 

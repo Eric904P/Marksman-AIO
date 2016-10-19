@@ -397,7 +397,7 @@ namespace Marksman_Master.Plugins.KogMaw
             public static float QBonusApMod { get; } = 0.5f;
             public static int[] EDamage { get; } = {0, 60, 110, 160, 210, 260};
             public static float EBonusApMod { get; } = 0.7f;
-            public static int[] RDamage { get; } = {0, 70, 110, 150};
+            public static int[] RDamage { get; } = {0, 100, 140, 180};
             public static float RBonusAdMod { get; } = 0.65f;
             public static float RBonusApMod { get; } = 0.25f;
 
@@ -417,10 +417,10 @@ namespace Marksman_Master.Plugins.KogMaw
                 var damage = RDamage[R.Level] + Player.Instance.FlatPhysicalDamageMod*RBonusAdMod +
                              Player.Instance.FlatMagicDamageMod*RBonusApMod;
 
-                if (target.HealthPercent < 50)
+                if (target.HealthPercent > 40)
+                    damage *= (float)Misc.GetNumberInRangeFromProcent((100 - target.HealthPercent/60), 1, 1.5);
+                else if (target.HealthPercent <= 40)
                     damage *= 2;
-                else if (target.HealthPercent < 25)
-                    damage *= 3;
 
                 return Player.Instance.CalculateDamageOnUnit(target, DamageType.Magical, damage);
             }

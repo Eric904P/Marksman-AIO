@@ -79,11 +79,11 @@ namespace Marksman_Master.Plugins.Jinx.Modes
 
                 var orbwalkerTarget = Orbwalker.GetTarget();
 
-                if (orbwalkerTarget != null && orbwalkerTarget.GetType() == typeof (AIHeroClient))
+                if ((orbwalkerTarget != null) && (orbwalkerTarget.GetType() == typeof (AIHeroClient)))
                 {
                     var wt = orbwalkerTarget as AIHeroClient;
 
-                    if (wt != null && wt.IsValidTargetCached(W.Range) && !wt.HasUndyingBuffA() && !wt.HasSpellShield())
+                    if ((wt != null) && wt.IsValidTargetCached(W.Range) && !wt.HasUndyingBuffA() && !wt.HasSpellShield())
                     {
                         var wPrediction = W.GetPrediction(wt);
 
@@ -114,8 +114,8 @@ namespace Marksman_Master.Plugins.Jinx.Modes
                 {
                     var ePrediction = E.GetPrediction(target);
 
-                    if ((ePrediction.HitChancePercent >= 80 &&
-                        (ePrediction.CastPosition.DistanceCached(target) > 150)) || (ePrediction.HitChancePercent >= 50 &&
+                    if (((ePrediction.HitChancePercent >= 80) &&
+                        (ePrediction.CastPosition.DistanceCached(target) > 150)) || ((ePrediction.HitChancePercent >= 50) &&
                         (ePrediction.CastPosition.DistanceCached(target) > 150) && target.IsMovingTowards(Player.Instance, 500)))
                     {
                         E.Cast(ePrediction.CastPosition);

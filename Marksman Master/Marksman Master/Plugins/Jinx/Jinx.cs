@@ -61,7 +61,7 @@ namespace Marksman_Master.Plugins.Jinx
             !HasItemFirecanon ? 0 : Player.Instance.Buffs.Find(x => x.Name.ToLowerInvariant() == "itemstatikshankcharge").Count;
 
         protected static bool HasFirecanonStackedUp
-            => Player.Instance.Buffs.Any(x => HasItemFirecanon && x.Name.ToLowerInvariant() == "itemstatikshankcharge" && x.Count == 100);
+            => Player.Instance.Buffs.Any(x => HasItemFirecanon && (x.Name.ToLowerInvariant() == "itemstatikshankcharge") && (x.Count == 100));
 
         protected static bool HasItemFirecanon
             => Player.Instance.InventoryItems.Any(x=>x.Id == ItemId.Rapid_Firecannon);
@@ -129,7 +129,7 @@ namespace Marksman_Master.Plugins.Jinx
             {
                 Core.DelayAction(() =>
                 {
-                    if (E.IsReady() && e.EndPosition.DistanceCached(Player.Instance) <= E.Range)
+                    if (E.IsReady() && (e.EndPosition.DistanceCached(Player.Instance) <= E.Range))
                     {
                         E.Cast(e.EndPosition);
                     }
@@ -145,7 +145,7 @@ namespace Marksman_Master.Plugins.Jinx
         {
             IsPreAttack = true;
 
-            if (Orbwalker.ForcedTarget != null && !Orbwalker.ForcedTarget.IsValidTarget(Player.Instance.GetAutoAttackRange()))
+            if ((Orbwalker.ForcedTarget != null) && !Orbwalker.ForcedTarget.IsValidTarget(Player.Instance.GetAutoAttackRange()))
                 args.Process = false;
         }
 
@@ -341,10 +341,10 @@ namespace Marksman_Master.Plugins.Jinx
         {
             Q.Range = (uint)GetRealRocketLauncherRange();
 
-            if (Orbwalker.ForcedTarget != null && !Orbwalker.ForcedTarget.IsValidTarget(GetRealRocketLauncherRange()) && HasRocketLauncher)
+            if ((Orbwalker.ForcedTarget != null) && !Orbwalker.ForcedTarget.IsValidTarget(GetRealRocketLauncherRange()) && HasRocketLauncher)
             {
                 Orbwalker.ForcedTarget = null;
-            } else if (Orbwalker.ForcedTarget != null && !Orbwalker.ForcedTarget.IsValidTarget(GetRealMinigunRange()) && HasMinigun)
+            } else if ((Orbwalker.ForcedTarget != null) && !Orbwalker.ForcedTarget.IsValidTarget(GetRealMinigunRange()) && HasMinigun)
             {
                 Orbwalker.ForcedTarget = null;
             }
