@@ -109,10 +109,6 @@ namespace Marksman_Master.Plugins.Vayne
         protected static float LastTick { get; set; }
 
         protected static float LastQ { get; set; }
-        protected static float LastE { get; set; }
-        protected static bool Stun { get; set; }
-        protected static Vector3 EEndPosition { get; set; }
-        protected static GameObject ETarget { get; set; }
 
         protected static bool HasAnyOrbwalkerFlags => (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
 
@@ -151,13 +147,13 @@ namespace Marksman_Master.Plugins.Vayne
             {
                 if (sender.IsMe && (args.Animation == "Spell1"))
                 {
-                    Core.DelayAction(Orbwalker.ResetAutoAttack, Game.Ping/2);
+                    Orbwalker.ResetAutoAttack();
                 }
             };
-            
+
             Game.OnUpdate += args =>
             {
-                if ((LastQ > 0) && ((Core.GameTickCount - LastQ > 500) || !ObjectManager.Get<AttackableUnit>().Any(x => x.IsValidTarget(Player.Instance.GetAutoAttackRange()))))
+                if ((LastQ > 0) && ((Core.GameTickCount - LastQ > 500) || (Orbwalker.GetTarget() == null)))
                     LastQ = 0;
             };
         }
@@ -410,6 +406,7 @@ namespace Marksman_Master.Plugins.Vayne
             if (args.Slot == SpellSlot.Q)
             {
                 LastQ = Core.GameTickCount;
+                Orbwalker.ResetAutoAttack();
             }
 
             if ((args.Slot != SpellSlot.E) || (args.Target == null))
@@ -420,11 +417,6 @@ namespace Marksman_Master.Plugins.Vayne
                 Flash.Cast(FlashPosition);
                 FlashPosition = Vector3.Zero;
             }
-
-            ETarget = args.Target;
-            Stun = args.Target.Position.Extend(sender.Position, -475).CutVectorNearWall(1000).Distance(args.Target) <= 475;
-            EEndPosition = args.Target.Position.Extend(sender.Position, -475).CutVectorNearWall(1000).To3D();
-            LastE = Core.GameTickCount;
         }
 
         private static void Messages_OnMessage(Messages.WindowMessage args)
@@ -789,18 +781,6 @@ namespace Marksman_Master.Plugins.Vayne
                 FlashCondemnText.Color = System.Drawing.Color.Red;
                 FlashCondemnText.TextValue = "FLASH CONDEMN IS ACTIVE !";
                 FlashCondemnText.Draw();
-            }
-
-            if ((Game.Time*1000 - LastE < 2000) && (EEndPosition != default(Vector3)))
-            {
-                var polygon = new Geometry.Polygon.Rectangle(ETarget.Position, EEndPosition, 15);
-
-                Line.DrawLine(System.Drawing.Color.White, 2, polygon.Points[1].To3D(), polygon.Points[2].To3D());
-                Line.DrawLine(System.Drawing.Color.White, 2, polygon.Points[0].To3D(), polygon.Points[1].To3D());
-                Line.DrawLine(System.Drawing.Color.White, 2, polygon.Points[2].To3D(), polygon.Points[3].To3D());
-                Line.DrawLine(System.Drawing.Color.White, 2, polygon.Points[0].To3D(), polygon.Points[3].To3D());
-
-                Line.DrawLine(Stun ? System.Drawing.Color.YellowGreen : System.Drawing.Color.Red, 2, polygon.Start.To3D(), polygon.End.To3D());
             }
         }
 

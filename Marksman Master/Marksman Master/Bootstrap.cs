@@ -78,6 +78,8 @@ namespace Marksman_Master
 
                     Activator.Activator.InitializeActivator();
 
+                    ChampionTracker.Initialize(ChampionTrackerFlags.PathingTracker);
+
                     MenuLoaded = true;
 
                     Misc.PrintInfoMessage(

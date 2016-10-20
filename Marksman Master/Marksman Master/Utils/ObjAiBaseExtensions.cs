@@ -26,12 +26,15 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+using System;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 
 namespace Marksman_Master.Utils
 {
+    using SharpDX;
+
     internal static class ObjAiBaseExtensions
     {
         public static bool IsUsingHealingPotion(this Obj_AI_Base unit)
@@ -43,26 +46,40 @@ namespace Marksman_Master.Utils
         public static bool HasUndyingBuffA(this AIHeroClient target)
         {
             if (target.Buffs.Any(b => b.IsValid &&
-                                      (b.Name == "ChronoShift" || b.Name == "FioraW" || b.Name == "TaricR" || b.Name == "BardRStasis" ||
-                                       b.Name == "JudicatorIntervention" || b.Name == "UndyingRage" || (b.Name == "kindredrnodeathbuff" && target.HealthPercent <= 10))))
+                                      (b.Name.Equals("ChronoShift", StringComparison.CurrentCultureIgnoreCase) ||
+                                       b.Name.Equals("FioraW", StringComparison.CurrentCultureIgnoreCase) ||
+                                       b.Name.Equals("TaricR", StringComparison.CurrentCultureIgnoreCase) ||
+                                       b.Name.Equals("BardRStasis", StringComparison.CurrentCultureIgnoreCase) ||
+                                       b.Name.Equals("JudicatorIntervention", StringComparison.CurrentCultureIgnoreCase) ||
+                                       b.Name.Equals("UndyingRage", StringComparison.CurrentCultureIgnoreCase) ||
+                                       (b.Name.Equals("kindredrnodeathbuff", StringComparison.CurrentCultureIgnoreCase) &&
+                                        (target.HealthPercent <= 10)))))
             {
                 return true;
             }
 
             if (target.ChampionName != "Poppy")
                 return target.IsInvulnerable;
-            
+
             return EntityManager.Heroes.Allies.Any(
-                o => !o.IsMe && o.Buffs.Any(b => b.Caster.NetworkId == target.NetworkId && b.IsValid &&
-                                                 b.DisplayName == "PoppyDITarget")) || target.IsInvulnerable;
+                o => !o.IsMe && o.Buffs.Any(b => (b.Caster.NetworkId == target.NetworkId) && b.IsValid &&
+                                                 b.DisplayName.Equals("PoppyDITarget", StringComparison.CurrentCultureIgnoreCase))) || target.IsInvulnerable;
         }
-        /*
-        public static float GetDamageReduction(this AIHeroClient target)
+
+        internal static Vector3 GetPathingDirection(this Obj_AI_Base source)
         {
-            return 0f;
+            var output = ChampionTracker.GetPathingDirection(source.NetworkId);
+
+            return output == default(Vector3) ? source.ServerPosition : source.ServerPosition.Extend(output, 100).To3D();
         }
-        */
-        
+
+        internal static Vector3 GetLastPath(this Obj_AI_Base source)
+        {
+            var output = ChampionTracker.GetLastPath(source.NetworkId);
+
+            return output == default(Vector3) ? source.ServerPosition : output;
+        }
+
         internal static bool IsMovingTowards(this Obj_AI_Base source, Obj_AI_Base target, int minDistance = 0)
         {
             var safetyDistance = minDistance == 0 ? target.GetAutoAttackRange() : minDistance;
@@ -70,12 +87,35 @@ namespace Marksman_Master.Utils
             if (source.DistanceCached(target) < safetyDistance)
                 return true;
 
-            if (!source.IsMoving || source.Distance(source.RealPath().Last()) < 10)
+            if (!source.IsMoving || (source.Distance(source.RealPath().Last()) < 10))
                 return false;
 
-            return source.IsFacing(target) && source.RealPath().Last().DistanceSquared(target.Position) < safetyDistance * safetyDistance;
+            return source.IsFacingB(target) && (source.GetLastPath().DistanceSquared(target.Position) < safetyDistance * safetyDistance);
         }
 
+        public static bool IsFacingB(this Obj_AI_Base source, Obj_AI_Base target)
+        {
+            if ((source == null) || (target == null))
+            {
+                return false;
+            }
+
+            return source.IsFacingB(target.Position);
+        }
+
+        public static bool IsFacingB(this Obj_AI_Base source, Vector3 target)
+        {
+            if ((source == null) || (target == default(Vector3)))
+            {
+                return false;
+            }
+
+            var direction = source.GetPathingDirection() - source.Position;
+            var dotProduct = direction.To2D().Normalized().DotProduct((target - source.Position).To2D().Normalized());
+            
+            return dotProduct > 0.65;
+        }
+        
         public static bool HasSpellShield(this Obj_AI_Base target)
         {
             return target.HasBuffOfType(BuffType.SpellShield) || target.HasBuffOfType(BuffType.SpellImmunity);
@@ -88,7 +128,12 @@ namespace Marksman_Master.Utils
 
         public static bool HasSheenBuff(this AIHeroClient unit)
         {
-            return unit.Buffs.Any(b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "sheen" || b.DisplayName.ToLowerInvariant() == "itemfrozenfist"));
+            return
+                unit.Buffs.Any(
+                    b =>
+                        b.IsActive &&
+                        (b.DisplayName.Equals("sheen", StringComparison.CurrentCultureIgnoreCase) ||
+                         b.DisplayName.Equals("itemfrozenfist", StringComparison.CurrentCultureIgnoreCase)));
         }
 
         public static bool IsImmobile(this AIHeroClient target)

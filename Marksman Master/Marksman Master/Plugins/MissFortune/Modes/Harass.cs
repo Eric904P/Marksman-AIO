@@ -31,6 +31,8 @@ using EloBuddy.SDK;
 
 namespace Marksman_Master.Plugins.MissFortune.Modes
 {
+    using Utils;
+
     internal class Harass : MissFortune
     {
         public static void Execute()
@@ -39,19 +41,41 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
                 !(Player.Instance.ManaPercent >= Settings.Harass.MinManaQ))
                 return;
 
-            var qTarget = Q.GetTarget();
+            var qTarget = TargetSelector.GetTarget(Q.Range + (Settings.Misc.BounceQFromMinions ? 420 : 0),
+                DamageType.Physical);
 
             if (qTarget == null)
                 return;
 
+            var validUnkillable = Settings.Harass.UseQUnkillable &&
+                                  (Player.Instance.ManaPercent >= Settings.Harass.MinManaQUnkillable);
+
             if (Settings.Misc.BounceQFromMinions)
             {
-                var minion = GetQMinion(qTarget);
+                var minion = GetQKillableMinion(qTarget);
+
                 if (minion != null)
                 {
                     Q.Cast(minion);
-                } else if (qTarget.IsValidTarget(Q.Range)) Q.Cast(qTarget);
-            } else if(qTarget.IsValidTarget(Q.Range)) Q.Cast(qTarget);
+                }
+                else if(validUnkillable)
+                {
+                    var unKillableMinion = GetQUnkillableMinion(qTarget);
+
+                    if (unKillableMinion != null)
+                    {
+                        Q.Cast(unKillableMinion);
+                    }
+                }
+                else if (qTarget.IsValidTargetCached(Q.Range))
+                {
+                    Q.Cast(qTarget);
+                }
+            }
+            else if (qTarget.IsValidTargetCached(Q.Range))
+            {
+                Q.Cast(qTarget);
+            }
         }
     }
 }

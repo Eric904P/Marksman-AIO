@@ -138,9 +138,9 @@ namespace Marksman_Master.Plugins.KogMaw
                 var hpPosition = Player.Instance.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 18;
                 var timeLeft = GetKogMawWBuff.EndTime - Game.Time;
-                var endPos = timeLeft * 1000 / 70;
+                var endPos = timeLeft * 1000 / 92;
 
-                var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 6000d * 100d, 3, 110);
+                var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 8000d * 100d, 3, 110);
                 var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
 
                 Text.X = (int)(hpPosition.X + 45 + endPos);
@@ -415,13 +415,13 @@ namespace Marksman_Master.Plugins.KogMaw
             public static float GetRDamage(Obj_AI_Base target)
             {
                 var damage = RDamage[R.Level] + Player.Instance.FlatPhysicalDamageMod*RBonusAdMod +
-                             Player.Instance.FlatMagicDamageMod*RBonusApMod;
+                                                Player.Instance.TotalMagicalDamage*RBonusApMod;
 
                 if (target.HealthPercent > 40)
-                    damage *= (float)Misc.GetNumberInRangeFromProcent((100 - target.HealthPercent/60), 1, 1.5);
+                    damage *= (float)Misc.GetNumberInRangeFromProcent((100 - target.HealthPercent)/60*100, 1, 1.5);
                 else if (target.HealthPercent <= 40)
                     damage *= 2;
-
+                
                 return Player.Instance.CalculateDamageOnUnit(target, DamageType.Magical, damage);
             }
 

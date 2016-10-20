@@ -26,7 +26,6 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
@@ -44,34 +43,63 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
                 {
                     foreach (
                         var enemy in
-                            EntityManager.Heroes.Enemies.Where(
+                            StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                                 x =>
-                                    x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
-                                    x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                                    x.IsValidTargetCached(Q.Range + (Settings.Misc.BounceQFromMinions ? 420 : 0)) && !x.HasUndyingBuffA() && !x.HasSpellShield()))
                     {
+                        var damage = Player.Instance.GetSpellDamageCached(enemy, SpellSlot.Q);
+
+                        if (Settings.Misc.BounceQFromMinions)
+                        {
+                            var minion = GetQKillableMinion(enemy);
+                            var minion2 = GetQUnkillableMinion(enemy);
+
+                            if ((minion != null) && (damage*1.5f >= enemy.TotalHealthWithShields()))
+                            {
+                                Q.Cast(minion);
+                                return;
+                            }
+
+                            if ((minion2 != null) && (damage >= enemy.TotalHealthWithShields()))
+                            {
+                                Q.Cast(minion);
+                                return;
+                            }
+
+                            if (!enemy.IsValidTargetCached(Q.Range) || (damage < enemy.TotalHealthWithShields()))
+                                continue;
+
+                            Q.Cast(enemy);
+                            return;
+                        }
+
+                        if (!enemy.IsValidTargetCached(Q.Range) || (damage < enemy.TotalHealthWithShields()))
+                            continue;
+
                         Q.Cast(enemy);
-                        break;
+                        return;
                     }
                 }
                 if (E.IsReady())
                 {
                     foreach (
                         var enemy in
-                            EntityManager.Heroes.Enemies.Where(
+                            StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                                 x =>
-                                    x.IsValidTarget(E.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
-                                    x.TotalHealthWithShields() < Player.Instance.GetSpellDamage(x, SpellSlot.E) && E.GetPrediction(x).HitChance == HitChance.High))
+                                    x.IsValidTargetCached(E.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
+                                    (x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.E)) &&
+                                    (E.GetPrediction(x).HitChance == HitChance.High)))
                     {
                         E.CastMinimumHitchance(enemy, HitChance.High);
-                        break;
+                        return;
                     }
                 }
             }
 
             if (Q.IsReady() && Settings.Misc.AutoHarassQ &&
-                Player.Instance.ManaPercent >= Settings.Misc.AutoHarassQMinMana)
+                (Player.Instance.ManaPercent >= Settings.Misc.AutoHarassQMinMana))
             {
-                foreach (var enemy in EntityManager.Heroes.Enemies.Where(x=> x.IsValidTarget(Q.Range + (Settings.Misc.BounceQFromMinions ?  420 : 0)) && Settings.Misc.IsAutoHarassEnabledFor(x)))
+                foreach (var enemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x=> x.IsValidTargetCached(Q.Range + (Settings.Misc.BounceQFromMinions ?  420 : 0)) && Settings.Misc.IsAutoHarassEnabledFor(x)))
                 {
                     if (Settings.Misc.BounceQFromMinions)
                     {
@@ -79,9 +107,20 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
                         if (minion != null)
                         {
                             Q.Cast(minion);
-                        } else if (enemy.IsValidTarget(Q.Range)) Q.Cast(enemy);
+                            return;
+                        }
+                        if (enemy.IsValidTargetCached(Q.Range))
+                        {
+                            Q.Cast(enemy);
+                            return;
+                        }
                     }
-                    else if (enemy.IsValidTarget(Q.Range)) Q.Cast(enemy);
+
+                    if (!enemy.IsValidTargetCached(Q.Range))
+                        continue;
+
+                    Q.Cast(enemy);
+                    return;
                 }
             }
 
@@ -90,10 +129,11 @@ namespace Marksman_Master.Plugins.MissFortune.Modes
 
             var target = TargetSelector.GetTarget(R.Range, DamageType.Physical);
 
-            if (target == null || !Settings.Combo.SemiAutoRKeybind)
+            if ((target == null) || !Settings.Combo.SemiAutoRKeybind)
                 return;
 
             var rPrediciton = R.GetPrediction(target);
+
             if (rPrediciton.HitChancePercent >= 65)
             {
                 R.Cast(rPrediciton.CastPosition);

@@ -62,7 +62,10 @@ namespace Marksman_Master.Utils
             new LongCastSpellData(Champion.Warwick, SpellSlot.R),
             new LongCastSpellData(Champion.Xerath, SpellSlot.R)
         };
-        
+
+        private static Dictionary<int, Vector3> PathingDirection { get; set; }
+        private static Dictionary<int, Vector3> LastPath { get; set; }
+
         public static ChampionTrackerFlags Flags { get; private set; }
 
         private static bool _initialized;
@@ -95,7 +98,45 @@ namespace Marksman_Master.Utils
                 Game.OnUpdate += PostBasicAttackHandler;
             }
 
+            if (Flags.HasFlag(ChampionTrackerFlags.PathingTracker))
+            {
+                PathingDirection = new Dictionary<int, Vector3>();
+                LastPath = new Dictionary<int, Vector3>();
+
+                Obj_AI_Base.OnNewPath += Obj_AI_Base_OnNewPath;
+
+                Obj_AI_Base.OnProcessSpellCast += (sender, args) =>
+                {
+                    PathingDirection[sender.NetworkId] = sender.ServerPosition.Extend(args.End, args.End.Distance(sender) + 100).To3D();
+                };
+                Obj_AI_Base.OnBasicAttack += (sender, args) =>
+                {
+                    PathingDirection[sender.NetworkId] = sender.ServerPosition.Extend(args.End, args.End.Distance(sender) + 100).To3D();
+                };
+            }
+
             _initialized = true;
+        }
+        
+        private static void Obj_AI_Base_OnNewPath(Obj_AI_Base sender, GameObjectNewPathEventArgs args)
+        {
+            var path = args.Path.LastOrDefault();
+
+            if (path.Distance(sender) <= 50)
+                return;
+
+            PathingDirection[sender.NetworkId] = sender.ServerPosition.Extend(path, path.Distance(sender) + 100).To3D();
+            LastPath[sender.NetworkId] = path;
+        }
+
+        internal static Vector3 GetPathingDirection(int networkId)
+        {
+            return PathingDirection.ContainsKey(networkId) ? PathingDirection[networkId] : default(Vector3);
+        }
+
+        internal static Vector3 GetLastPath(int networkId)
+        {
+            return LastPath.ContainsKey(networkId) ? LastPath[networkId] : default(Vector3);
         }
 
         private static void Obj_AI_Base_OnSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)

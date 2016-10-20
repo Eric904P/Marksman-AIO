@@ -124,6 +124,7 @@ namespace Marksman_Master.Utils
     {
         VisibilityTracker = 1 << 0,
         LongCastTimeTracker = 1 << 1,
-        PostBasicAttackTracker = 1 << 2
+        PostBasicAttackTracker = 1 << 2,
+        PathingTracker = 1 << 3
     }
 }

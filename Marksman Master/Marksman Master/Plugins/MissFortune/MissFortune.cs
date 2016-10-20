@@ -42,6 +42,8 @@ using Color = System.Drawing.Color;
 
 namespace Marksman_Master.Plugins.MissFortune
 {
+    using Cache.Modules;
+
     internal class MissFortune : ChampionPlugin
     {
         protected static Spell.Targeted Q { get; }
@@ -61,9 +63,6 @@ namespace Marksman_Master.Plugins.MissFortune
 
         private static bool _changingRangeScan;
         
-        private static readonly Dictionary<int, Dictionary<float, float>> Damages =
-            new Dictionary<int, Dictionary<float, float>>();
-
         protected static byte[] QMana { get; } = {0, 43, 46, 49, 52, 55};
         protected static byte WMana { get; } = 30;
         protected static byte EMana { get; } = 80;
@@ -75,13 +74,24 @@ namespace Marksman_Master.Plugins.MissFortune
         protected static bool RCasted { get; private set; }
         protected static float RCastTime { get; private set; }
 
+        protected static float Q_ETA(Obj_AI_Base unit) => Player.Instance.DistanceCached(unit) / 1400 * 1000 + 250;
+
         protected static bool HasLoveTap(Obj_AI_Base unit)
             =>
                 ObjectManager.Get<Obj_GeneralParticleEmitter>()
-                    .Any(x => x.Name == "MissFortune_Base_P_Mark.troy" && Math.Abs(x.Distance(unit)) < 0.01);
+                    .Any(
+                        x =>
+                            x.Name.Equals("MissFortune_Base_P_Mark.troy", StringComparison.CurrentCultureIgnoreCase) &&
+                            (Math.Abs(x.Distance(unit)) < 0.01));
 
-        protected static bool HasWBuff => Player.Instance.Buffs.Any(x => x.Name.ToLower() == "missfortuneviciousstrikes");
+        protected static bool HasWBuff => Player.Instance.Buffs.Any(x => x.Name.Equals("missfortuneviciousstrikes", StringComparison.CurrentCultureIgnoreCase));
 
+        protected static Cache.Cache Cache => StaticCacheProvider.Cache;
+
+        private static CustomCache<KeyValuePair<int, int>, float> CachedComboDamage { get; }
+
+        private static SharpDX.Color MinionColor => SharpDX.Color.GreenYellow;
+        
         static MissFortune()
         {
             Q = new Spell.Targeted(SpellSlot.Q, 720);
@@ -94,6 +104,8 @@ namespace Marksman_Master.Plugins.MissFortune
             {
                 Width = (int)Math.PI / 180 * 35
             };
+
+            CachedComboDamage = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>(1000);
 
             ColorPicker = new ColorPicker[4];
 
@@ -118,24 +130,20 @@ namespace Marksman_Master.Plugins.MissFortune
             };
 
             Orbwalker.OnPreAttack += (target, args) => IsPreAttack = true;
-            Game.OnPostTick += args => { IsAfterAttack = false;};
+            Game.OnPostTick += args => IsAfterAttack = false;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
             Player.OnIssueOrder += Player_OnIssueOrder;
-
             Obj_AI_Base.OnPlayAnimation += Obj_AI_Base_OnPlayAnimation;
         }
 
         private static void Obj_AI_Base_OnPlayAnimation(Obj_AI_Base sender, GameObjectPlayAnimationEventArgs args)
         {
-            if (!sender.IsMe || !Settings.Combo.RBlockMovement)
+            if (!sender.IsMe || !Settings.Combo.RBlockMovement || (args.Animation != "Spell4"))
                 return;
 
-            if (args.Animation == "Spell4")
-            {
-                Orbwalker.DisableAttacking = true;
-                Orbwalker.DisableMovement = true;
-            }
+            Orbwalker.DisableAttacking = true;
+            Orbwalker.DisableMovement = true;
         }
 
         private static void Player_OnIssueOrder(Obj_AI_Base sender, PlayerIssueOrderEventArgs args)
@@ -143,7 +151,7 @@ namespace Marksman_Master.Plugins.MissFortune
             if (!sender.IsMe || !Settings.Combo.RBlockMovement)
                 return;
 
-            if (RCasted && Game.Time * 1000 - RCastTime < 1500)
+            if (RCasted && (Core.GameTickCount - RCastTime < 1500))
             {
                 args.Process = false;
             }
@@ -156,11 +164,14 @@ namespace Marksman_Master.Plugins.MissFortune
 
             if (args.Slot == SpellSlot.R)
             {
+                RCasted = true;
+                RCastTime = Core.GameTickCount;
+
                 Orbwalker.DisableAttacking = true;
                 Orbwalker.DisableMovement = true;
             }
 
-            if (Settings.Combo.RBlockMovement && RCasted && Player.Instance.Spellbook.IsChanneling)
+            if (RCasted && Player.Instance.Spellbook.IsChanneling)
             {
                 args.Process = false;
             }
@@ -168,47 +179,42 @@ namespace Marksman_Master.Plugins.MissFortune
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (!Settings.Combo.RBlockMovement)
+            if (!Settings.Combo.RBlockMovement ||
+                !(sender.IsMe &&
+                  ((args.Slot == SpellSlot.R) ||
+                   args.SData.Name.Equals("MissFortuneBulletTime", StringComparison.CurrentCultureIgnoreCase))))
                 return;
 
-            if (sender.IsMe && (args.Slot == SpellSlot.R || args.SData.Name == "MissFortuneBulletTime"))
-            {
-                Orbwalker.DisableAttacking = true;
-                Orbwalker.DisableMovement = true;
-
-                RCasted = true;
-                RCastTime = Game.Time * 1000;
-            }
+            Orbwalker.DisableAttacking = true;
+            Orbwalker.DisableMovement = true;
         }
 
         protected static IEnumerable<T> GetObjectsWithinQBounceRange<T>(Vector3 position) where T : Obj_AI_Base
         {
             var qPolygon = new Geometry.Polygon.Sector(position,
-                Player.Instance.Position.Extend(position, position.Distance(Player.Instance) + 400).To3D(),
-                (float) Math.PI/180f*55f,
-                400);
+                Player.Instance.Position.Extend(position, position.Distance(Player.Instance) + 400).To3D(), (float) Math.PI/180f*55f, 400);
 
             if (typeof (T) == typeof (AIHeroClient))
             {
-                return (IEnumerable<T>) EntityManager.Heroes.Enemies.Where(
+                return (IEnumerable<T>) StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     unit =>
                         new Geometry.Polygon.Circle(unit.Position, unit.BoundingRadius - 15).Points.Any(
                             k => qPolygon.IsInside(k)));
             }
             if (typeof (T) == typeof (Obj_AI_Base))
             {
-                return (IEnumerable<T>) EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
+                return (IEnumerable<T>) StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
                     unit =>
                         new Geometry.Polygon.Circle(unit.Position, unit.BoundingRadius - 15).Points.Any(
                             k => qPolygon.IsInside(k))).Cast<Obj_AI_Base>()
-                    .Concat(EntityManager.Heroes.Enemies.Where(
+                    .Concat(StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         unit =>
                             new Geometry.Polygon.Circle(unit.Position, unit.BoundingRadius - 15).Points.Any(
                                 k => qPolygon.IsInside(k))));
             }
             if (typeof (T) == typeof (Obj_AI_Minion))
             {
-                return (IEnumerable<T>) EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
+                return (IEnumerable<T>)StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
                     unit =>
                         new Geometry.Polygon.Circle(unit.Position, unit.BoundingRadius - 15).Points.Any(
                             k => qPolygon.IsInside(k)));
@@ -223,25 +229,25 @@ namespace Marksman_Master.Plugins.MissFortune
 
             if (typeof(T) == typeof(AIHeroClient))
             {
-                return (IEnumerable<T>)EntityManager.Heroes.Enemies.Where(
+                return (IEnumerable<T>)StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     unit =>
                         new Geometry.Polygon.Circle(unit.Position, unit.BoundingRadius - 15).Points.Any(
                             k => rPolygon.IsInside(k)));
             }
             if (typeof(T) == typeof(Obj_AI_Base))
             {
-                return (IEnumerable<T>)EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
+                return (IEnumerable<T>)StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
                     unit =>
                         new Geometry.Polygon.Circle(unit.Position, unit.BoundingRadius - 15).Points.Any(
                             k => rPolygon.IsInside(k))).Cast<Obj_AI_Base>()
-                    .Concat(EntityManager.Heroes.Enemies.Where(
+                    .Concat(StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                         unit =>
                             new Geometry.Polygon.Circle(unit.Position, unit.BoundingRadius - 15).Points.Any(
                                 k => rPolygon.IsInside(k))));
             }
             if (typeof(T) == typeof(Obj_AI_Minion))
             {
-                return (IEnumerable<T>)EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
+                return (IEnumerable<T>)StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
                     unit =>
                         new Geometry.Polygon.Circle(unit.Position, unit.BoundingRadius - 15).Points.Any(
                             k => rPolygon.IsInside(k)));
@@ -261,44 +267,63 @@ namespace Marksman_Master.Plugins.MissFortune
 
         protected static float GetComboDamage(Obj_AI_Base unit, int autoAttacks = 1)
         {
-            if (Damages.ContainsKey(unit.NetworkId) &&
-                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200))) //
-                return Damages[unit.NetworkId].Values.FirstOrDefault();
-
+            if (MenuManager.IsCacheEnabled && CachedComboDamage.Exist(new KeyValuePair<int, int>(unit.NetworkId, autoAttacks)))
+            {
+                return CachedComboDamage.Get(new KeyValuePair<int, int>(unit.NetworkId, autoAttacks));
+            }
             var damage = 0f;
 
             if (unit.IsValidTarget(Q.Range) && Q.IsReady())
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.Q);
             
             if (unit.IsValidTarget(E.Range) && E.IsReady())
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.E);
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.E);
 
             if (Player.Instance.IsInAutoAttackRange(unit))
-                damage += Player.Instance.GetAutoAttackDamage(unit, true) * autoAttacks;
-
-            Damages[unit.NetworkId] = new Dictionary<float, float> {{Game.Time*1000, damage}};
-
+                damage += Player.Instance.GetAutoAttackDamageCached(unit, true) * autoAttacks;
+            
+            if (MenuManager.IsCacheEnabled)
+            {
+                CachedComboDamage.Add(new KeyValuePair<int, int>(unit.NetworkId, autoAttacks), damage);
+            }
             return damage;
         }
-
+        
         protected static Obj_AI_Base GetQMinion(AIHeroClient target)
         {
-            if (!EntityManager.MinionsAndMonsters.CombinedAttackable.Any(
-                x => x.IsValidTarget(Q.Range) && x.Distance(target) <= 400))
-                return null;
+            return GetQKillableMinion(target) ?? GetQUnkillableMinion(target);
+        }
 
+        protected static Obj_AI_Base GetQKillableMinion(AIHeroClient target)
+        {
             return
                 (from minion in
-                    EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
+                     GetValidHeroesAndMinions().Where(
                         x =>
-                            x.IsValidTarget(Q.Range) && !x.IsMoving && x.Distance(target) <= 400 &&
-                            Prediction.Health.GetPrediction(x, 500) > 20 &&
-                            Prediction.Health.GetPrediction(x, 500) < Player.Instance.GetSpellDamage(x, SpellSlot.Q))
-                    let closest = GetQBouncePossibleObject(minion)
-                    where
-                        closest != null && closest.Type == GameObjectType.AIHeroClient &&
-                        closest.NetworkId == target.NetworkId
-                    select minion).FirstOrDefault();
+                            x.IsValidTarget(Q.Range) && !x.IsMoving && (x.Distance(target) <= 400) &&
+                            (Prediction.Health.GetPrediction(x, (int)(x.Distance(Player.Instance) / 1400 * 1000 + 250)) > 20) &&
+                            (Prediction.Health.GetPrediction(x, (int)(x.Distance(Player.Instance) / 1400 * 1000 + 250)) <
+                             Player.Instance.GetSpellDamageCached(x, SpellSlot.Q)))
+                 let closest = GetQBouncePossibleObject(minion)
+                 where
+                     (closest != null) && (closest.Type == GameObjectType.AIHeroClient) &&
+                     (closest.NetworkId == target.NetworkId)
+                 select minion).FirstOrDefault();
+        }
+
+        protected static Obj_AI_Base GetQUnkillableMinion(AIHeroClient target)
+        {
+            return
+                (from minion in
+                     GetValidHeroesAndMinions().Where(
+                        x =>
+                            x.IsValidTarget(Q.Range) && !x.IsMoving && (x.Distance(target) <= 400) &&
+                            (Prediction.Health.GetPrediction(x, (int)(x.Distance(Player.Instance) / 1400 * 1000 + 250)) > 20))
+                 let closest = GetQBouncePossibleObject(minion)
+                 where
+                     (closest != null) && (closest.Type == GameObjectType.AIHeroClient) &&
+                     (closest.NetworkId == target.NetworkId)
+                 select minion).FirstOrDefault();
         }
 
         protected static Obj_AI_Base GetQBouncePossibleObject(Obj_AI_Base from)
@@ -307,34 +332,34 @@ namespace Marksman_Master.Plugins.MissFortune
 
             foreach (var objAiBase in qobjects.OrderBy(x=>x.Distance(@from)).Where(objAiBase => @from.NetworkId != objAiBase.NetworkId))
             {
-                if (objAiBase.GetType() == typeof(AIHeroClient) && HasLoveTap(objAiBase) && new Geometry.Polygon.Circle(objAiBase.Position,
-                    objAiBase.BoundingRadius - 15).Points.Any(k => new Geometry.Polygon.Sector(objAiBase.Position,
-                          Player.Instance.Position.Extend(objAiBase, objAiBase.Distance(Player.Instance) + 400).To3D(),
-                          (float)Math.PI / 180f * 40f, 400).IsInside(k)))
+                var position = Prediction.Position.PredictUnitPosition(objAiBase, (int)Q_ETA(objAiBase)).To3D();
+
+                if ((objAiBase.GetType() == typeof(AIHeroClient)) && HasLoveTap(objAiBase) && 
+                    new Geometry.Polygon.Circle(position, objAiBase.BoundingRadius).Points.Any(k => new Geometry.Polygon.Sector(position,
+                          Player.Instance.Position.Extend(objAiBase, objAiBase.Distance(Player.Instance) + 400).To3D(), (float)Math.PI / 180f * 40f, 400).IsInside(k)))
                 {
                     return objAiBase;
                 }
-
-
-                if (objAiBase.GetType() == typeof (Obj_AI_Minion) &&
+                
+                if ((objAiBase.GetType() == typeof (Obj_AI_Minion)) &&
                     new Geometry.Polygon.Circle(objAiBase.Position, objAiBase.BoundingRadius - 15).Points.Any(
                         k =>
                             new Geometry.Polygon.Sector(objAiBase.Position,
-                                Player.Instance.Position.Extend(objAiBase, objAiBase.Distance(Player.Instance) + 400)
+                                Player.Instance.Position.Extend(objAiBase, position.Distance(Player.Instance) + 400)
                                     .To3D(), (float) Math.PI/180f*20f, 400).IsInside(k)))
                 {
                     return objAiBase;
                 }
-                if (objAiBase.GetType() == typeof (AIHeroClient) &&
-                    new Geometry.Polygon.Circle(objAiBase.Position, objAiBase.BoundingRadius - 15).Points.Any(
+                if ((objAiBase.GetType() == typeof (AIHeroClient)) &&
+                    new Geometry.Polygon.Circle(position, objAiBase.BoundingRadius).Points.Any(
                         k =>
-                            new Geometry.Polygon.Sector(objAiBase.Position,
-                                Player.Instance.Position.Extend(objAiBase, objAiBase.Distance(Player.Instance) + 400)
+                            new Geometry.Polygon.Sector(position,
+                                Player.Instance.Position.Extend(objAiBase, position.Distance(Player.Instance) + 400)
                                     .To3D(), (float) Math.PI/180f*20f, 400).IsInside(k)))
                 {
                     return objAiBase;
                 }
-                if (objAiBase.GetType() == typeof (Obj_AI_Minion) &&
+                if ((objAiBase.GetType() == typeof (Obj_AI_Minion)) &&
                     new Geometry.Polygon.Circle(objAiBase.Position, objAiBase.BoundingRadius - 15).Points.Any(
                         k =>
                             new Geometry.Polygon.Sector(objAiBase.Position,
@@ -343,11 +368,11 @@ namespace Marksman_Master.Plugins.MissFortune
                 {
                     return objAiBase;
                 }
-                if (objAiBase.GetType() == typeof (AIHeroClient) &&
-                    new Geometry.Polygon.Circle(objAiBase.Position, objAiBase.BoundingRadius - 15).Points.Any(
+                if ((objAiBase.GetType() == typeof (AIHeroClient)) &&
+                    new Geometry.Polygon.Circle(position, objAiBase.BoundingRadius).Points.Any(
                         k =>
-                            new Geometry.Polygon.Sector(objAiBase.Position,
-                                Player.Instance.Position.Extend(objAiBase, objAiBase.Distance(Player.Instance) + 400)
+                            new Geometry.Polygon.Sector(position,
+                                Player.Instance.Position.Extend(objAiBase, position.Distance(Player.Instance) + 400)
                                     .To3D(), (float) Math.PI/180f*40f, 400).IsInside(k)))
                 {
                     return objAiBase;
@@ -356,11 +381,20 @@ namespace Marksman_Master.Plugins.MissFortune
             return null;
         }
 
+        protected static IEnumerable<Obj_AI_Base> GetValidHeroesAndMinions()
+        {
+            return
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached()).Cast<Obj_AI_Base>()
+                    .Concat(StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
+                        x => x.IsValidTargetCached()));
+        }
+
         protected override void OnDraw()
         {
             if (_changingRangeScan)
                 Circle.Draw(SharpDX.Color.White,
-                    LaneClearMenu["Plugins.MissFortune.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue, Player.Instance);
+                    LaneClearMenu["Plugins.MissFortune.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue,
+                    Player.Instance);
 
             if (Settings.Drawings.DrawQ && (!Settings.Drawings.DrawSpellRangesWhenReady || Q.IsReady()))
                 Circle.Draw(ColorPicker[0].Color, Q.Range, Player.Instance);
@@ -376,7 +410,7 @@ namespace Marksman_Master.Plugins.MissFortune
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (Settings.Misc.EVsGapclosers && E.IsReady() && args.End.Distance(Player.Instance) < 350 && (Player.Instance.Mana - EMana > QMana[Q.Level] + WMana + RMana))
+            if (Settings.Misc.EVsGapclosers && E.IsReady() && (args.End.Distance(Player.Instance) < 350) && (Player.Instance.Mana - EMana > QMana[Q.Level] + WMana + RMana))
             {
                 E.CastMinimumHitchance(sender, 65);
             }
@@ -412,8 +446,10 @@ namespace Marksman_Master.Plugins.MissFortune
             HarassMenu.AddGroupLabel("Harass mode settings for Miss Fortune addon");
 
             HarassMenu.AddLabel("Double Up (Q) settings :");
-            HarassMenu.Add("Plugins.MissFortune.HarassMenu.UseQ", new CheckBox("Use Q", false));
-            HarassMenu.Add("Plugins.MissFortune.HarassMenu.MinManaQ", new Slider("Min mana percentage ({0}%) to use Q", 75, 1));
+            HarassMenu.Add("Plugins.MissFortune.HarassMenu.UseQ", new CheckBox("Use Q on killable minion if Q2 will hit champion"));
+            HarassMenu.Add("Plugins.MissFortune.HarassMenu.MinManaQ", new Slider("Min mana percentage ({0}%) to use Q on killable minion", 50, 1));
+            HarassMenu.Add("Plugins.MissFortune.HarassMenu.UseQUnkillable", new CheckBox("Use Q on unkillable minion if Q2 will hit champion"));
+            HarassMenu.Add("Plugins.MissFortune.HarassMenu.MinManaQUnkillable", new Slider("Min mana percentage ({0}%) to use Q on unkillable minion", 75, 1));
 
             LaneClearMenu = MenuManager.Menu.AddSubMenu("Clear");
             LaneClearMenu.AddGroupLabel("Lane clear settings for Miss Fortune addon");
@@ -551,7 +587,7 @@ namespace Marksman_Master.Plugins.MissFortune
                 Orbwalker.DisableAttacking = true;
                 Orbwalker.DisableMovement = true;
             }
-            else if(!Player.Instance.Spellbook.IsChanneling && (Game.Time * 1000 - RCastTime > 1500))
+            else if(!Player.Instance.Spellbook.IsChanneling && (Core.GameTickCount - RCastTime > 1500))
             {
                 Orbwalker.DisableAttacking = false;
                 Orbwalker.DisableMovement = false;
@@ -616,6 +652,10 @@ namespace Marksman_Master.Plugins.MissFortune
                 public static bool UseQ => MenuManager.MenuValues["Plugins.MissFortune.HarassMenu.UseQ"];
 
                 public static int MinManaQ => MenuManager.MenuValues["Plugins.MissFortune.HarassMenu.MinManaQ", true];
+
+                public static bool UseQUnkillable => MenuManager.MenuValues["Plugins.MissFortune.HarassMenu.UseQUnkillable"];
+
+                public static int MinManaQUnkillable => MenuManager.MenuValues["Plugins.MissFortune.HarassMenu.MinManaQUnkillable", true];
             }
 
             internal static class LaneClear
