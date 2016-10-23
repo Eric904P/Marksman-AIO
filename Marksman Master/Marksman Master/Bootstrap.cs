@@ -45,10 +45,16 @@ namespace Marksman_Master
     {
         public static bool MenuLoaded { get; set; }
 
+        public static string VersionMessage { get; private set; }
+
         public static Dictionary<string, ColorBGRA> SavedColorPickerData { get; set; }
+
+        public static Dictionary<VersionInfo.Version, VersionInfo> Versions { get; private set; }
 
         public static void Initialize()
         {
+            Versions = new Dictionary<VersionInfo.Version, VersionInfo>();
+
             Misc.PrintDebugMessage("Initializing cache");
 
             StaticCacheProvider.Initialize();
@@ -98,9 +104,35 @@ namespace Marksman_Master
                     var downloadedData = webClient.DownloadString("https://raw.githubusercontent.com/Daeral/Marksman-AIO/master/Marksman%20Master/Marksman%20Master/Properties/AssemblyInfo.cs");
 
                     var regex = Regex.Match(downloadedData, @"\[assembly\: AssemblyVersion\(""([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)""\)\]");
-                    
-                    if(string.IsNullOrEmpty(regex.Groups[1].Value) || string.IsNullOrWhiteSpace(regex.Groups[1].Value))
-                        return Assembly.GetExecutingAssembly().GetName().Version;
+                    var assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version;
+
+                    if (string.IsNullOrEmpty(regex.Groups[1].Value) || string.IsNullOrWhiteSpace(regex.Groups[1].Value))
+                        return assemblyVersion;
+
+                    var githubSplittedVersion = regex.Groups[1].Value.Split('.');
+                    var githubMajor = githubSplittedVersion[0] + "." + githubSplittedVersion[1];
+
+                    var splittedAssemblyVersion = assemblyVersion.ToString().Split('.');
+                    var assemblyMajor = splittedAssemblyVersion[0] + "." + splittedAssemblyVersion[1];
+
+                    Versions[VersionInfo.Version.Github] = new VersionInfo(githubMajor, githubSplittedVersion[2], githubSplittedVersion[3], VersionInfo.Version.Github);
+                    Versions[VersionInfo.Version.Assembly] = new VersionInfo(assemblyMajor, splittedAssemblyVersion[2], splittedAssemblyVersion[3], VersionInfo.Version.Assembly);
+
+                    var comparedMajorVersions = Versions[VersionInfo.Version.Assembly].CompareMajorVersion(Versions[VersionInfo.Version.Github]);
+
+                    if (comparedMajorVersions < 0)
+                    {
+                        VersionMessage = $"Your Marksman Master version is {Math.Abs(comparedMajorVersions)} major patch{((comparedMajorVersions != -1) && (comparedMajorVersions != 1) ? "es" : "")} behind.\nIt's highly recommended to update it in the loader !";
+                    } else
+                    {
+                        var comparedMinorVersions = Versions[VersionInfo.Version.Assembly].CompareMinorVersions(Versions[VersionInfo.Version.Github]);
+
+                        if (comparedMinorVersions < 0)
+                        {
+                            VersionMessage =
+                                $"Your Marksman Master version is {Math.Abs(comparedMinorVersions)} patch{((comparedMinorVersions != -1) && (comparedMinorVersions != 1) ? "es" : "")} that include new features behind.\nIt's recommended to update your Marksman Master it in the loader !";
+                        }
+                    }
 
                     return new System.Version(regex.Groups[1].Value);
                 }
@@ -146,6 +178,112 @@ namespace Marksman_Master
             catch (Exception exception)
             {
                 Console.WriteLine($"Couldn't check version an exception occured\n{exception}{Environment.NewLine}");
+            }
+        }
+
+        public class VersionInfo
+        {
+            public enum Version
+            {
+                Github, Assembly
+            }
+
+            public float MajorVersion { get; }
+            public int MinorVersion { get; }
+            public int PatchVersion { get; }
+            public Version VersionType { get; }
+
+            public VersionInfo(float majorVersion, int minorVersion, int patchVersion, Version version)
+            {
+                MajorVersion = majorVersion;
+                MinorVersion = minorVersion;
+                PatchVersion = patchVersion;
+                VersionType = version;
+            }
+
+            public VersionInfo(string majorVersion, string minorVersion, string patchVersion, Version version)
+            {
+                MajorVersion = Convert.ToSingle(majorVersion);
+                MinorVersion = Convert.ToInt32(minorVersion);
+                PatchVersion = Convert.ToInt32(patchVersion);
+                VersionType = version;
+            }
+
+            /// <summary>
+            /// Returns negative integer if <see cref="MajorVersion"/> is behind to <see cref="secondMajorVerion"/>
+            /// otherwise returns 0 if both are equal or positive integer if <see cref="MajorVersion"/> is ahead of <see cref="secondMajorVerion"/>
+            /// </summary>
+            /// <param name="secondMajorVerion">secondMajorVerion</param>
+            /// <returns>substraction of <see cref="MajorVersion"/> and <see cref="secondMajorVerion"/></returns>
+            public int CompareMajorVersion(float secondMajorVerion)
+            {
+                float x;
+                double xTruncate;
+                if (BitConverter.GetBytes(decimal.GetBits((decimal)MajorVersion)[3])[2] == 1)
+                {
+                    var temp = MajorVersion.ToString(System.Globalization.CultureInfo.InvariantCulture).Split('.');
+                    var joined = $"{temp[0]}.0{temp[1]}";
+                    x = Convert.ToSingle(joined);
+                    
+                    xTruncate = Math.Truncate(x);
+                }
+                else
+                {
+                    x = MajorVersion;
+                    xTruncate = Math.Truncate(MajorVersion);
+                }
+
+                float y;
+                double yTruncate;
+                if (BitConverter.GetBytes(decimal.GetBits((decimal)secondMajorVerion)[3])[2] == 1)
+                {
+                    var temp = secondMajorVerion.ToString(System.Globalization.CultureInfo.InvariantCulture).Split('.');
+                    var joined = $"{temp[0]}.0{temp[1]}";
+                    y = Convert.ToSingle(joined);
+
+                    yTruncate = Math.Truncate(y);
+                }
+                else
+                {
+                    y = secondMajorVerion;
+                    yTruncate = Math.Truncate(secondMajorVerion);
+                }
+
+                var xDecimalPart = x - xTruncate;
+                var yDecimalPart = y - yTruncate;
+
+                var result = Math.Round(xDecimalPart - yDecimalPart, 2)*100 + (xTruncate - yTruncate);
+                return (int)result;
+            }
+
+            /// <summary>
+            /// Returns negative integer if <see cref="MajorVersion"/> is behind to <see cref="secondMajorVerion"/>
+            /// otherwise returns 0 if both are equal or positive integer if <see cref="MajorVersion"/> is ahead of <see cref="secondMajorVerion"/>
+            /// </summary>
+            /// <param name="secondMajorVerion">secondMajorVerion</param>
+            /// <returns>substraction of <see cref="MajorVersion"/> and <see cref="secondMajorVerion"/></returns>
+            public int CompareMajorVersion(VersionInfo secondMajorVerion)
+            {
+                return CompareMajorVersion(secondMajorVerion.MajorVersion);
+            }
+
+            public int CompareMinorVersions(int secondMinorVerion)
+            {
+                return MinorVersion - secondMinorVerion;
+            }
+
+            public int CompareMinorVersions(VersionInfo secondMinorVerion)
+            {
+                return CompareMinorVersions(secondMinorVerion.MinorVersion);
+            }
+            public int ComparePatchVersions(int secondPatchVerion)
+            {
+                return PatchVersion - secondPatchVerion;
+            }
+
+            public int ComparePatchVersions(VersionInfo secondPatchVerion)
+            {
+                return CompareMinorVersions(secondPatchVerion.MinorVersion);
             }
         }
     }

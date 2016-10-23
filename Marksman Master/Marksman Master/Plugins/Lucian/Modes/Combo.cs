@@ -76,7 +76,7 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                 }
 
                 if ((target != null) && target.IsValidTarget(Q.Range) &&
-                    ((Player.Instance.Mana - QMana > EMana + (R.IsReady() ? RMana : 0)) ||
+                    (((Player.Instance.Mana - QMana > EMana + (R.IsReady() ? RMana : 0)) && !Player.Instance.IsDashing()) ||
                      (Player.Instance.GetSpellDamageCached(target, SpellSlot.Q) + Player.Instance.GetAutoAttackDamageCached(target, true) * 3 > target.TotalHealthWithShields())))
                 {
                     Q.Cast(target);
@@ -84,9 +84,9 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                 }
 
                 if (Settings.Combo.ExtendQOnMinions && (target2 != null) &&
-                    ((Player.Instance.Mana - QMana > EMana + (R.IsReady() ? RMana : 0)) ||
+                    (((Player.Instance.Mana - QMana > EMana + (R.IsReady() ? RMana : 0)) && !Player.Instance.IsDashing()) ||
                      (Player.Instance.GetSpellDamageCached(target2, SpellSlot.Q) +
-                      Player.Instance.GetAutoAttackDamageCached(target, true)*3 > target2.TotalHealthWithShields())) && !Player.Instance.IsDashing())
+                      Player.Instance.GetAutoAttackDamageCached(target2, true)*3 > target2.TotalHealthWithShields())) && !Player.Instance.IsDashing())
                 {
                     var source = GetQExtendSource(target2);
 
@@ -104,7 +104,7 @@ namespace Marksman_Master.Plugins.Lucian.Modes
             {
                 var target = TargetSelector.GetTarget(W.Range, DamageType.Physical);
 
-                if ((target != null) && ((Player.Instance.Mana - WMana > (R.IsReady() ? RMana : 0)) ||
+                if ((target != null) && (((Player.Instance.Mana - WMana > (R.IsReady() ? RMana : 0)) && !Player.Instance.IsDashing()) ||
                     (Player.Instance.GetSpellDamageCached(target, SpellSlot.W) > target.TotalHealthWithShields())))
                 {
                     if (Settings.Combo.IgnoreCollisionW)

@@ -45,6 +45,8 @@ namespace Marksman_Master
         private static readonly Dictionary<InterrupterEventArgs, AIHeroClient> InterruptibleSpellsFound =
             new Dictionary<InterrupterEventArgs, AIHeroClient>();
 
+        private static EloBuddy.SDK.Rendering.Text _text;
+
         public static bool Initialize()
         {
             LoadPlugin();
@@ -60,6 +62,14 @@ namespace Marksman_Master
             {
                 GameObject.OnCreate += GameObject_OnCreate;
             }
+
+            _text = new EloBuddy.SDK.Rendering.Text(string.Empty, new SharpDX.Direct3D9.FontDescription
+            {
+                FaceName = "Tahoma",
+                Quality = SharpDX.Direct3D9.FontQuality.ClearTypeNatural,
+                OutputPrecision = SharpDX.Direct3D9.FontPrecision.Raster,
+                Height = 30
+            });
             
             Game.OnTick += Game_OnTick;
             Drawing.OnDraw += Drawing_OnDraw;
@@ -454,6 +464,11 @@ namespace Marksman_Master
 
         private static void Drawing_OnDraw(EventArgs args)
         {
+            if (!string.IsNullOrEmpty(Bootstrap.VersionMessage))
+            {
+                _text.Draw(Bootstrap.VersionMessage, System.Drawing.Color.Red, 25, 25);
+            }
+
             PluginInstance.OnDraw();
         }
 

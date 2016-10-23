@@ -319,7 +319,7 @@ namespace Marksman_Master.Plugins.Lucian
                 return;
 
             if ((
-                    ((GetComboDamage(heroClient, 4) >= heroClient.TotalHealthWithShields()) && (Player.Instance.CountEnemiesInRangeCached(1300) <= 3)) ||
+                    ((GetComboDamage(heroClient, 4) >= heroClient.TotalHealthWithShields()) && (Player.Instance.CountEnemiesInRangeCached(1300) <= 2)) ||
                     (Player.Instance.CountEnemiesInRangeCached(1300) <= 1)
                 ) && Player.Instance.IsInRange(positionAfterE, Player.Instance.GetAutoAttackRange() - 70) && (shortEPosition.Distance(heroClient) > 400))
             {
