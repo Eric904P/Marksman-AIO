@@ -127,4 +127,14 @@ namespace Marksman_Master.Utils
         PostBasicAttackTracker = 1 << 2,
         PathingTracker = 1 << 3
     }
+
+    [Flags]
+    public enum RectangleDrawingFlags
+    {
+        Top = 1 << 0,
+        Bottom = 1 << 1,
+        Side = 1 << 2,
+        All = 1 << 3,
+        Fill = 1 << 4
+    }
 }

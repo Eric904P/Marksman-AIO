@@ -26,55 +26,46 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Linq;
+
 using EloBuddy;
 using EloBuddy.SDK;
 
 namespace Marksman_Master.Plugins.Lucian.Modes
 {
+    using Utils;
+
     internal class Harass : Lucian
     {
         public static void Execute()
         {
-            if (Q.IsReady() && Settings.Harass.UseQ && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)
+            if (!Q.IsReady() || !Settings.Harass.UseQ || (Player.Instance.ManaPercent < Settings.Harass.MinManaQ))
+                return;
+
+            var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                x =>
+                    x.IsValidTarget(925) && !x.HasSpellShield() && !x.HasUndyingBuffA() &&
+                    Settings.Harass.IsAutoHarassEnabledFor(x));
+
+            var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
+
+            if (target == null)
+                return;
+
+            if (target.IsValidTarget(Q.Range))
             {
-                foreach (
-                    var enemy in
-                        EntityManager.Heroes.Enemies.Where(
-                            x => x.IsValidTarget(1100) && Settings.Harass.IsAutoHarassEnabledFor(x))
-                            .OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
-                {
-                    if (enemy.IsValidTarget(Q.Range))
-                    {
-                        Q.Cast(enemy);
-                        return;
-                    }
-
-                    if (!enemy.IsValidTarget(1100) || !Settings.Combo.ExtendQOnMinions)
-                        break;
-
-                    foreach (
-                        var entity in
-                            from entity in
-                                EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
-                                    x => x.IsValidTarget(Q.Range))
-                            let pos =
-                                Player.Instance.Position.Extend(entity,
-                                    Player.Instance.Distance(entity) > 1025
-                                        ? 1025 - Player.Instance.Distance(entity)
-                                        : 1025)
-                            let targetpos = Prediction.Position.PredictUnitPosition(enemy, 250)
-                            let rect = new Geometry.Polygon.Rectangle(entity.Position.To2D(), pos, 20)
-                            where
-                                new Geometry.Polygon.Circle(targetpos, enemy.BoundingRadius).Points.Any(
-                                    rect.IsInside)
-                            select entity)
-                    {
-                        Q.Cast(entity);
-                        return;
-                    }
-                }
+                Q.Cast(target);
+                return;
             }
+
+            if (!target.IsValidTarget(925) || !Settings.Combo.ExtendQOnMinions)
+                return;
+
+            var source = GetQExtendSource(target);
+
+            if (source == null)
+                return;
+
+            Q.Cast(source);
         }
     }
 }

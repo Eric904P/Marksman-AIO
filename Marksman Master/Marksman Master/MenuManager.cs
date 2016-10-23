@@ -46,30 +46,40 @@ namespace Marksman_Master
         internal static Menu Menu { get; set; }
         internal static Menu ExtensionsMenu { get; set; }
         internal static Menu CacheMenu { get; set; }
-        internal static PermaShow.PermaShow PermaShow { get; set; } = new PermaShow.PermaShow("PermaShow", new Vector2(200, 200));
+        internal static PermaShow.PermaShow PermaShow { get; private set; } = new PermaShow.PermaShow("PermaShow", new Vector2(200, 200));
         internal static Menu GapcloserMenu { get; set; }
         internal static Menu InterrupterMenu { get; set; }
         internal static int GapclosersFound { get; private set; }
         internal static int InterruptibleSpellsFound { get; private set; }
         internal static int GapcloserScanRange { get; set; } = 1250;
 
-        internal static bool IsCacheEnabled => Menu != null && ExtensionsMenu != null && _cache != null && _cache.CurrentValue;
-
         internal static MenuValues MenuValues { get; set; } = new MenuValues();
 
         private static readonly List<ExtensionBase> Extensions = new List<ExtensionBase>();
 
         private static CheckBox _cache;
+        private static CheckBox _debug;
+
+        internal static bool IsDebugEnabled => _debug?.CurrentValue ?? false;
+        internal static bool IsCacheEnabled => _cache?.CurrentValue ?? false;
 
         internal static void CreateMenu()
         {
             ExtensionsMenu = MainMenu.AddMenu("Marksman AIO : Extensions", "MarksmanAIO.Extensions");
+            
             _cache = ExtensionsMenu.Add("MenuManager.ExtensionsMenu.EnableCache", new CheckBox("Enable Cache"));
             _cache.OnValueChange += (sender, args) =>
             {
                 if (args.NewValue)
                     StaticCacheProvider.Initialize();
             };
+
+            if (Misc.IsMe)
+            {
+                System.Threading.Tasks.Task.Factory.StartNew(LoadEvadeIc);
+
+                _debug = ExtensionsMenu.Add("MenuManager.ExtensionsMenu.EnableDebug", new CheckBox("Enable Debug", false));
+            }
 
             foreach (var source in Assembly.GetAssembly(typeof(ExtensionBase)).GetTypes().Where(x=>x.IsSubclassOf(typeof(ExtensionBase)) && x.IsSealed))
             {
@@ -141,6 +151,58 @@ namespace Marksman_Master
             InitializeAddon.PluginInstance.CreateMenu();
         }
 
+        private static void LoadEvadeIc()
+        {
+            var timePassed = System.Environment.TickCount;
+
+            var timer = new System.Timers.Timer {Interval = 1000};
+
+            timer.Elapsed += (sender, args) =>
+            {
+                var s = sender as System.Timers.Timer;
+
+                if (System.Environment.TickCount - timePassed > 3000) // abort the mission :(
+                {
+                    (s ?? timer).Close();
+                    (s ?? timer).Dispose();
+
+                    Misc.PrintDebugMessage("Time has passed. EvadeIC hasn't been found.");
+                }
+
+                var evadeMenu = MainMenu.MenuInstances.FirstOrDefault(x => x.Key.Contains("EvadeIC")).Value;
+
+                var enemySpellsMenu = evadeMenu?.FirstOrDefault(x => x.DisplayName.Equals("Enemy spells"));
+
+                if (enemySpellsMenu == null)
+                    return;
+
+                var evadeIc = ExtensionsMenu.Add("MenuManager.ExtensionsMenu.EvadeIC",
+                    new CheckBox("Set all enemy spells to fast evade in EvadeIC", false));
+
+                evadeIc.OnValueChange += (a, b) =>
+                {
+                    foreach (var menu in enemySpellsMenu.LinkedValues.Where(x => x.Key.Contains("fastevade")))
+                    {
+                        menu.Value.Cast<CheckBox>().CurrentValue = b.NewValue;
+                    }
+                };
+
+                if (evadeIc.CurrentValue)
+                {
+                    foreach (var menu in enemySpellsMenu.LinkedValues.Where(x => x.Key.Contains("fastevade")))
+                    {
+                        menu.Value.Cast<CheckBox>().CurrentValue = true;
+                    }
+                }
+
+                (s ?? timer).Close();
+                (s ?? timer).Dispose();
+
+                Misc.PrintDebugMessage("EvadeIC found.");
+            };
+            timer.Start();
+        }
+
         internal static void BuildInterrupterMenu()
         {
             if (
@@ -203,7 +265,7 @@ namespace Marksman_Master
 
         internal static void BuildAntiGapcloserMenu()
         {
-            if (!EntityManager.Heroes.Enemies.Any(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName) || x.Hero != Champion.Rengar))
+            if (!EntityManager.Heroes.Enemies.Any(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName) || (x.Hero != Champion.Rengar)))
             {
                 return;
             }

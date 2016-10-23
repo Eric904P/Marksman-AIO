@@ -155,6 +155,9 @@ namespace Marksman_Master.PermaShow
 
         private int GetMaxItemNameTextLength()
         {
+            if (!Enabled || Opacity == 0)
+                return 0;
+
             var itemNameTextLength = 0;
 
             foreach (var item in Wrapper.Bind<DataHandlerModule>().PermaShowItems)
@@ -171,6 +174,9 @@ namespace Marksman_Master.PermaShow
 
         private int GetMaxItemValueTextLength()
         {
+            if (!Enabled || Opacity == 0)
+                return 0;
+
             var itemValueTextLength = 0;
 
             foreach (var item in Wrapper.Bind<DataHandlerModule>().PermaShowItems)
@@ -187,6 +193,9 @@ namespace Marksman_Master.PermaShow
 
         private int GetMaxTextLength()
         {
+            if (!Enabled || Opacity == 0)
+                return 0;
+
             var a = (int)(GetMaxItemNameTextLength() + GetMaxItemValueTextLength() + DefaultSpacing * 1.25f);
             var b = Wrapper.Bind<DataHandlerModule>().HeaderText.GetTextRectangle().Width;
 
@@ -215,13 +224,21 @@ namespace Marksman_Master.PermaShow
 
             var width = Position.X + GetMaxTextLength() + DefaultSpacing*2 - Position.X;
             
-            Drawing.DrawLine(new Vector2(Position.X + width/2, Position.Y), new Vector2(Position.X + width/2, lastSeparator.Positions[0].Y + 5), (int) width + 8, ToColor(new ColorBGRA(BackgroundColor.R, BackgroundColor.G, BackgroundColor.B, (byte) Opacity)));
+            EloBuddy.SDK.Rendering.Line.DrawLine(ToColor(new ColorBGRA(BackgroundColor.R, BackgroundColor.G, BackgroundColor.B, (byte)Opacity)), width + 8, new Vector2(Position.X + width / 2, Position.Y), new Vector2(Position.X + width / 2, lastSeparator.Positions[0].Y + 5));
+            
+            //Drawing.DrawLine(new Vector2(Position.X + width/2, Position.Y), new Vector2(Position.X + width/2, lastSeparator.Positions[0].Y + 5), (int) width + 8, ToColor(new ColorBGRA(BackgroundColor.R, BackgroundColor.G, BackgroundColor.B, (byte) Opacity)));
+
             Wrapper.Bind<DataHandlerModule>().HeaderText.Font.DrawText(null, Wrapper.Bind<DataHandlerModule>().HeaderText.Message, (int) Position.X + DefaultSpacing, (int) Position.Y, new ColorBGRA(TextColor.R, TextColor.G, TextColor.B, (byte)Opacity));
 
-            Drawing.DrawLine(new Vector2(Position.X, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height*1.15f), new Vector2(Position.X + GetMaxTextLength() + DefaultSpacing*2, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height*1.15f), 3, ToColor(new ColorBGRA(SeparatorColor.R, SeparatorColor.G, SeparatorColor.B, (byte) Opacity)));
+            //Drawing.DrawLine(new Vector2(Position.X, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height*1.15f), new Vector2(Position.X + GetMaxTextLength() + DefaultSpacing*2, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height*1.15f), 3, ToColor(new ColorBGRA(SeparatorColor.R, SeparatorColor.G, SeparatorColor.B, (byte) Opacity)));
 
-            Drawing.DrawLine(new Vector2(Position.X + GetMaxItemNameTextLength() + DefaultSpacing*2, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height*1.85f), new Vector2(Position.X + GetMaxItemNameTextLength() + DefaultSpacing*2, lastSeparator.Positions[0].Y), 2, ToColor(new ColorBGRA(SeparatorColor.R, SeparatorColor.G, SeparatorColor.B, (byte) Opacity)));
-            
+            //Drawing.DrawLine(new Vector2(Position.X + GetMaxItemNameTextLength() + DefaultSpacing*2, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height*1.85f), new Vector2(Position.X + GetMaxItemNameTextLength() + DefaultSpacing*2, lastSeparator.Positions[0].Y), 2, ToColor(new ColorBGRA(SeparatorColor.R, SeparatorColor.G, SeparatorColor.B, (byte) Opacity)));
+
+            EloBuddy.SDK.Rendering.Line.DrawLine(ToColor(new ColorBGRA(SeparatorColor.R, SeparatorColor.G, SeparatorColor.B, (byte)Opacity)), 3, new Vector2(Position.X, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height * 1.15f), new Vector2(Position.X + GetMaxTextLength() + DefaultSpacing * 2, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height * 1.15f));
+
+
+            EloBuddy.SDK.Rendering.Line.DrawLine(ToColor(new ColorBGRA(SeparatorColor.R, SeparatorColor.G, SeparatorColor.B, (byte)Opacity)),2, new Vector2(Position.X + GetMaxItemNameTextLength() + DefaultSpacing * 2, Position.Y + Wrapper.Bind<DataHandlerModule>().HeaderText.Height * 1.85f), new Vector2(Position.X + GetMaxItemNameTextLength() + DefaultSpacing * 2, lastSeparator.Positions[0].Y));
+
             foreach (var permaShowItem in Wrapper.Bind<DataHandlerModule>().PermaShowItems)
             {
                 if (permaShowItem.Value.GetType() == typeof (MenuItem))
@@ -258,17 +275,24 @@ namespace Marksman_Master.PermaShow
 
             foreach (var separator in Wrapper.Bind<DataHandlerModule>().Separators)
             {
-                Drawing.DrawLine(separator.Positions[0], separator.Positions[1], separator.Width, ToColor(new ColorBGRA(separator.Color.R, separator.Color.G, separator.Color.B, (byte)Opacity)));
+                //Drawing.DrawLine(separator.Positions[0], separator.Positions[1], separator.Width, ToColor(new ColorBGRA(separator.Color.R, separator.Color.G, separator.Color.B, (byte)Opacity)));
+
+                EloBuddy.SDK.Rendering.Line.DrawLine(ToColor(new ColorBGRA(separator.Color.R, separator.Color.G, separator.Color.B, (byte)Opacity)), separator.Width, separator.Positions[0], separator.Positions[1]);
             }
 
             foreach (var underline in Wrapper.Bind<DataHandlerModule>().Underlines)
             {
-                Drawing.DrawLine(underline.Positions[0], underline.Positions[1], underline.Width, ToColor(new ColorBGRA(underline.Color.R, underline.Color.G, underline.Color.B, (byte)Opacity)));
+                //Drawing.DrawLine(underline.Positions[0], underline.Positions[1], underline.Width, ToColor(new ColorBGRA(underline.Color.R, underline.Color.G, underline.Color.B, (byte)Opacity)));
+
+                EloBuddy.SDK.Rendering.Line.DrawLine(ToColor(new ColorBGRA(underline.Color.R, underline.Color.G, underline.Color.B, (byte)Opacity)), underline.Width, underline.Positions[0], underline.Positions[1]);
             }
         }
 
         private void UpdatePositions()
         {
+            if(!Enabled || Opacity == 0)
+                return;
+
             var itenNameXPosition = (int) Position.X + DefaultSpacing;
             var itemValueXPosition = (int) (Position.X + GetMaxItemNameTextLength() + DefaultSpacing*2.5f);
 

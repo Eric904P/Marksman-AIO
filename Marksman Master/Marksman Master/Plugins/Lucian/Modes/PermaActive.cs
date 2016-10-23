@@ -40,13 +40,12 @@ namespace Marksman_Master.Plugins.Lucian.Modes
     {
         public static void Execute()
         {
-            if (Q.IsReady() && Settings.Harass.UseQ && !Player.Instance.IsRecalling() && !Player.Instance.Position.IsVectorUnderEnemyTower() && Player.Instance.ManaPercent >= Settings.Harass.MinManaQ && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass) && !Player.Instance.IsDashing())
+            if (Q.IsReady() && !Player.Instance.IsRecalling() && !Player.Instance.Position.IsVectorUnderEnemyTower() && !Player.Instance.IsDashing())
             {
                 foreach (
-                    var enemy in
-                        EntityManager.Heroes.Enemies.Where(
-                            x => x.IsValidTarget(1100) && Settings.Harass.IsAutoHarassEnabledFor(x))
-                            .OrderByDescending(x => Player.Instance.GetSpellDamage(x, SpellSlot.Q)))
+                    var enemy in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, 
+                            x => x.IsValidTarget(925) && ((Settings.Harass.UseQ && Settings.Harass.IsAutoHarassEnabledFor(x) && (Player.Instance.ManaPercent >= Settings.Harass.MinManaQ)) || (x.TotalHealthWithShields() <= Player.Instance.GetSpellDamageCached(x, SpellSlot.Q))))
+                            .OrderByDescending(x => Player.Instance.GetSpellDamageCached(x, SpellSlot.Q)))
                 {
                     if (enemy.IsValidTarget(Q.Range))
                     {
@@ -54,36 +53,26 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                         return;
                     }
 
-                    if (!enemy.IsValidTarget(1100) || !Settings.Combo.ExtendQOnMinions)
+                    if (!enemy.IsValidTarget(925) || !Settings.Combo.ExtendQOnMinions)
                         break;
 
-                    foreach (
-                        var entity in
-                            from entity in
-                                EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
-                                    x => x.IsValidTarget(Q.Range))
-                            let pos =
-                                Player.Instance.Position.Extend(entity, Player.Instance.Distance(entity) > 1025 ? 1025 - Player.Instance.Distance(entity) : 1025)
-                            let targetpos = Prediction.Position.PredictUnitPosition(enemy, 250)
-                            let rect = new Geometry.Polygon.Rectangle(entity.Position.To2D(), pos, 20)
-                            where
-                                new Geometry.Polygon.Circle(targetpos, enemy.BoundingRadius).Points.Any(
-                                    rect.IsInside)
-                            select entity)
+                    var source = GetQExtendSource(enemy);
+
+                    if (source != null)
                     {
-                        Q.Cast(entity);
+                        Q.Cast(source);
                         return;
                     }
                 }
             }
 
             if (!R.IsReady() || !Settings.Combo.UseR ||
-                Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name != "LucianR")
+                (Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name != "LucianR"))
                 return;
 
             var target = TargetSelector.GetTarget(R.Range, DamageType.Physical);
 
-            if (target == null || !Settings.Combo.RKeybind)
+            if ((target == null) || !Settings.Combo.RKeybind)
                 return;
 
             var rPrediciton = R.GetPrediction(target);

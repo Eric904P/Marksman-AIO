@@ -26,21 +26,23 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
-using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using EloBuddy.SDK.Rendering;
-using Marksman_Master.Utils;
 using SharpDX;
 
 namespace Marksman_Master.Plugins.Lucian
 {
+    using Utils;
+    using Cache.Modules;
+
     internal class Lucian : ChampionPlugin
     {
         protected static Spell.Targeted Q { get; }
@@ -55,22 +57,63 @@ namespace Marksman_Master.Plugins.Lucian
         internal static Menu DrawingsMenu { get; set; }
 
         protected static bool HasPassiveBuff
-            => Player.Instance.Buffs.Any(x => x.Name.ToLowerInvariant() == "lucianpassivebuff");
-        
+            => CanLosePassive || Player.Instance.Buffs.Any(x => x.Name.Equals("lucianpassivebuff", StringComparison.CurrentCultureIgnoreCase));
+            //=> CanLosePassive || ObjectManager.Get<Obj_GeneralParticleEmitter>().Any(
+            //        x =>
+            //            x.Name.Equals("Lucian_Base_P_buf.troy", StringComparison.CurrentCultureIgnoreCase) &&
+            //            (x.Distance(Player.Instance) <= 200));
+
         protected static BuffInstance GetPassiveBuff
-            => Player.Instance.Buffs.FirstOrDefault(x => x.Name.ToLowerInvariant() == "lucianpassivebuff");
+            => Player.Instance.Buffs.FirstOrDefault(x => x.Name.Equals("lucianpassivebuff", StringComparison.CurrentCultureIgnoreCase));
 
         protected static bool HasWDebuff(Obj_AI_Base unit)
-            => unit.Buffs.Any(x => x.Name.ToLowerInvariant() == "lucianwdebuff");
+            => unit.Buffs.Any(x => x.Name.Equals("lucianwdebuff", StringComparison.CurrentCultureIgnoreCase));
 
         private static readonly ColorPicker[] ColorPicker;
         private static bool _changingRangeScan;
 
         protected static bool IsPreAttack { get; private set; }
-        protected static bool IsCastingR { get; set; }
+        protected static bool IsPostAttack { get; private set; }
 
-        private static readonly Dictionary<int, Dictionary<float, float>> Damages =
-            new Dictionary<int, Dictionary<float, float>>();
+        protected static bool IsCastingQ
+            =>
+                Player.Instance.Spellbook.IsCastingSpell && (Q.Handle.CooldownExpires - Game.Time <= 0) &&
+                (Q.Handle.State == SpellState.Surpressed);
+
+        protected static bool IsCastingR => Player.Instance.Buffs.Any(x => x.Name.Equals("lucianr", StringComparison.CurrentCultureIgnoreCase));
+
+        protected static bool HasAnyOrbwalkerFlags
+            =>
+                (Orbwalker.ActiveModesFlags &
+                 (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear |
+                  Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
+
+        protected static int QCastTime => 400;
+
+        protected static Cache.Cache Cache => StaticCacheProvider.Cache;
+
+        private static CustomCache<KeyValuePair<int, int>, float> CachedComboDamage { get; }
+        
+        private static float LastETime { get; set; }
+
+        protected static int QMana => Q.IsLearned ? 50 + 5 * (Q.Level-1): 0;
+        protected static int WMana => W.IsLearned ? 50 : 0;
+        protected static int EMana => E.IsLearned ? 40 - 10 * (E.Level - 1) : 0;
+        protected static int RMana => R.IsLearned ? 100 : 0;
+
+        protected static Vector3 RDirection { get; private set; }
+
+        protected static List<MissileClient> RMissiles =>
+            ObjectManager.Get<MissileClient>()
+                .Where(
+                    x =>
+                        x.SpellCaster.IsMe &&
+                        x.SData.Name.Equals("LucianRMissile", StringComparison.CurrentCultureIgnoreCase)).ToList();
+
+        private static int LastSpellCastTime { get; set; }
+
+        protected static bool CanLosePassive
+            => Core.GameTickCount - LastSpellCastTime <= Player.Instance.AttackCastDelay*1000 + Math.Min(Game.Ping/2, 70);
 
         static Lucian()
         {
@@ -79,6 +122,8 @@ namespace Marksman_Master.Plugins.Lucian
             E = new Spell.Skillshot(SpellSlot.E, 475, SkillShotType.Linear);
             R = new Spell.Skillshot(SpellSlot.R, 1150, SkillShotType.Linear, 250, 2000, 110);
 
+            CachedComboDamage = Cache.Resolve<CustomCache<KeyValuePair<int, int>, float>>(1000);
+            
             ColorPicker = new ColorPicker[3];
 
             ColorPicker[0] = new ColorPicker("LucianQ", new ColorBGRA(10, 106, 138, 255));
@@ -95,46 +140,61 @@ namespace Marksman_Master.Plugins.Lucian
 
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             GameObject.OnCreate += GameObject_OnCreate;
+            
+            Game.OnPostTick += args => IsPostAttack = false;
 
-            Spellbook.OnCastSpell += Spellbook_OnCastSpell;
-        }
-
-        private static float LastCastTime { get; set; }
-
-        private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
-        {
-            if (!sender.Owner.IsMe || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
-                return;
-
-            if(args.Slot == SpellSlot.Q && Player.Instance.IsDashing())
-                args.Process = false;
-
-            if (args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W)
+            Obj_AI_Base.OnPlayAnimation += (sender, args) =>
             {
-                if ((HasPassiveBuff || (Game.Time*1000 - LastCastTime < 100)) && Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange() + 100) >= 1)
+                if (sender.IsMe && (args.Animation == "Spell1") && HasAnyOrbwalkerFlags)
                 {
-                    args.Process = false;
-                } else LastCastTime = Game.Time*1000;
-            }
+                    Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
+                }
+            };
+            
+            Spellbook.OnCastSpell += (sender, args) =>
+            {
+                if (!sender.Owner.IsMe)
+                    return;
+
+                if ((args.Slot != SpellSlot.Q) && (args.Slot != SpellSlot.W) && (args.Slot != SpellSlot.E))
+                    return;
+
+                if (HasAnyOrbwalkerFlags)
+                {
+                    if (IsPreAttack)
+                    {
+                        args.Process = false;
+                        return;
+                    }
+
+                    if (args.Slot == SpellSlot.E)
+                    {
+                        LastETime = Core.GameTickCount;
+                    }
+                }
+
+                LastSpellCastTime = Core.GameTickCount;
+            };
         }
 
         private static void GameObject_OnCreate(GameObject sender, EventArgs args)
         {
-            if (!HasAnyOrbwalkerFlags())
+            if (!HasAnyOrbwalkerFlags)
                 return;
 
             if (sender.GetType() == typeof (MissileClient))
             {
                 var missile = sender as MissileClient;
 
-                if (missile != null)
+                if ((missile != null) && missile.SpellCaster.IsMe)
                 {
-                    if (missile.SData.Name == "Lucian_Base_Q_laser.troy" ||
-                        missile.SData.Name == "Lucian_Base_P_buf.troy")
+                    if (missile.SData.Name == "LucianWMissile")
                     {
-                        Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                        Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
 
                         Orbwalker.ResetAutoAttack();
+
+                        return;
                     }
                 }
             }
@@ -144,241 +204,33 @@ namespace Marksman_Master.Plugins.Lucian
 
             var particle = sender as Obj_GeneralParticleEmitter;
 
-            if (particle == null || particle.Name != "Lucian_Base_P_buf.troy")
+            if ((particle == null) || !particle.Name.Contains("Lucian_Base_Q_laser") || (particle.Distance(Player.Instance) > 200))
                 return;
             
-            Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
 
             Orbwalker.ResetAutoAttack();
         }
         
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
-            if (Player.Instance.Spellbook.IsCastingSpell)
-                args.Process = false;// stupid q bug stops occuring
-        }
-
-        private static bool HasAnyOrbwalkerFlags()
-        {
-            return (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
+            if (Player.Instance.Spellbook.IsCastingSpell || (Core.GameTickCount - LastETime < 300))
+                args.Process = false;// q bug stops occuring
         }
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (!sender.IsMe)
+            if (!sender.IsMe || !args.SData.Name.Equals("LucianR", StringComparison.CurrentCultureIgnoreCase))
                 return;
 
-            if(args.Slot == SpellSlot.Q || args.Slot == SpellSlot.W || args.Slot== SpellSlot.E)
-                Orbwalker.ResetAutoAttack();
-
-            if (args.Slot == SpellSlot.R)
-            {
-                Activator.Activator.Items[ItemsEnum.Ghostblade].UseItem();
-            }
+            Activator.Activator.Items[ItemsEnum.Ghostblade].UseItem();
+            RDirection = Player.Instance.Position.Extend(args.End, 9999).To3D();
         }
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
             IsPreAttack = false;
-
-            if (!Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
-                return;
-
-            if (E.IsReady() && Settings.Combo.UseE && !IsCastingR && Settings.Misc.EUsageMode == 1 && !HasPassiveBuff &&
-                !Player.Instance.HasSheenBuff())
-            {
-                var heroClient = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 420, DamageType.Physical);
-                var position = Vector3.Zero;
-
-                if (heroClient == null)
-                    return;
-
-                var damage = Player.Instance.GetAutoAttackDamage(heroClient, true) * 2;
-
-                if (Q.IsReady())
-                    damage += Player.Instance.GetSpellDamage(heroClient, SpellSlot.Q);
-                if (W.IsReady())
-                    damage += Player.Instance.GetSpellDamage(heroClient, SpellSlot.W);
-
-                if (!((damage < heroClient.TotalHealthWithShields()) || (Q.IsReady() && W.IsReady())))
-                    return;
-
-                if (Settings.Misc.EMode == 0)
-                {
-                    if (Player.Instance.HealthPercent > heroClient.HealthPercent + 5 && heroClient.CountEnemiesInRange(600) < 2)
-                    {
-                        if (!Player.Instance.Position.Extend(Game.CursorPos, 420)
-                            .To3D()
-                            .IsVectorUnderEnemyTower() &&
-                            (!heroClient.IsMelee ||
-                             Player.Instance.Position.Extend(Game.CursorPos, 420)
-                                 .IsInRange(heroClient, heroClient.GetAutoAttackRange() * 1.5f)))
-                        {
-                            position = Game.CursorPos.Distance(Player.Instance) > 450
-                                ? Player.Instance.Position.Extend(Game.CursorPos, 450).To3D()
-                                : Game.CursorPos;
-                        }
-                    }
-                    else
-                    {
-                        var closest =
-                            EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
-                                .OrderBy(x => x.Distance(Player.Instance)).ToArray()[0];
-
-                        var list =
-                            SafeSpotFinder.GetSafePosition(Player.Instance.Position.To2D(), 900,
-                                1300,
-                                heroClient.IsMelee ? heroClient.GetAutoAttackRange() * 2 : heroClient.GetAutoAttackRange())
-                                .Where(
-                                    x =>
-                                        !x.Key.To3D().IsVectorUnderEnemyTower() &&
-                                        x.Key.IsInRange(Prediction.Position.PredictUnitPosition(closest, 850),
-                                            Player.Instance.GetAutoAttackRange() - 50))
-                                .Select(source => source.Key)
-                                .ToList();
-
-                        if (list.Any())
-                        {
-                            var paths =
-                                EntityManager.Heroes.Enemies.Where(x => x.IsValidTarget(1300))
-                                    .Select(x => x.Path)
-                                    .Count(result => result != null && result.Last().Distance(Player.Instance) < 300);
-
-                            var asc = Misc.SortVectorsByDistance(list, heroClient.Position.To2D())[0].To3D();
-                            if (Player.Instance.CountEnemiesInRange(Player.Instance.GetAutoAttackRange()) == 0 &&
-                                !EntityManager.Heroes.Enemies.Where(x => x.Distance(Player.Instance) < 1000).Any(
-                                    x => Prediction.Position.PredictUnitPosition(x, 800)
-                                        .IsInRange(asc,
-                                            x.IsMelee ? x.GetAutoAttackRange() * 2 : x.GetAutoAttackRange())))
-                            {
-                                position = asc;
-                            }
-                            else if (Player.Instance.CountEnemiesInRange(1000) <= 2 && (paths == 0 || paths == 1) &&
-                                     ((closest.Health < Player.Instance.GetAutoAttackDamage(closest, true) * 2) ||
-                                      (Orbwalker.LastTarget is AIHeroClient &&
-                                       Orbwalker.LastTarget.Health <
-                                       Player.Instance.GetAutoAttackDamage(closest, true) * 2)))
-                            {
-                                position = asc;
-                            }
-                            else
-                            {
-                                position =
-                                    Misc.SortVectorsByDistanceDescending(list, heroClient.Position.To2D())[0].To3D();
-                            }
-                        }
-                    }
-
-                    if (position != Vector3.Zero && EntityManager.Heroes.Enemies.Any(x => x.IsValidTarget(900)))
-                    {
-                        E.Cast(position.Distance(Player.Instance) > E.Range
-                            ? Player.Instance.Position.Extend(position, E.Range).To3D()
-                            : position);
-                        return;
-                    }
-                }
-                else if (Settings.Misc.EMode == 1)
-                {
-                    var enemies = Player.Instance.CountEnemiesInRange(1300);
-
-                    var pos = Game.CursorPos.Distance(Player.Instance) > 450 ? Player.Instance.Position.Extend(Game.CursorPos, 450).To3D() : Game.CursorPos;
-
-                    if (!pos.IsVectorUnderEnemyTower())
-                    {
-                        if (enemies == 1)
-                        {
-                            if (heroClient.IsMelee &&
-                                !pos.IsInRange(Prediction.Position.PredictUnitPosition(heroClient, 850),
-                                    heroClient.GetAutoAttackRange() + 150))
-                            {
-                                E.Cast(pos);
-                                return;
-                            }
-                            if (!heroClient.IsMelee)
-                            {
-                                E.Cast(pos);
-                                return;
-                            }
-                        }
-                        else if (enemies == 2 && Player.Instance.CountAlliesInRange(850) >= 1)
-                        {
-                            E.Cast(pos);
-                            return;
-                        }
-                        else if (enemies >= 2)
-                        {
-                            if (
-                                !EntityManager.Heroes.Enemies.Any(
-                                    x =>
-                                        pos.IsInRange(Prediction.Position.PredictUnitPosition(x, 400),
-                                            x.IsMelee ? x.GetAutoAttackRange() + 150 : x.GetAutoAttackRange())))
-                            {
-                                E.Cast(pos);
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (Q.IsReady() && Settings.Combo.UseQ && !IsCastingR && !HasPassiveBuff && !Player.Instance.HasSheenBuff())
-            {
-                var t = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
-                var target2 = TargetSelector.GetTarget(900, DamageType.Physical);
-
-                if (t != null && t.IsValidTarget(Q.Range) &&
-                    ((Player.Instance.Mana - 50 + 5 * (Q.Level - 1) > 40 - 10 * (E.Level - 1) + (R.IsReady() ? 100 : 0)) ||
-                     (Player.Instance.GetSpellDamage(t, SpellSlot.Q) > t.TotalHealthWithShields())))
-                {
-                    Q.Cast(t);
-                    return;
-                }
-                if (Settings.Combo.ExtendQOnMinions && target2 != null &&
-                    ((Player.Instance.Mana - 50 + 5 * (Q.Level - 1) > 40 - 10 * (E.Level - 1) + (R.IsReady() ? 100 : 0)) ||
-                     (Player.Instance.GetSpellDamage(target2, SpellSlot.Q) > target2.TotalHealthWithShields())))
-                {
-                    foreach (
-                        var entity in
-                            from entity in
-                                EntityManager.MinionsAndMonsters.CombinedAttackable.Where(
-                                    x => x.IsValidTarget(Q.Range))
-                            let pos =
-                                Player.Instance.Position.Extend(entity, 900 - Player.Instance.Distance(entity))
-                            let targetpos = Prediction.Position.PredictUnitPosition(target2, 250)
-                            let rect = new Geometry.Polygon.Rectangle(entity.Position.To2D(), pos, 10)
-                            where
-                                new Geometry.Polygon.Circle(targetpos, target2.BoundingRadius).Points.Any(
-                                    rect.IsInside)
-                            select entity)
-                    {
-                        Q.Cast(entity);
-                        return;
-                    }
-                }
-            }
-
-            if (W.IsReady() && Settings.Combo.UseW && !IsCastingR && !HasPassiveBuff && !Player.Instance.HasSheenBuff())
-            {
-                var t = TargetSelector.GetTarget(W.Range, DamageType.Physical);
-
-                if (t != null && ((Player.Instance.Mana - 50 > (R.IsReady() ? 100 : 0)) ||
-                                       Player.Instance.GetSpellDamage(t, SpellSlot.W) >
-                                       t.TotalHealthWithShields()))
-                {
-                    if (Settings.Combo.IgnoreCollisionW && Player.Instance.IsInAutoAttackRange(t) && Orbwalker.LastTarget != null && Orbwalker.LastTarget.NetworkId == t.NetworkId)
-                    {
-                        W.Cast(t);
-                        return;
-                    }
-
-                    var wPrediction = W.GetPrediction(t);
-
-                    if (wPrediction.HitChance == HitChance.Medium)
-                    {
-                        W.Cast(wPrediction.CastPosition);
-                    }
-                }
-            }
+            IsPostAttack = true;
         }
 
         private static float HandleDamageIndicator(Obj_AI_Base unit)
@@ -395,24 +247,178 @@ namespace Marksman_Master.Plugins.Lucian
 
         protected static float GetComboDamage(Obj_AI_Base unit, int autoAttacks = 1)
         {
-            if (Damages.ContainsKey(unit.NetworkId) &&
-                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200))) //
-                return Damages[unit.NetworkId].Values.FirstOrDefault();
+            if (MenuManager.IsCacheEnabled &&
+                CachedComboDamage.Exist(new KeyValuePair<int, int>(unit.NetworkId, autoAttacks)))
+            {
+                return CachedComboDamage.Get(new KeyValuePair<int, int>(unit.NetworkId, autoAttacks));
+            }
+            
+            var damage = Player.Instance.GetAutoAttackDamageCached(unit) * autoAttacks;
 
-            var damage = 0f;
-
-            if (Player.Instance.IsInRange(unit, 1100) && W.IsReady())
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.Q);
+            if (unit.IsValidTarget(900) && Q.IsReady())
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.Q);
 
             if (unit.IsValidTarget(W.Range) && W.IsReady())
-                damage += Player.Instance.GetSpellDamage(unit, SpellSlot.W);
-
-            if (Player.Instance.IsInAutoAttackRange(unit))
-                damage += Player.Instance.GetAutoAttackDamage(unit) * autoAttacks;
-
-            Damages[unit.NetworkId] = new Dictionary<float, float> { { Game.Time * 1000, damage } };
-
+                damage += Player.Instance.GetSpellDamageCached(unit, SpellSlot.W);
+            
+            if (MenuManager.IsCacheEnabled)
+            {
+                CachedComboDamage.Add(new KeyValuePair<int, int>(unit.NetworkId, autoAttacks), damage);
+            }
             return damage;
+        }
+
+        protected static Obj_AI_Base GetQExtendSource(Obj_AI_Base target)
+        {
+            var dyingTargets =
+                GetValidHeroesAndMinions(Q.Range)
+                    .Where(x => Prediction.Health.GetPrediction(x, QCastTime) <= 0)
+                    .ToList();
+
+            return (from entity in dyingTargets.Any() ? dyingTargets : GetValidHeroesAndMinions(Q.Range)
+                    let pos =
+                    Player.Instance.Position.Extend(target,
+                        Player.Instance.Distance(target) > 900 ? 900 - Player.Instance.Distance(target) : 900).To3D()
+                    let targetpos = Prediction.Position.PredictUnitPosition(target, QCastTime)
+                    let rect = new Geometry.Polygon.Rectangle(entity.Position, pos, 20)
+                    where new Geometry.Polygon.Circle(targetpos, target.BoundingRadius).Points.Any(rect.IsInside)
+                    select entity).FirstOrDefault();
+        }
+
+        protected static IEnumerable<Obj_AI_Base> GetValidHeroesAndMinions(float range)
+        {
+            return
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached()).Cast<Obj_AI_Base>()
+                    .Concat(StaticCacheProvider.GetMinions(CachedEntityType.CombinedAttackableMinions,
+                        x => x.IsValidTargetCached(range)));
+        }
+
+        protected static void ELogics()
+        {
+            if (!E.IsReady() || !Settings.Combo.UseE || IsCastingR || HasPassiveBuff || Player.Instance.HasSheenBuff())
+                return;
+
+            if ((Settings.Misc.EUsageMode == 1) && !IsPostAttack)
+                return;
+
+            var heroClient = TargetSelector.GetTarget(Player.Instance.GetAutoAttackRange() + 470, DamageType.Physical);
+
+            if (heroClient == null)
+                return;
+
+            if (!IsPostAttack && !Q.IsReady() &&
+                (heroClient.TotalHealthWithShields() >= Player.Instance.GetAutoAttackDamageCached(heroClient, true) * 5))
+                return;
+
+            if (IsCastingQ && !PossibleToInterruptQ(heroClient))
+                return;
+
+            var positionAfterE = Prediction.Position.PredictUnitPosition(heroClient, 300); // +-
+            var shortEPosition = Player.Instance.Position.Extend(Game.CursorPos, 70).To3D();
+
+            if ((
+                    (GetComboDamage(heroClient, 4) >= heroClient.TotalHealthWithShields()) ||
+                    (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 200) <= 1)
+                ) && Player.Instance.IsInRange(positionAfterE, Player.Instance.GetAutoAttackRange() - 70) && (shortEPosition.Distance(heroClient) > 300))
+            {
+                E.Cast(shortEPosition);
+                return;
+            }
+
+            var damage = GetComboDamage(heroClient, 2);
+            
+            var pos = Game.CursorPos.Distance(Player.Instance) > 450 ? Player.Instance.Position.Extend(Game.CursorPos, 450).To3D() : Game.CursorPos;
+
+            var enemiesInPosition = pos.CountEnemyHeroesInRangeWithPrediction((int) Player.Instance.GetAutoAttackRange(), 335);
+
+            if (!IsPostAttack && ((damage < heroClient.TotalHealthWithShields()) || !PossibleEqCombo(heroClient) ||
+                 (enemiesInPosition <= 0) || (enemiesInPosition >= 3)))
+                return;
+
+            var enemies = Player.Instance.CountEnemiesInRange(1300);
+            
+            if (!pos.IsVectorUnderEnemyTower())
+            {
+                if (enemies == 1)
+                {
+                    var isInRange = pos.IsInRangeCached(positionAfterE, heroClient.IsMelee ? 500 : 300);
+
+                    if (!isInRange ||
+                        ((damage >= heroClient.TotalHealthWithShields()) &&
+                         EnemiesInDirectionOfTheDash(pos, 2000).Any(x => x.IdEquals(heroClient))) || !heroClient.IsMovingTowards(Player.Instance, 600))
+                    {
+                        E.Cast(pos);
+                        return;
+                    }
+                }
+                else if ((enemies == 2) && ((Player.Instance.CountAlliesInRangeCached(400) > 1) ||
+                                            ((damage >= heroClient.TotalHealthWithShields()) && (pos.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange()) == 1)) ||
+                                            !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                                                x =>
+                                                    x.IsValidTarget(1200) &&
+                                                    pos.IsInRangeCached(
+                                                        Prediction.Position.PredictUnitPosition(heroClient, 300),
+                                                        x.IsMelee ? 500 : x.GetAutoAttackRange())).Any()))
+                {
+                    E.Cast(pos);
+                    return;
+                }
+                else
+                {
+                    var range = enemies*150;
+
+                    if (!StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
+                        pos.IsInRangeCached(Prediction.Position.PredictUnitPosition(x, 300),
+                            range < x.GetAutoAttackRange() ? x.GetAutoAttackRange() : range)).Any())
+                    {
+                        E.Cast(pos);
+                        return;
+                    }
+                }
+            }
+
+            var closest = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                x => x.IsValidTargetCached(1300)).OrderBy(x => x.DistanceCached(Player.Instance)).FirstOrDefault();
+
+            var paths =
+                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(1300))
+                    .Count(x => x.IsMovingTowards(Player.Instance, 300));
+
+            if ((closest != null) && (Player.Instance.CountEnemiesInRangeCached(350) >= 1) && (paths >= 1) &&
+                (pos.DistanceCached(closest) > Player.Instance.DistanceCached(closest)))
+            {
+                E.Cast(pos);
+            }
+        }
+
+        protected static bool PossibleToInterruptQ(AIHeroClient target)
+        {
+            if (target == null)
+                return false;
+
+            return IsCastingQ && E.IsReady() && (Player.Instance.Mana >= EMana) && (target.TotalHealthWithShields() <= GetComboDamage(target, 2)) && Player.Instance.IsInAutoAttackRange(target);
+        }
+
+        protected static bool PossibleEqCombo(AIHeroClient target)
+        {
+            if (target == null)
+                return false;
+
+            return Q.IsReady() && E.IsReady() && (Player.Instance.Mana >= QMana + EMana) && !HasPassiveBuff;
+        }
+
+        protected static IEnumerable<AIHeroClient> EnemiesInDirectionOfTheDash(Vector3 dashEndPosition, float maxRangeToEnemy)
+        {
+            return
+                from enemy in
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(maxRangeToEnemy))
+
+                let dotProduct = (dashEndPosition - Player.Instance.Position).Normalized()
+                    .To2D()
+                    .DotProduct(enemy.Position.To2D().Normalized())
+                    
+                where dotProduct >= .65
+                select enemy;
         }
 
         protected override void OnDraw()
@@ -423,8 +429,37 @@ namespace Marksman_Master.Plugins.Lucian
 
             if (Settings.Drawings.DrawQ && (!Settings.Drawings.DrawSpellRangesWhenReady || Q.IsReady()))
                 Circle.Draw(ColorPicker[0].Color, Q.Range, Player.Instance);
-            if (Settings.Drawings.DrawR && (!Settings.Drawings.DrawSpellRangesWhenReady || R.IsReady()))
+            if (Settings.Drawings.DrawR && (!Settings.Drawings.DrawSpellRangesWhenReady || R.IsReady(
+                )))
                 Circle.Draw(ColorPicker[1].Color, R.Range, Player.Instance);
+
+            if (Misc.IsMe && MenuManager.IsDebugEnabled)
+            {
+                var objects =
+                    ObjectManager.Get<Obj_GeneralParticleEmitter>()
+                        .Where(x => x.DistanceCached(Player.Instance) <= 200)
+                        .Aggregate("Particles near player : ",
+                            (current, objectType) =>
+                                current + objectType.Name +
+                                $" distance : {Player.Instance.DistanceCached(objectType)}, ");
+
+                var buffs = Player.Instance.Buffs.Aggregate("Buffs : ", (current, buff) => current + buff.Name + ", ");
+
+                Drawing.DrawText(300, 300, System.Drawing.Color.White, objects);
+                Drawing.DrawText(Drawing.WorldToScreen(Player.Instance.Position), System.Drawing.Color.White, buffs, 11);
+                Drawing.DrawText(Drawing.WorldToScreen(Player.Instance.Position), System.Drawing.Color.White, $"\n\nLast cast : {Core.GameTickCount - LastSpellCastTime}\n" +
+                                                                                                              $"Attack cast delay : {Player.Instance.AttackCastDelay*1000}\n" +
+                                                                                                              $"CanLosePassive : {CanLosePassive}", 11);
+
+                if (objects != "Particles near player : ")
+                    Console.WriteLine(objects);
+            }
+
+            if (!IsCastingR || !Settings.Drawings.DrawInfo)
+                return;
+            
+            Misc.DrawRectangle(Player.Instance.Position, Player.Instance.Position.Extend(RDirection, R.Range).To3D(), 130, 3, System.Drawing.Color.White);
+            Misc.DrawRectangle(Player.Instance.Position, Player.Instance.Position.Extend(RDirection, R.Range).To3D(), 90, 2, System.Drawing.Color.Gold,RectangleDrawingFlags.Side);
         }
 
         protected override void OnInterruptible(AIHeroClient sender, InterrupterEventArgs args)
@@ -498,8 +533,12 @@ namespace Marksman_Master.Plugins.Lucian
             LaneClearMenu.Add("Plugins.Lucian.LaneClearMenu.UseQInLaneClear", new CheckBox("Use Q in Lane Clear"));
             LaneClearMenu.Add("Plugins.Lucian.LaneClearMenu.MinMinionsHitQ", new Slider("Min minions hit to use Q", 3, 1, 8));
             LaneClearMenu.AddSeparator(5);
+            
+            LaneClearMenu.AddGroupLabel("Jungle Clear : ");
             LaneClearMenu.Add("Plugins.Lucian.LaneClearMenu.UseQInJungleClear", new CheckBox("Use Q in Jungle Clear"));
-            LaneClearMenu.Add("Plugins.Lucian.LaneClearMenu.MinManaQ", new Slider("Min mana percentage ({0}%) to use Q", 50, 1));
+            LaneClearMenu.Add("Plugins.Lucian.LaneClearMenu.UseWInJungleClear", new CheckBox("Use W in Jungle Clear"));
+            LaneClearMenu.Add("Plugins.Lucian.LaneClearMenu.UseEInJungleClear", new CheckBox("Use E in Jungle Clear"));
+            LaneClearMenu.Add("Plugins.Lucian.LaneClearMenu.MinManaQ", new Slider("Min mana percentage ({0}%) for jungle clear", 50, 1));
 
             MiscMenu = MenuManager.Menu.AddSubMenu("Misc");
             MiscMenu.AddGroupLabel("Misc settings for Lucian addon");
@@ -508,7 +547,6 @@ namespace Marksman_Master.Plugins.Lucian
             MiscMenu.AddSeparator(5);
 
             MiscMenu.AddLabel("Relentless Pursuit (E) settings :");
-            MiscMenu.Add("Plugins.Lucian.MiscMenu.EMode", new ComboBox("E mode", 0, "Auto", "Cursor Pos"));
             MiscMenu.Add("Plugins.Lucian.MiscMenu.EUsageMode", new ComboBox("E usage", 0, "Always", "After autoattack only"));
 
             DrawingsMenu = MenuManager.Menu.AddSubMenu("Drawings");
@@ -557,13 +595,11 @@ namespace Marksman_Master.Plugins.Lucian
                 ColorPicker[2].Initialize(System.Drawing.Color.Aquamarine);
                 a.CurrentValue = false;
             };
-            DrawingsMenu.AddLabel("Draws damage indicator");
+            DrawingsMenu.AddLabel("Draws damage indicator and R shooting indicator");
         }
 
         protected override void PermaActive()
         {
-            IsCastingR = Player.Instance.Spellbook.GetSpell(SpellSlot.R).Name.ToLowerInvariant() == "lucianrdisable";
-
             Modes.PermaActive.Execute();
         }
 
@@ -639,6 +675,10 @@ namespace Marksman_Master.Plugins.Lucian
 
                 public static bool UseQInJungleClear => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.UseQInJungleClear"];
 
+                public static bool UseWInJungleClear => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.UseWInJungleClear"];
+
+                public static bool UseEInJungleClear => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.UseEInJungleClear"];
+
                 public static int MinMinionsHitQ => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.MinMinionsHitQ", true];
 
                 public static int MinManaQ => MenuManager.MenuValues["Plugins.Lucian.LaneClearMenu.MinManaQ", true];
@@ -647,12 +687,6 @@ namespace Marksman_Master.Plugins.Lucian
             internal static class Misc
             {
                 public static bool EnableKillsteal => MenuManager.MenuValues["Plugins.Lucian.MiscMenu.EnableKillsteal"];
-
-                /// <summary>
-                /// 0 - "Auto"
-                /// 1 - "Cursor Pos"
-                /// </summary>
-                public static int EMode => MenuManager.MenuValues["Plugins.Lucian.MiscMenu.EMode", true];
 
                 /// <summary>
                 /// 0 - "Always"

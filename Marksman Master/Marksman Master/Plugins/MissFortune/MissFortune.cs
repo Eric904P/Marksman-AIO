@@ -90,8 +90,6 @@ namespace Marksman_Master.Plugins.MissFortune
 
         private static CustomCache<KeyValuePair<int, int>, float> CachedComboDamage { get; }
 
-        private static SharpDX.Color MinionColor => SharpDX.Color.GreenYellow;
-        
         static MissFortune()
         {
             Q = new Spell.Targeted(SpellSlot.Q, 720);

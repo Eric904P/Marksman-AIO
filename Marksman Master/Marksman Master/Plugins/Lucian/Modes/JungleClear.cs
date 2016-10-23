@@ -37,27 +37,36 @@ namespace Marksman_Master.Plugins.Lucian.Modes
     {
         public static void Execute()
         {
-            var jungleMinions = EntityManager.MinionsAndMonsters.GetJungleMonsters(Player.Instance.Position, Player.Instance.GetAutoAttackRange()).ToList();
+            var jungleMinions = StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTarget(Player.Instance.GetAutoAttackRange())).ToList();
 
             if (!jungleMinions.Any())
                 return;
 
-            if (!Q.IsReady() || !Settings.LaneClear.UseQInJungleClear ||
-                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ) || jungleMinions.Count <= 1 ||
-                HasPassiveBuff || Player.Instance.HasSheenBuff())
+            if ((!Settings.LaneClear.UseQInJungleClear || !Settings.LaneClear.UseWInJungleClear || !Settings.LaneClear.UseEInJungleClear) || HasPassiveBuff || Player.Instance.HasSheenBuff() ||
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaQ))
                 return;
 
-            foreach (var jungleMinion in from jungleMinion in jungleMinions let rectangle = new Geometry.Polygon.Rectangle(Player.Instance.Position.To2D(),
-                Player.Instance.Position.Extend(jungleMinion,
-                                    Player.Instance.Distance(jungleMinion) > 1025
-                                        ? 1025 - Player.Instance.Distance(jungleMinion)
-                                        : 1025),
-                10) let count = jungleMinions.Count(
-                    minion => new Geometry.Polygon.Circle(minion.Position, jungleMinion.BoundingRadius).Points.Any(
-                        rectangle.IsInside)) where count >= 2 select jungleMinion)
+            var target = Orbwalker.GetTarget() as Obj_AI_Base;
+
+            if (target == null)
+                return;
+
+            if (Settings.LaneClear.UseQInJungleClear && Q.IsReady())
             {
-                Q.Cast(jungleMinion);
+                Q.Cast(target);
+                return;
             }
+            if (Settings.LaneClear.UseWInJungleClear && W.IsReady())
+            {
+                W.Cast(target);
+                return;
+            }
+
+            if (!Settings.LaneClear.UseEInJungleClear || !E.IsReady())
+                return;
+
+            var shortEPosition = Player.Instance.Position.Extend(Game.CursorPos, 85).To3D();
+            E.Cast(shortEPosition);
         }
     }
 }

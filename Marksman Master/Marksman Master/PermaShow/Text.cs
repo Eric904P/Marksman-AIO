@@ -70,6 +70,12 @@ namespace Marksman_Master.PermaShow
 
             Drawing.OnPreReset += Drawing_OnPreReset;
             Drawing.OnPostReset += Drawing_OnPostReset;
+            AppDomain.CurrentDomain.DomainUnload += CurrentDomain_DomainUnload;
+        }
+
+        private void CurrentDomain_DomainUnload(object sender, EventArgs e)
+        {
+            Dispose();
         }
 
         public Text(string message, string faceName, uint height, int x, int y, ColorBGRA color,
@@ -107,6 +113,7 @@ namespace Marksman_Master.PermaShow
 
             Drawing.OnPreReset -= Drawing_OnPreReset;
             Drawing.OnPostReset -= Drawing_OnPostReset;
+            AppDomain.CurrentDomain.DomainUnload -= CurrentDomain_DomainUnload;
         }
         
         public void Draw()
@@ -116,28 +123,23 @@ namespace Marksman_Master.PermaShow
 
             //using (Font)
             {
-                Font.DrawText(null, Message, X, Y, Color);
+                Font?.DrawText(null, Message, X, Y, Color);
             }
         }
 
         public Rectangle GetTextRectangle()
         {
-            return Font.MeasureText(null, Message, FontDrawFlags.Right);
+            return Font?.MeasureText(null, Message, FontDrawFlags.Right) ?? Rectangle.Empty;
         }
 
         private void Drawing_OnPostReset(EventArgs args)
         {
-            if (Font == null || Font.IsDisposed)
-                return;
-
+            Dispose();
             Font?.OnResetDevice();
         }
 
         private void Drawing_OnPreReset(EventArgs args)
         {
-            if (Font == null || Font.IsDisposed)
-                return;
-
             Dispose();
             Font?.OnLostDevice();
         }

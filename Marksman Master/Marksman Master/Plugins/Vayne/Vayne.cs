@@ -145,10 +145,17 @@ namespace Marksman_Master.Plugins.Vayne
 
             Obj_AI_Base.OnPlayAnimation += (sender, args) =>
             {
-                if (sender.IsMe && (args.Animation == "Spell1"))
-                {
-                    Orbwalker.ResetAutoAttack();
-                }
+                if (!sender.IsMe || (args.Animation != "Spell1"))
+                    return;
+
+                Orbwalker.ResetAutoAttack();
+
+                var target = Orbwalker.GetTarget();
+
+                if(target == null)
+                    return;
+
+                Core.DelayAction(() => Player.ForceIssueOrder(GameObjectOrder.AttackUnit, target.Position, false), 80);
             };
 
             Game.OnUpdate += args =>

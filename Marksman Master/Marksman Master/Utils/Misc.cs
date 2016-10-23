@@ -40,8 +40,10 @@ namespace Marksman_Master.Utils
 {
     internal static class Misc
     {
-        private const bool Debug = false;
-
+        internal static bool IsMe => SandboxConfig.Username == "gero";
+        
+        private static bool Debug => IsMe && (!Bootstrap.MenuLoaded || MenuManager.IsDebugEnabled);
+        
         /// <summary>
         /// Last message tick
         /// </summary>
@@ -183,6 +185,41 @@ namespace Marksman_Master.Utils
         public static Item ToItem(this IItem item)
         {
             return new Item((int) item.ItemId, item.Range);
+        }
+
+        public static void DrawRectangle(Vector3 start, Vector3 end, float width, float thickness, System.Drawing.Color color, RectangleDrawingFlags drawingFlags = RectangleDrawingFlags.All)
+        {
+            if (drawingFlags.HasFlag(RectangleDrawingFlags.Fill))
+            {
+                EloBuddy.SDK.Rendering.Line.DrawLine(color, width, start, end);
+                return;
+            }
+
+            var direction = (end - start).Normalized().To2D().Perpendicular().To3D();
+
+            var points = new List<Vector3>
+            {
+                start - direction * width,
+                start + direction * width,
+                end - direction * width,
+                end + direction * width
+            };
+
+            if (drawingFlags.HasFlag(RectangleDrawingFlags.Side) || drawingFlags.HasFlag(RectangleDrawingFlags.All))
+            {
+                EloBuddy.SDK.Rendering.Line.DrawLine(color, thickness, points[0], points[2]);
+                EloBuddy.SDK.Rendering.Line.DrawLine(color, thickness, points[1], points[3]);
+            }
+
+            if (drawingFlags.HasFlag(RectangleDrawingFlags.Bottom) || drawingFlags.HasFlag(RectangleDrawingFlags.All))
+            {
+                EloBuddy.SDK.Rendering.Line.DrawLine(color, thickness, points[1], points[0]);
+            }
+
+            if (drawingFlags.HasFlag(RectangleDrawingFlags.Top) || drawingFlags.HasFlag(RectangleDrawingFlags.All))
+            {
+                EloBuddy.SDK.Rendering.Line.DrawLine(color, thickness, points[2], points[3]);
+            }
         }
 
         public static bool IsVectorUnderEnemyTower(this Vector3 vector)
@@ -406,6 +443,17 @@ namespace Marksman_Master.Utils
             color.B = (color.B + m) * 255;
 
             return System.Drawing.Color.FromArgb(255, Convert.ToInt32(color.R), Convert.ToInt32(color.G), Convert.ToInt32(color.B));
+        }
+
+        // ReSharper disable once InconsistentNaming
+        public static System.Drawing.Color ColorFromColorBGRA(this ColorBGRA color)
+        {
+            return System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
+        }
+
+        public static System.Drawing.Color ColorFromSharpDx(this Color color)
+        {
+            return System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
         }
 
         public static Color SharpDxColorFromHsv(double hue, double saturation, double brightness)

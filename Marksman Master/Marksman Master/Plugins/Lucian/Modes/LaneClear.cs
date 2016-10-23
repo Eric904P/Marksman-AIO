@@ -37,30 +37,26 @@ namespace Marksman_Master.Plugins.Lucian.Modes
     {
         public static bool CanILaneClear()
         {
-            return !Settings.LaneClear.EnableIfNoEnemies || Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies;
+            return !Settings.LaneClear.EnableIfNoEnemies || (Player.Instance.CountEnemiesInRange(Settings.LaneClear.ScanRange) <= Settings.LaneClear.AllowedEnemies);
         }
 
         public static void Execute()
         {
-            var laneMinions =
-                EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy, Player.Instance.Position, 1100).ToList();
+            var laneMinions = StaticCacheProvider.GetMinions(CachedEntityType.EnemyMinion, x => x.IsValidTarget(1100)).ToList();
 
             if (!laneMinions.Any() || !CanILaneClear())
                 return;
 
-            if (!Q.IsReady() || !Settings.LaneClear.UseQInLaneClear ||
-                !(Player.Instance.ManaPercent >= Settings.LaneClear.MinManaQ) || laneMinions.Count <= 1 ||
-                HasPassiveBuff || Player.Instance.HasSheenBuff())
+            if (!Q.IsReady() || !Settings.LaneClear.UseQInLaneClear || HasPassiveBuff || Player.Instance.HasSheenBuff() ||
+                (Player.Instance.ManaPercent < Settings.LaneClear.MinManaQ) || (laneMinions.Count <= 1))
                 return;
 
-            foreach (var objAiMinion in from objAiMinion in laneMinions let rectangle = new Geometry.Polygon.Rectangle(Player.Instance.Position.To2D(),
-                Player.Instance.Position.Extend(objAiMinion,
-                                    Player.Instance.Distance(objAiMinion) > 1025
-                                        ? 1025 - Player.Instance.Distance(objAiMinion)
-                                        : 1025),
-                10) let count = laneMinions.Count(
-                    minion => new Geometry.Polygon.Circle(minion.Position, objAiMinion.BoundingRadius).Points.Any(
-                        rectangle.IsInside)) where count >= Settings.LaneClear.MinMinionsHitQ select objAiMinion)
+            foreach (var objAiMinion in from objAiMinion in laneMinions
+                let rectangle = new Geometry.Polygon.Rectangle(Player.Instance.Position,
+                    Player.Instance.Position.Extend(objAiMinion, Player.Instance.Distance(objAiMinion) > 900 ? 900 - Player.Instance.Distance(objAiMinion) : 900).To3D(), 20)
+                let count = laneMinions.Count(minion => new Geometry.Polygon.Circle(minion.Position, objAiMinion.BoundingRadius).Points.Any(rectangle.IsInside))
+                where count >= Settings.LaneClear.MinMinionsHitQ
+                select objAiMinion)
             {
                 Q.Cast(objAiMinion);
             }
