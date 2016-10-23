@@ -145,7 +145,7 @@ namespace Marksman_Master.Plugins.Lucian
 
             Obj_AI_Base.OnPlayAnimation += (sender, args) =>
             {
-                if (sender.IsMe && (args.Animation == "Spell1") && HasAnyOrbwalkerFlags)
+                if (sender.IsMe && ((args.Animation == "Spell1") || (args.Animation == "Spell2") || (args.Animation == "Spell3")) && HasAnyOrbwalkerFlags)
                 {
                     Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
                 }
@@ -190,7 +190,7 @@ namespace Marksman_Master.Plugins.Lucian
                 {
                     if (missile.SData.Name == "LucianWMissile")
                     {
-                        Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
+                        Orbwalker.ResetAutoAttack();
                         return;
                     }
                 }
@@ -204,7 +204,7 @@ namespace Marksman_Master.Plugins.Lucian
             if ((particle == null) || !particle.Name.Contains("Lucian_Base_Q_laser") || (particle.Distance(Player.Instance) > 200))
                 return;
             
-            Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
+            Orbwalker.ResetAutoAttack();
         }
         
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
@@ -309,7 +309,7 @@ namespace Marksman_Master.Plugins.Lucian
 
             var castTime = Player.Instance.Spellbook.CastTime - Game.Time;
 
-            if(castTime > 0)
+            if(!IsPostAttack && (castTime > 0))
                 return;
 
             var positionAfterE = Prediction.Position.PredictUnitPosition(heroClient, 300); // +-

@@ -64,11 +64,10 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                 if(PossibleEqCombo(target) || PossibleEqCombo(target2))
                     return;
 
-                if (!IsPostAttack && target != null)
+                if (!IsPostAttack && (target != null) && Orbwalker.CanAutoAttack)
                 {
                     var predictedPosition = Prediction.Position.PredictUnitPosition(target,
-                        QCastTime + (int)((Player.Instance.AttackCastDelay + Player.Instance.AttackDelay) * 1000) +
-                        Game.Ping / 2);
+                        (int)((Player.Instance.AttackCastDelay + Player.Instance.AttackDelay) * 1000) + Game.Ping / 2);
 
                     if (Player.Instance.IsInRange(predictedPosition, Player.Instance.GetAutoAttackRange()))
                     {
