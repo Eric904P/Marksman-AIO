@@ -191,9 +191,6 @@ namespace Marksman_Master.Plugins.Lucian
                     if (missile.SData.Name == "LucianWMissile")
                     {
                         Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
-
-                        Orbwalker.ResetAutoAttack();
-
                         return;
                     }
                 }
@@ -208,8 +205,6 @@ namespace Marksman_Master.Plugins.Lucian
                 return;
             
             Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false);
-
-            Orbwalker.ResetAutoAttack();
         }
         
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
@@ -306,29 +301,35 @@ namespace Marksman_Master.Plugins.Lucian
             if (heroClient == null)
                 return;
 
-            if (!IsPostAttack && !Q.IsReady() &&
-                (heroClient.TotalHealthWithShields() >= Player.Instance.GetAutoAttackDamageCached(heroClient, true) * 5))
+            if (!IsPostAttack && !Q.IsReady() && (heroClient.TotalHealthWithShields() >= Player.Instance.GetAutoAttackDamageCached(heroClient, true) * 5))
                 return;
 
             if (IsCastingQ && !PossibleToInterruptQ(heroClient))
                 return;
 
+            var castTime = Player.Instance.Spellbook.CastTime - Game.Time;
+
+            if(castTime > 0)
+                return;
+
             var positionAfterE = Prediction.Position.PredictUnitPosition(heroClient, 300); // +-
             var shortEPosition = Player.Instance.Position.Extend(Game.CursorPos, 70).To3D();
 
+            if (Q.IsReady() && !IsPostAttack && shortEPosition.IsVectorUnderEnemyTower())
+                return;
+
             if ((
-                    (GetComboDamage(heroClient, 4) >= heroClient.TotalHealthWithShields()) ||
-                    (Player.Instance.CountEnemiesInRangeCached(Player.Instance.GetAutoAttackRange() + 200) <= 1)
-                ) && Player.Instance.IsInRange(positionAfterE, Player.Instance.GetAutoAttackRange() - 70) && (shortEPosition.Distance(heroClient) > 300))
+                    ((GetComboDamage(heroClient, 4) >= heroClient.TotalHealthWithShields()) && (Player.Instance.CountEnemiesInRangeCached(1300) <= 3)) ||
+                    (Player.Instance.CountEnemiesInRangeCached(1300) <= 1)
+                ) && Player.Instance.IsInRange(positionAfterE, Player.Instance.GetAutoAttackRange() - 70) && (shortEPosition.Distance(heroClient) > 400))
             {
                 E.Cast(shortEPosition);
+                Orbwalker.ResetAutoAttack();
                 return;
             }
 
             var damage = GetComboDamage(heroClient, 2);
-            
-            var pos = Game.CursorPos.Distance(Player.Instance) > 450 ? Player.Instance.Position.Extend(Game.CursorPos, 450).To3D() : Game.CursorPos;
-
+            var pos = Game.CursorPos.Distance(Player.Instance) > 470 ? Player.Instance.Position.Extend(Game.CursorPos, 470).To3D() : Game.CursorPos;
             var enemiesInPosition = pos.CountEnemyHeroesInRangeWithPrediction((int) Player.Instance.GetAutoAttackRange(), 335);
 
             if (!IsPostAttack && ((damage < heroClient.TotalHealthWithShields()) || !PossibleEqCombo(heroClient) ||
@@ -347,6 +348,13 @@ namespace Marksman_Master.Plugins.Lucian
                         ((damage >= heroClient.TotalHealthWithShields()) &&
                          EnemiesInDirectionOfTheDash(pos, 2000).Any(x => x.IdEquals(heroClient))) || !heroClient.IsMovingTowards(Player.Instance, 600))
                     {
+                        if ((Player.Instance.HealthPercent >= heroClient.HealthPercent) && 
+                            Player.Instance.IsInRangeCached(heroClient, Player.Instance.GetAutoAttackRange()) &&
+                            !pos.IsInRangeCached(heroClient, Player.Instance.GetAutoAttackRange() - 50))
+                        {
+                            return;
+                        }
+
                         E.Cast(pos);
                         return;
                     }
@@ -368,8 +376,7 @@ namespace Marksman_Master.Plugins.Lucian
                     var range = enemies*150;
 
                     if (!StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x =>
-                        pos.IsInRangeCached(Prediction.Position.PredictUnitPosition(x, 300),
-                            range < x.GetAutoAttackRange() ? x.GetAutoAttackRange() : range)).Any())
+                        pos.IsInRangeCached(Prediction.Position.PredictUnitPosition(x, 300), range < x.GetAutoAttackRange() ? x.GetAutoAttackRange() : range)).Any())
                     {
                         E.Cast(pos);
                         return;
@@ -377,15 +384,11 @@ namespace Marksman_Master.Plugins.Lucian
                 }
             }
 
-            var closest = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                x => x.IsValidTargetCached(1300)).OrderBy(x => x.DistanceCached(Player.Instance)).FirstOrDefault();
+            var closest = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(1300)).OrderBy(x => x.DistanceCached(Player.Instance)).FirstOrDefault();
+            var paths = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(1300)).Count(x => x.IsMovingTowards(Player.Instance));
+            var validEscapeDash = (pos.DistanceCached(closest) > Player.Instance.DistanceCached(closest)) && (pos.DistanceCached(Player.Instance) >= 450);
 
-            var paths =
-                StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(1300))
-                    .Count(x => x.IsMovingTowards(Player.Instance, 300));
-
-            if ((closest != null) && (Player.Instance.CountEnemiesInRangeCached(350) >= 1) && (paths >= 1) &&
-                (pos.DistanceCached(closest) > Player.Instance.DistanceCached(closest)))
+            if ((closest != null) && (Player.Instance.CountEnemiesInRangeCached(350) >= 1) && (paths >= 1) && validEscapeDash)
             {
                 E.Cast(pos);
             }

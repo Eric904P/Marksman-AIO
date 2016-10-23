@@ -45,24 +45,36 @@ namespace Marksman_Master.Plugins.Lucian.Modes
             if ((qTarget != null) && PossibleToInterruptQ(qTarget))
             {
                 var positionAfterE = Prediction.Position.PredictUnitPosition(qTarget, 300);
+                var pos = Player.Instance.Position.Extend(Game.CursorPos, positionAfterE.Distance(Player.Instance) + qTarget.BoundingRadius).To3D();
 
-                var pos =
-                    Player.Instance.Position.Extend(Game.CursorPos,
-                        positionAfterE.Distance(Player.Instance) + qTarget.BoundingRadius).To3D();
-
-                E.Cast(pos);
-                return;
+                if (!pos.IsVectorUnderEnemyTower())
+                {
+                    E.Cast(pos);
+                    return;
+                }
             }
 
             ELogics();
 
-            if (Q.IsReady() && !Player.Instance.IsDashing() && Settings.Combo.UseQ && !IsCastingR && !HasPassiveBuff && !Player.Instance.HasSheenBuff())
+            if (Q.IsReady() && Settings.Combo.UseQ && !IsCastingR && !HasPassiveBuff && !Player.Instance.HasSheenBuff())
             {
                 var target = TargetSelector.GetTarget(Q.Range, DamageType.Physical);
                 var target2 = TargetSelector.GetTarget(925, DamageType.Physical);
 
                 if(PossibleEqCombo(target) || PossibleEqCombo(target2))
                     return;
+
+                if (!IsPostAttack && target != null)
+                {
+                    var predictedPosition = Prediction.Position.PredictUnitPosition(target,
+                        QCastTime + (int)((Player.Instance.AttackCastDelay + Player.Instance.AttackDelay) * 1000) +
+                        Game.Ping / 2);
+
+                    if (Player.Instance.IsInRange(predictedPosition, Player.Instance.GetAutoAttackRange()))
+                    {
+                        goto WRLogc;
+                    }
+                }
 
                 if ((target != null) && target.IsValidTarget(Q.Range) &&
                     ((Player.Instance.Mana - QMana > EMana + (R.IsReady() ? RMana : 0)) ||
@@ -87,6 +99,8 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                 }
             }
 
+            WRLogc:
+
             if (W.IsReady() && Settings.Combo.UseW && !IsCastingR && !HasPassiveBuff && !Player.Instance.HasSheenBuff())
             {
                 var target = TargetSelector.GetTarget(W.Range, DamageType.Physical);
@@ -94,10 +108,15 @@ namespace Marksman_Master.Plugins.Lucian.Modes
                 if ((target != null) && ((Player.Instance.Mana - WMana > (R.IsReady() ? RMana : 0)) ||
                     (Player.Instance.GetSpellDamageCached(target, SpellSlot.W) > target.TotalHealthWithShields())))
                 {
-                    if (Settings.Combo.IgnoreCollisionW && Player.Instance.IsInAutoAttackRange(target) && (Orbwalker.LastTarget != null) && (Orbwalker.LastTarget.NetworkId == target.NetworkId))
+                    if (Settings.Combo.IgnoreCollisionW)
                     {
-                        W.Cast(target);
-                        return;
+                        var orbwalkingTarget = Orbwalker.GetTarget() as AIHeroClient;
+
+                        if (orbwalkingTarget != null)
+                        {
+                            W.Cast(target);
+                            return;
+                        }
                     }
 
                     var wPrediction = W.GetPrediction(target);
