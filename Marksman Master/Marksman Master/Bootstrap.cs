@@ -122,7 +122,7 @@ namespace Marksman_Master
 
                     if (comparedMajorVersions < 0)
                     {
-                        VersionMessage = $"Your Marksman Master version is {Math.Abs(comparedMajorVersions)} major patch{((comparedMajorVersions != -1) && (comparedMajorVersions != 1) ? "es" : "")} behind.\nIt's highly recommended to update it in the loader !";
+                        VersionMessage = $"Your Marksman Master version is {(Math.Abs(comparedMajorVersions) == 1 ? "1" : "several")} major patch{((comparedMajorVersions != -1) && (comparedMajorVersions != 1) ? "es" : "")} behind.\nIt's highly recommended to update it in the loader !\nLatest version : {Versions[VersionInfo.Version.Github]} | Your version : {Versions[VersionInfo.Version.Assembly]}";
                     } else
                     {
                         var comparedMinorVersions = Versions[VersionInfo.Version.Assembly].CompareMinorVersions(Versions[VersionInfo.Version.Github]);
@@ -130,7 +130,7 @@ namespace Marksman_Master
                         if (comparedMinorVersions < 0)
                         {
                             VersionMessage =
-                                $"Your Marksman Master version is {Math.Abs(comparedMinorVersions)} patch{((comparedMinorVersions != -1) && (comparedMinorVersions != 1) ? "es" : "")} that include new features behind.\nIt's recommended to update your Marksman Master it in the loader !";
+                                $"Your Marksman Master version is {Math.Abs(comparedMinorVersions)} patch{((comparedMinorVersions != -1) && (comparedMinorVersions != 1) ? "es" : "")} that include new features behind.\nIt's recommended to update your Marksman Master it in the loader !\nLatest version : {Versions[VersionInfo.Version.Github]} | Your version : {Versions[VersionInfo.Version.Assembly]}";
                         }
                     }
 
@@ -284,6 +284,11 @@ namespace Marksman_Master
             public int ComparePatchVersions(VersionInfo secondPatchVerion)
             {
                 return CompareMinorVersions(secondPatchVerion.MinorVersion);
+            }
+
+            public override string ToString()
+            {
+                return $"{MajorVersion.ToString("F")}.{MinorVersion}.{PatchVersion}";
             }
         }
     }
