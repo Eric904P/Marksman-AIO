@@ -79,8 +79,8 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                     return;
                 }
 
-                var points = new Geometry.Polygon.Circle(Player.Instance.Position, 300, 30).Points.Where(
-                        x => !x.To3D().IsVectorUnderEnemyTower() && WillEStun(target, x.To3D(), 100, 440)).ToList();
+                var points = new Geometry.Polygon.Circle(Player.Instance.Position, 300).Points.Where(
+                        x => !x.To3D().IsVectorUnderEnemyTower() && WillEStun(target, x.To3D(), 100, 440, 370)).ToList();
 
                 foreach (var vector2 in points)
                 {

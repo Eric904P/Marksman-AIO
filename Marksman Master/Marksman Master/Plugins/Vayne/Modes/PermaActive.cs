@@ -37,7 +37,21 @@ namespace Marksman_Master.Plugins.Vayne.Modes
     {
         public static void Execute()
         {
-            if (!E.IsReady() || !Settings.Combo.UseE || Player.Instance.IsRecalling() || (Settings.Misc.EMode != 0))
+            if (!E.IsReady())
+                return;
+
+            if (Settings.Misc.EKs)
+            {
+                foreach (var enemy in
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                        x => x.IsValidTargetCached(E.Range) && HasSilverDebuff(x) && (GetSilverDebuff(x).Count == 2) && Damage.IsKillableFrom3SilverStacks(x)))
+                {
+                    E.Cast(enemy);
+                    return;
+                }
+            }
+
+            if(!Settings.Combo.UseE || Player.Instance.IsRecalling() || (Settings.Misc.EMode != 0))
                 return;
 
             // ReSharper disable once SwitchStatementMissingSomeCases

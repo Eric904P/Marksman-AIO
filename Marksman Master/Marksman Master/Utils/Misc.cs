@@ -222,6 +222,12 @@ namespace Marksman_Master.Utils
             }
         }
 
+        public static void DrawArrowHead(Vector3 start, Vector3 end, int angleDegrees, float width, float thickness, System.Drawing.Color color)
+        {
+            EloBuddy.SDK.Rendering.Line.DrawLine(color, thickness, end, end + (start - end).To2D().Normalized().Rotated(-angleDegrees * (float)Math.PI / 180).To3DWorld() * width);
+            EloBuddy.SDK.Rendering.Line.DrawLine(color, thickness, end, end + (start - end).To2D().Normalized().Rotated(angleDegrees * (float)Math.PI / 180).To3DWorld() * width);
+        }
+
         public static bool IsVectorUnderEnemyTower(this Vector3 vector)
         {
             return EntityManager.Turrets.Enemies.Any(x => x.IsValidTarget(900, true, vector));

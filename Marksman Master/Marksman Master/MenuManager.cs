@@ -205,9 +205,7 @@ namespace Marksman_Master
 
         internal static void BuildInterrupterMenu()
         {
-            if (
-                !EntityManager.Heroes.Enemies.Any(
-                    x => Utils.Interrupter.InterruptibleList.Exists(e => e.ChampionName == x.ChampionName)))
+            if (!EntityManager.Heroes.Enemies.Any(x => Utils.Interrupter.InterruptibleList.Exists(e => e.ChampionName == x.ChampionName)))
             {
                 return;
             }
@@ -215,15 +213,10 @@ namespace Marksman_Master
             InterrupterMenu = Menu.AddSubMenu("Interrupter");
             InterrupterMenu.AddGroupLabel("Global settings");
             InterrupterMenu.Add("MenuManager.InterrupterMenu.Enabled", new CheckBox("Interrupter Enabled"));
-            InterrupterMenu.Add("MenuManager.InterrupterMenu.OnlyInCombo",
-                new CheckBox("Active only in Combo mode", false));
+            InterrupterMenu.Add("MenuManager.InterrupterMenu.OnlyInCombo", new CheckBox("Active only in Combo mode", false));
             InterrupterMenu.AddSeparator(15);
 
-            foreach (
-                var enemy in
-                    EntityManager.Heroes.Enemies.Where(
-                        x => Utils.Interrupter.InterruptibleList.Exists(e => e.ChampionName == x.ChampionName))
-                )
+            foreach (var enemy in EntityManager.Heroes.Enemies.Where(x => Utils.Interrupter.InterruptibleList.Exists(e => e.ChampionName == x.ChampionName)))
             {
                 var interruptibleSpells = Utils.Interrupter.InterruptibleList.FindAll(e => e.ChampionName == enemy.ChampionName);
 
@@ -265,7 +258,7 @@ namespace Marksman_Master
 
         internal static void BuildAntiGapcloserMenu()
         {
-            if (!EntityManager.Heroes.Enemies.Any(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName) || (x.Hero != Champion.Rengar)))
+            if (!EntityManager.Heroes.Enemies.Any(x => Gapcloser.GapCloserList.Exists(e => e.ChampName == x.ChampionName) || (x.Hero == Champion.Rengar)))
             {
                 return;
             }
