@@ -43,7 +43,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
             if (!jungleMinions.Any())
                 return;
 
-            if (E.IsReady() && Settings.JungleClear.UseE && Player.Instance.ManaPercent >= Settings.JungleClear.EMinMana)
+            if (E.IsReady() && Settings.JungleClear.UseE && (Player.Instance.ManaPercent >= Settings.JungleClear.EMinMana))
             {
                 if (StaticCacheProvider.GetMinions(CachedEntityType.Monsters, x => x.IsValidTargetCached(E.Range))
                         .Any(
@@ -53,20 +53,14 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                                  unit.BaseSkinName.Contains("Red") || unit.BaseSkinName.Contains("Crab")) && !unit.BaseSkinName.Contains("Mini") &&
                                 Damage.IsTargetKillableByE(unit)))
                 {
-                    Misc.PrintDebugMessage($"Casting E to ks blue [{Game.Time}]");
                     E.Cast();
+                    return;
                 }
             }
 
             if (W.IsReady() && Settings.JungleClear.UseW && Player.Instance.ManaPercent >= Settings.JungleClear.WMinMana)
             {
-                var c = EntityManager.MinionsAndMonsters.GetCircularFarmLocation(jungleMinions, 260, 950,
-                    250, 1400);
-
-                if (c.HitNumber > 1)
-                {
-                    W.Cast(c.CastPosition);
-                }
+                W.CastOnBestFarmPosition(1);
             }
         }
     }

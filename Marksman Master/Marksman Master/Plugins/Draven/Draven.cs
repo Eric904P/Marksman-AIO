@@ -30,7 +30,6 @@ namespace Marksman_Master.Plugins.Draven
 {
     using System;
     using System.Collections.Generic;
-    using System.Drawing;
     using System.Linq;
     using EloBuddy;
     using EloBuddy.SDK;
@@ -42,7 +41,6 @@ namespace Marksman_Master.Plugins.Draven
     using Utils;
     using Color = System.Drawing.Color;
     using ColorPicker = Utils.ColorPicker;
-    using Font = System.Drawing.Font;
 
     internal class Draven : ChampionPlugin
     {
@@ -113,7 +111,15 @@ namespace Marksman_Master.Plugins.Draven
             ColorPicker[0] = new ColorPicker("DravenE", new ColorBGRA(114, 171, 160, 255));
             ColorPicker[1] = new ColorPicker("DravenCatchRange", new ColorBGRA(231, 237, 160, 255));
 
-            Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
+            Text = new Text(string.Empty, new SharpDX.Direct3D9.FontDescription
+            {
+                FaceName = "Verdana",
+                Weight = SharpDX.Direct3D9.FontWeight.Regular,
+                Quality = SharpDX.Direct3D9.FontQuality.NonAntialiased,
+                OutputPrecision = SharpDX.Direct3D9.FontPrecision.String,
+                Height = 31,
+                MipLevels = 1
+            });
 
             ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
             ChampionTracker.OnPostBasicAttack += (sender, args) =>
@@ -426,11 +432,13 @@ namespace Marksman_Master.Plugins.Draven
                     .OrderByDescending(x => x.EndTime)
                     .FirstOrDefault();
 
-            if (buff != null)
+            if (buff == null)
+                return;
+
             {
                 var timeLeft = Math.Max(0, buff.EndTime - Game.Time);
-                Text.Color = new Misc.HsvColor(111, 1, 1).ColorFromHsv();
-                Text.Position = Drawing.WorldToScreen(Player.Instance.Position - 50);
+                Text.Color = new Misc.HsvColor(169, 0.96, 0.78).ColorFromHsv();
+                Text.Position = Drawing.WorldToScreen(new Vector3(Player.Instance.Position.X + 50, Player.Instance.Position.Y, Player.Instance.Position.Z));
                 Text.TextValue = $"Q remaining time : {timeLeft.ToString("F1")} s";
                 Text.Draw();
             }

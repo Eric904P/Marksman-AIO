@@ -39,15 +39,27 @@ namespace Marksman_Master.Plugins.Vayne.Modes
         {
             if (!E.IsReady() || !Settings.Combo.UseE || Player.Instance.IsRecalling() || (Settings.Misc.EMode != 0))
                 return;
-            
-            foreach (
-                var enemy in
-                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                        x => x.IsValidTargetCached(E.Range) && WillEStun(x))
-                        .OrderByDescending(TargetSelector.GetPriority))
+
+            // ReSharper disable once SwitchStatementMissingSomeCases
+            switch (Settings.Misc.ETargeting)
             {
-                E.Cast(enemy);
-                return;
+                case 0:
+                    var target = TargetSelector.GetTarget(E.Range, DamageType.Physical);
+
+                    if ((target != null) && WillEStun(target))
+                    {
+                        E.Cast(target);
+                    }
+                    break;
+                case 1:
+                    foreach (var enemy in
+                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                            x => x.IsValidTargetCached(E.Range) && WillEStun(x))
+                            .OrderByDescending(TargetSelector.GetPriority))
+                    {
+                        E.Cast(enemy);
+                    }
+                    break;
             }
         }
     }

@@ -27,25 +27,29 @@
 // ---------------------------------------------------------------------
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using EloBuddy;
-using EloBuddy.SDK;
-using EloBuddy.SDK.Enumerations;
-using EloBuddy.SDK.Menu;
-using EloBuddy.SDK.Menu.Values;
-using EloBuddy.SDK.Rendering;
-using Marksman_Master.Cache.Modules;
-using Marksman_Master.PermaShow.Values;
-using Marksman_Master.Utils;
-using SharpDX;
-using Color = SharpDX.Color;
-using Text = EloBuddy.SDK.Rendering.Text;
-
 namespace Marksman_Master.Plugins.Vayne
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Drawing;
+    using System.Linq;
+
+    using EloBuddy;
+    using EloBuddy.SDK;
+    using EloBuddy.SDK.Enumerations;
+    using EloBuddy.SDK.Menu;
+    using EloBuddy.SDK.Menu.Values;
+    using EloBuddy.SDK.Rendering;
+
+    using SharpDX;
+
+    using Cache.Modules;
+    using PermaShow.Values;
+    using Utils;
+
+    using Color = SharpDX.Color;
+    using Text = EloBuddy.SDK.Rendering.Text;
+
     internal class Vayne : ChampionPlugin
     {
         protected static Spell.Skillshot Q { get; }
@@ -62,35 +66,17 @@ namespace Marksman_Master.Plugins.Vayne
         private BoolItem DontAa { get; set; }
         private BoolItem SafetyChecks { get; set; }
 
-        protected static BuffInstance GetTumbleBuff
-            =>
-                Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynetumble"));
+        protected static BuffInstance GetTumbleBuff => Player.Instance.Buffs.FirstOrDefault(b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynetumble"));
 
-        protected static bool HasTumbleBuff
-            =>
-                Player.Instance.Buffs.Any(
-                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynetumble"));
+        protected static bool HasTumbleBuff => Player.Instance.Buffs.Any(b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynetumble"));
 
-        protected static bool HasSilverDebuff(Obj_AI_Base unit)
-            =>
-                unit.Buffs.Any(
-                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff"));
+        protected static bool HasSilverDebuff(Obj_AI_Base unit) => unit.Buffs.Any(b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff"));
 
-        protected static BuffInstance GetSilverDebuff(Obj_AI_Base unit)
-            =>
-                unit.Buffs.FirstOrDefault(
-                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff"));
+        protected static BuffInstance GetSilverDebuff(Obj_AI_Base unit) => unit.Buffs.FirstOrDefault(b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vaynesilverdebuff"));
 
-        protected static bool HasInquisitionBuff
-            =>
-                Player.Instance.Buffs.Any(
-                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vayneinquisition"));
+        protected static bool HasInquisitionBuff => Player.Instance.Buffs.Any(b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vayneinquisition"));
 
-        protected static BuffInstance GetInquisitionBuff
-            =>
-                Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vayneinquisition"));
+        protected static BuffInstance GetInquisitionBuff => Player.Instance.Buffs.FirstOrDefault(b => b.IsActive && (b.DisplayName.ToLowerInvariant() == "vayneinquisition"));
 
         private static bool _changingRangeScan;
         private static float _lastQCastTime;
@@ -111,6 +97,20 @@ namespace Marksman_Master.Plugins.Vayne
         protected static float LastQ { get; set; }
 
         protected static bool HasAnyOrbwalkerFlags => (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
+        
+        protected static bool IsOnSideToPlayer(Vector3 point) => 
+            Math.Abs((Player.Instance.GetPathingDirection() - Player.Instance.Position).Normalized().To2D().DotProduct((point - Player.Instance.Position).Normalized().To2D())) < 0.55;
+
+        protected static bool IsAheadOfPlayer(Vector3 point) =>
+            (Player.Instance.GetPathingDirection() - Player.Instance.Position).Normalized().To2D().DotProduct((point - Player.Instance.Position).Normalized().To2D()) > 0.55;
+
+        protected static bool IsBehindPlayer(Vector3 point) =>
+            (Player.Instance.GetPathingDirection() - Player.Instance.Position).Normalized().To2D().DotProduct((point - Player.Instance.Position).Normalized().To2D()) < -0.55;
+
+        protected static int CondemnCastTime => 250;
+        protected static int CondemnMissileSpeed => 3000;
+
+        protected static float Condemn_ETA(Obj_AI_Base unit, Vector3 checkFrom) => unit.DistanceCached(checkFrom) / CondemnMissileSpeed * 1000 + CondemnCastTime;
 
         static Vayne()
         {
@@ -125,6 +125,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
             ChampionTracker.OnPostBasicAttack += ChampionTracker_OnPostBasicAttack;
+
             GameObject.OnCreate += Obj_AI_Base_OnCreate;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             Messages.OnMessage += Messages_OnMessage;
@@ -143,26 +144,56 @@ namespace Marksman_Master.Plugins.Vayne
 
             TargetedSpells.Initialize();
 
-            Obj_AI_Base.OnPlayAnimation += (sender, args) =>
+            Obj_AI_Base.OnSpellCast += (sender, args) =>
             {
-                if (!sender.IsMe || (args.Animation != "Spell1"))
-                    return;
+                if (sender.IsMe && (args.Slot == SpellSlot.Q))
+                {
+                    var target = Orbwalker.GetTarget();
 
-                Orbwalker.ResetAutoAttack();
+                    if (target == null)
+                        return;
 
-                var target = Orbwalker.GetTarget();
+                    Core.DelayAction(() => Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false), 20);
 
-                if(target == null)
-                    return;
-
-                Core.DelayAction(() => Player.ForceIssueOrder(GameObjectOrder.AttackUnit, target.Position, false), 80);
+                    Core.DelayAction(Orbwalker.ResetAutoAttack, 60);
+                }
             };
-
             Game.OnUpdate += args =>
             {
                 if ((LastQ > 0) && ((Core.GameTickCount - LastQ > 500) || (Orbwalker.GetTarget() == null)))
                     LastQ = 0;
             };
+        }
+
+        protected static bool IsValidDashDirection(Vector3 dashPosition)
+        {
+            if (Settings.Misc.QDirection == 0)
+                return true;
+
+            if ((Settings.Misc.QDirection == 1) && IsOnSideToPlayer(dashPosition))
+                return true;
+
+            return (Settings.Misc.QDirection == 2) && (IsAheadOfPlayer(dashPosition) || IsBehindPlayer(dashPosition));
+        }
+
+        private static void CastWardingItem(Vector3 position)
+        {
+            var trinket =
+                Player.Instance.InventoryItems.FirstOrDefault(
+                    x => (x.Name == "TrinketTotemLvl1") || (x.Name == "TrinketOrbLvl3"));
+
+            if ((trinket != null) && trinket.CanUseItem() && Player.Instance.IsInRange(position, trinket.Name == "TrinketTotemLvl1" ? 620 : 4000))
+            {
+                trinket.Cast(position);
+                return;
+            }
+            
+            var pinkWard = Player.Instance.InventoryItems.FirstOrDefault(x => x.Name == "VisionWard");
+
+            if ((pinkWard != null) && pinkWard.CanUseItem() && Player.Instance.IsInRange(position, 620))
+            {
+                pinkWard.Cast(position);
+            }
         }
 
         private static void Player_OnIssueOrder(Obj_AI_Base sender, PlayerIssueOrderEventArgs args)
@@ -407,13 +438,49 @@ namespace Marksman_Master.Plugins.Vayne
                 }
             }
 #endregion
+
+            if (E.IsReady() && sender.IsEnemy &&
+                args.SData.Name.Equals("summonerflash", StringComparison.CurrentCultureIgnoreCase) && Settings.Misc.EAntiFlash &&
+                (sender.Position.Extend(args.End,
+                    args.End.DistanceCached(sender) > 475 ? 475 : args.End.DistanceCached(sender))
+                    .Distance(Player.Instance) <= 500) && sender.IsValidTarget(E.Range))
+            {
+                E.Cast(sender);
+                return;
+            }
+
             if(!sender.IsMe)
                 return;
 
             if (args.Slot == SpellSlot.Q)
             {
                 LastQ = Core.GameTickCount;
-                Orbwalker.ResetAutoAttack();
+            }
+
+            if ((args.Slot == SpellSlot.E) && Settings.Misc.UseTrinket)
+            {
+                var heroClient = args.Target as AIHeroClient;
+
+                if (heroClient != null)
+                {
+                    for (var i = 100; i < 475 + 50; i += 50)
+                    {
+                        var endPosition = heroClient.Position.Extend(Player.Instance, -i);
+
+                        if (!endPosition.IsGrass())
+                            continue;
+
+                        Core.DelayAction(() =>
+                        {
+                            if (new Geometry.Polygon.Circle(Player.Instance.Position, 100, 50).Points.Any(x => x.IsGrass()))
+                                return;
+                            
+                            CastWardingItem(endPosition.To3D());
+                        }, (int)Condemn_ETA(heroClient, Player.Instance.Position));
+                        break;
+                    }
+
+                }
             }
 
             if ((args.Slot != SpellSlot.E) || (args.Target == null))
@@ -519,8 +586,7 @@ namespace Marksman_Master.Plugins.Vayne
         {
             IsPreAttack = true;
 
-            if (!HasInquisitionBuff || !Settings.Misc.NoAaWhileStealth ||
-                !(Game.Time*1000 - _lastQCastTime < Settings.Misc.NoAaDelay))
+            if (!HasInquisitionBuff || !Settings.Misc.NoAaWhileStealth || (Core.GameTickCount - _lastQCastTime > Settings.Misc.NoAaDelay))
                 return;
 
             var client = target as AIHeroClient;
@@ -579,20 +645,24 @@ namespace Marksman_Master.Plugins.Vayne
             Misc.PrintDebugMessage($"OnGapcloser | Champion : {sender.ChampionName} | SpellSlot : {args.SpellSlot}");
         }
 
-        protected static bool WillEStun(Obj_AI_Base target, Vector3 from = default(Vector3), int customHitchance = -1)
+        protected static bool WillEStun(Obj_AI_Base target, Vector3 from = default(Vector3), int customHitchance = -1, int customPushDistance = -1)
         {
-            if ((target == null) || !IsECastableOnEnemy(target))
+            if (target == null)
                 return false;
 
-            var hitchance = customHitchance > 0 ? customHitchance : (Settings.Misc.EHitchance > 80 ? 80 : Settings.Misc.EHitchance);
             var checkFrom = @from != default(Vector3) ? @from : Player.Instance.Position;
-            var pushDistance = Settings.Misc.PushDistance;
-            var eta = target.DistanceCached(checkFrom) / 1300;
-            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 250, 1300, int.MaxValue, checkFrom, true);
-            var predictedPosition = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000 + 250));
-            var position = predictedPosition.Shorten(target.Position.To2D(), target.BoundingRadius / 2);
 
-            if (target.GetMovementBlockedDebuffDuration() > eta + 0.25f)
+            if (!IsECastableOnEnemy(target, checkFrom))
+                return false;
+
+            var hitchance = customHitchance > 0 ? customHitchance : Settings.Misc.EHitchance;
+            var pushDistance = customPushDistance > 0 ? customPushDistance : Settings.Misc.PushDistance;
+            var eta = Condemn_ETA(target, checkFrom);
+            var predictedPosition = Prediction.Position.PredictUnitPosition(target, (int) eta);
+            var unitPosition = target.Position.To2D().Shorten(checkFrom.To2D(), -(target.BoundingRadius / 2));
+            var position = predictedPosition.Shorten(checkFrom.To2D(), -(target.BoundingRadius / 2));
+
+            if (target.GetMovementBlockedDebuffDuration() > eta )
             {
                 for (var i = 25; i < pushDistance + 50; i += 50)
                 {
@@ -603,75 +673,49 @@ namespace Marksman_Master.Plugins.Vayne
                 }
             }
 
-            if (prediction.HitChance < HitChance.High)
-                return false;
-
-            for (var i = 100; i < pushDistance + 50; i += 50)
+            if (Settings.Misc.EMethod == 2)
             {
-                var max = i > pushDistance ? pushDistance : i;
-                var vec = position.Extend(checkFrom, -max);
-                var tPos = target.ServerPosition.Extend(checkFrom, -max);
-                var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
-                var unitDir = tPos.Normalized();
-
-                Vector2[] vectors =
+                for (var i = pushDistance; i >= 100; i -= 100)
                 {
-                    tPos + 25*unitDir.Perpendicular()*unitDir,
-                    tPos - 25*unitDir.Perpendicular()*unitDir,
-                    tPos + 50*unitDir.Perpendicular()*unitDir,
-                    tPos - 50*unitDir.Perpendicular()*unitDir,
-                    tPos + 75*unitDir.Perpendicular()*unitDir,
-                    tPos - 75*unitDir.Perpendicular()*unitDir,
-                    tPos + target.BoundingRadius*unitDir.Perpendicular()*unitDir,
-                    tPos - target.BoundingRadius*unitDir.Perpendicular()*unitDir
-                };
+                    var vec = position.Extend(Player.Instance.ServerPosition, -i);
+                    var left = new Vector2[5];
+                    var right = new Vector2[5];
+                    var var = 18 * i / 100;
 
-                if (vec.IsWall() && (vectors.Count(x => x.IsWall())*12.5 >= hitchance) && tPos.IsWall() &&
-                    (polygon.Points.Count(x => x.IsWall()) >= hitchance))
-                {
-                    return true;
+                    for (var x = 0; x < 5; x++)
+                    {
+                        left[x] = position.Extend(vec + (position - vec).Normalized().Rotated((float)Math.Max(0, Math.PI / 180 * var)) * Math.Abs(i < 200 ? 50 : 45 * x), i);
+                        right[x] = position.Extend(vec + (position - vec).Normalized().Rotated((float)-Math.Max(0, Math.PI / 180 * var)) * Math.Abs(i < 200 ? 50 : 45 * x), i);
+                    }
+
+                    if (left.All(x => x.IsWall()) && right.All(x => x.IsWall()) && vec.IsWall())
+                    {
+                        return true;
+                    }
                 }
             }
-            return false;
-        }
-
-        public static bool FlashCondemnCheck(Obj_AI_Base target, Vector3 from = default(Vector3))
-        {
-            if (target == null)
-                return false;
-
-            var checkFrom = @from != default(Vector3) ? @from : Player.Instance.Position;
-            const int pushDistance = 440;
-            var prediction = Prediction.Position.PredictLinearMissile(target, E.Range, 40, 250, 1300, int.MaxValue, checkFrom, true);
-            var eta = target.DistanceCached(checkFrom) / 1300;
-            var predictedPosition = Prediction.Position.PredictUnitPosition(target, (int)(eta * 1000));
-            var position = predictedPosition.Shorten(target.Position.To2D(), target.BoundingRadius / 2);
-
-            if (prediction.HitChance < HitChance.High)
-                return false;
 
             for (var i = 100; i < pushDistance + 50; i += 50)
             {
                 var max = i > pushDistance ? pushDistance : i;
                 var vec = position.Extend(checkFrom, -max);
-                var tPos = target.ServerPosition.Extend(checkFrom, -max);
-                var polygon = new Geometry.Polygon.Circle(vec, target.BoundingRadius, 100);
-                var unitDir = tPos.Normalized();
+                var tPos = unitPosition.Extend(checkFrom, -max);
 
-                Vector2[] vectors =
+                if (Settings.Misc.EMethod == 1)
                 {
-                    tPos + 25*unitDir.Perpendicular()*unitDir,
-                    tPos - 25*unitDir.Perpendicular()*unitDir,
-                    tPos + 50*unitDir.Perpendicular()*unitDir,
-                    tPos - 50*unitDir.Perpendicular()*unitDir,
-                    tPos + 75*unitDir.Perpendicular()*unitDir,
-                    tPos - 75*unitDir.Perpendicular()*unitDir,
-                    tPos + target.BoundingRadius*unitDir.Perpendicular()*unitDir,
-                    tPos - target.BoundingRadius*unitDir.Perpendicular()*unitDir
-                };
+                    var direction = (tPos - unitPosition).Normalized().Perpendicular();
 
-                if (vec.IsWall() && (vectors.Count(x => x.IsWall()) * 12.5 >= 70) && tPos.IsWall() &&
-                    (polygon.Points.Count(x => x.IsWall()) >= 70))
+                    Vector2[] vectors =
+                    {
+                        vec - direction*(float) Misc.GetNumberInRangeFromProcent(hitchance, 10, target.BoundingRadius),
+                        vec + direction*(float) Misc.GetNumberInRangeFromProcent(hitchance, 10, target.BoundingRadius)
+                    };
+
+                    if(!vectors.All(x => x.IsWall()))
+                        continue;
+                }
+
+                if (vec.IsWall() && tPos.IsWall())
                 {
                     return true;
                 }
@@ -681,89 +725,116 @@ namespace Marksman_Master.Plugins.Vayne
 
         protected static void PerformFlashCondemn()
         {
-            if((Game.Time * 1000 - LastTick < 500) || !E.IsReady() || (/*!Q.IsReady() &&*/ !Flash.IsReady()))
+            if ((Core.GameTickCount - LastTick < 500) || !E.IsReady() || !Flash.IsReady())
                 return;
 
-            LastTick = Game.Time * 1000;
+            LastTick = Core.GameTickCount;
 
-            var target = (TargetSelector.SelectedTarget != null) &&
-                         TargetSelector.SelectedTarget.IsValidTargetCached(E.Range + 475)
+            var target = (TargetSelector.SelectedTarget != null) && TargetSelector.SelectedTarget.IsValidTargetCached(E.Range + 475)
                 ? TargetSelector.SelectedTarget
                 : TargetSelector.GetTarget(E.Range + 475, DamageType.Physical);
 
-            if ((target == null) || FlashCondemnCheck(target))
+            if ((target == null) || WillEStun(target))
                 return;
 
-            List<Vector2> points;
-
-            //if (Q.IsReady() && Player.Instance.IsInRangeCached(target, Q.Range))
-            //{
-            //    if (FlashCondemnCheck(target, Player.Instance.Position.Extend(Game.CursorPos, 300).To3D()))
-            //    {
-            //        Q.Cast(Player.Instance.Position.Extend(Game.CursorPos, 285).To3D());
-            //        return;
-            //    }
-
-            //    points = new Geometry.Polygon.Circle(Player.Instance.Position, 300, 30).Points.Where(
-            //            x => !x.To3D().IsVectorUnderEnemyTower() && FlashCondemnCheck(target, x.To3D())).ToList();
-
-            //    var position = points.FirstOrDefault();
-
-            //    if (position != default(Vector2))
-            //    {
-            //        Q.Cast(Player.Instance.Position.Extend(position, 285).To3D());
-
-            //        return;
-            //    }
-            //}
-
-            if (Flash.IsReady())
+            if (WillEStun(target, Player.Instance.Position.Extend(Game.CursorPos, 450).To3D(), 100, 440))
             {
-                if (FlashCondemnCheck(target, Player.Instance.Position.Extend(Game.CursorPos, 450).To3D()))
-                {
-                    E.Cast(target);
-                    FlashPosition = Player.Instance.Position.Extend(Game.CursorPos, 450).To3D();
-                    return;
-                }
+                E.Cast(target);
+                FlashPosition = Player.Instance.Position.Extend(Game.CursorPos, 450).To3D();
+                return;
+            }
 
-                points =
-                    SafeSpotFinder.PointsInRange(target.Position.To2D(), 500, 100)
-                        .Where(
-                            x =>
-                                !x.To3D().IsVectorUnderEnemyTower() && (x.Distance(Player.Instance) < 475) &&
-                                (x.Distance(target) > 150) && FlashCondemnCheck(target, x.To3D()))
-                        .ToList();
+            var points = SafeSpotFinder.PointsInRange(target.Position.To2D(), 500, 100)
+                .Where(x => !x.To3D().IsVectorUnderEnemyTower() && (x.Distance(Player.Instance) < 475) && (x.Distance(target) > 150) && WillEStun(target, x.To3D(), 100, 440))
+                .ToList();
 
-                foreach (var vector2 in points)
-                {
-                    E.Cast(target);
-                    FlashPosition = vector2.To3D();
-
-                    break;
-                }
+            foreach (var vector2 in points)
+            {
+                E.Cast(target);
+                FlashPosition = vector2.To3D();
+                break;
             }
         }
 
-        protected static bool IsECastableOnEnemy(Obj_AI_Base unit)
+        protected static bool IsECastableOnEnemy(Obj_AI_Base unit, Vector3 checkFrom)
         {
-            return E.IsReady() && unit.IsValidTargetCached(E.Range) && !IsPreAttack && !unit.IsZombie &&
-                   !unit.HasBuffOfType(BuffType.Invulnerability) && !unit.HasBuffOfType(BuffType.SpellImmunity) &&
-                   !unit.HasBuffOfType(BuffType.SpellShield);
+            return E.IsReady() && unit.IsValidTargetCached() && Player.Instance.IsInRangeCached(unit, E.Range) && !IsPreAttack && !unit.IsZombie && !unit.HasSpellShield();
+        }
+        
+        protected static IEnumerable<AIHeroClient> EnemiesInDirectionOfTheDash(Vector3 dashEndPosition, float maxRangeToEnemy)
+        {
+            return
+                from enemy in
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(maxRangeToEnemy))
+
+                let dotProduct = (dashEndPosition - Player.Instance.Position).Normalized()
+                    .To2D()
+                    .DotProduct(enemy.Position.To2D().Normalized())
+
+                where dotProduct >= .65
+                select enemy;
         }
 
         protected override void OnDraw()
         {
+            if (MenuManager.IsDebugEnabled)
+            {
+                foreach (var xd in SafeSpotFinder.PointsInRange(Player.Instance.Position.To2D(), 300, 300).Where(x => IsValidDashDirection(x.To3D())))
+                {
+                    Circle.Draw(Color.GreenYellow, 5, xd.To3D());
+
+                }
+
+                var t = ObjectManager.Get<Obj_AI_Base>().FirstOrDefault(x => !x.IsMe && x.IsValidTarget(E.Range));
+
+                if (t != null)
+                {
+                    for (var i = 100; i < Settings.Misc.PushDistance + 50; i += 50)
+                    {
+                        var max = i > Settings.Misc.PushDistance ? Settings.Misc.PushDistance : i;
+                        var unitPosition = t.Position.To2D().Shorten(Player.Instance.Position.To2D(), -(t.BoundingRadius/2));
+                        var position = Prediction.Position.PredictUnitPosition(t, (int)Condemn_ETA(t, Player.Instance.Position)).Shorten(Player.Instance.Position.To2D(), -(t.BoundingRadius / 2));
+                        var tPos = position.Extend(Player.Instance.Position.To2D(), -max);
+                        var direction = (tPos - unitPosition).Normalized().Perpendicular();
+
+                        Vector2[] vectors =
+                        {
+                            tPos -
+                            direction*
+                            (float) Misc.GetNumberInRangeFromProcent(Settings.Misc.EHitchance, 10, t.BoundingRadius),
+                            tPos +
+                            direction*
+                            (float) Misc.GetNumberInRangeFromProcent(Settings.Misc.EHitchance, 10, t.BoundingRadius),
+
+                            position.Extend(Player.Instance.Position, -max)
+                        };
+
+                        foreach (var vector2 in vectors)
+                        {
+                            Circle.Draw(Color.GreenYellow, 5, vector2.To3D());
+                        }
+                    }
+                }
+            }
+
             if (_changingRangeScan)
                 Circle.Draw(Color.White,
                     LaneClearMenu["Plugins.Vayne.LaneClearMenu.ScanRange"].Cast<Slider>().CurrentValue, Player.Instance);
 
+            if ((FlashCondemnKeybind != null) && FlashCondemnKeybind.CurrentValue)
+            {
+                FlashCondemnText.Position = new Vector2(Drawing.Width * 0.4f, Drawing.Height * 0.8f);
+                FlashCondemnText.Color = System.Drawing.Color.Red;
+                FlashCondemnText.TextValue = "FLASH CONDEMN IS ACTIVE !";
+                FlashCondemnText.Draw();
+            }
+
             if (!Settings.Drawings.DrawInfo)
                 return;
 
-            foreach (
-                var source in
+            foreach (var source in 
                     StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
-                        x => x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen() && HasSilverDebuff(x)))
+                        x => HasSilverDebuff(x) && x.IsVisible && x.IsHPBarRendered && x.Position.IsOnScreen()))
             {
                 var hpPosition = source.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 30; // tracker friendly.
@@ -781,14 +852,6 @@ namespace Marksman_Master.Plugins.Vayne
 
                 Drawing.DrawLine(hpPosition.X + endPos, hpPosition.Y, hpPosition.X, hpPosition.Y, 1, color);
             }
-
-            if (FlashCondemnKeybind.CurrentValue)
-            {
-                FlashCondemnText.Position = new Vector2(Drawing.Width * 0.4f, Drawing.Height*0.8f);
-                FlashCondemnText.Color = System.Drawing.Color.Red;
-                FlashCondemnText.TextValue = "FLASH CONDEMN IS ACTIVE !";
-                FlashCondemnText.Draw();
-            }
         }
 
         protected override void CreateMenu()
@@ -798,8 +861,18 @@ namespace Marksman_Master.Plugins.Vayne
 
             ComboMenu.AddLabel("Tumble (Q) settings :");
             ComboMenu.Add("Plugins.Vayne.ComboMenu.UseQ", new CheckBox("Use Q"));
+            ComboMenu.AddSeparator(5);
+
+            ComboMenu.Add("Plugins.Vayne.ComboMenu.TryToQE", new CheckBox("Try to Q => E"));
+            ComboMenu.AddLabel("Vanyne will try to use Q to set herself in position that will let you condemn the target.");
+            ComboMenu.AddSeparator(5);
+
             ComboMenu.Add("Plugins.Vayne.ComboMenu.UseQToPoke", new CheckBox("Use Q to poke"));
+            ComboMenu.AddSeparator(5);
+
             ComboMenu.Add("Plugins.Vayne.ComboMenu.UseQOnlyToProcW", new CheckBox("Use Q only to proc W stacks", false));
+            ComboMenu.AddSeparator(5);
+
             ComboMenu.Add("Plugins.Vayne.ComboMenu.BlockQsOutOfAARange", new CheckBox("Don't use Q if it leaves range of target", false));
             ComboMenu.AddSeparator(5);
 
@@ -877,16 +950,21 @@ namespace Marksman_Master.Plugins.Vayne
 
             MiscMenu.AddLabel("Additional Condemn (E) settings :");
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EAntiRengar", new CheckBox("Enable Anti-Rengar"));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.EAntiFlash", new CheckBox("Cast against flashes"));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.Eks", new CheckBox("Use E to killsteal"));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.UseTrinket", new CheckBox("Use trinket if end position is in bush"));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.PushDistance", new Slider("Push distance", 420, 400, 470));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EHitchance", new Slider("Condemn hitchance : {0}%", 65));
-            MiscMenu.AddLabel("More often condemn attempts the lower Hitchance option is.\nRecomended value : between 50 and 70.");
+            MiscMenu.AddLabel("More often condemn attempts the lower the Hitchance option is.");
             MiscMenu.AddSeparator(5);
             MiscMenu.Add("Plugins.Vayne.MiscMenu.EMode", new ComboBox("E Mode", 1, "Always", "Only in Combo"));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.EMethod", new ComboBox("E Method", 1, "Fast", "More Accurate", "Old method"));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.ETargeting", new ComboBox("E Targeting", 0, "Current Target", "All enemies"));
             MiscMenu.AddSeparator(5);
 
             MiscMenu.AddLabel("Additional Tumble (Q) settings :");
             MiscMenu.Add("Plugins.Vayne.MiscMenu.QMode", new ComboBox("Q Mode", 0, "CursorPos", "Auto"));
+            MiscMenu.Add("Plugins.Vayne.MiscMenu.QDirection", new ComboBox("Q Direction", 0, "Everywhere", "Only to side", "Only forward/backward"));
             MiscMenu.Add("Plugins.Vayne.MiscMenu.QSafetyChecks", new CheckBox("Enable safety checks")).OnValueChange +=
                 (sender, args) =>
                 {
@@ -949,6 +1027,9 @@ namespace Marksman_Master.Plugins.Vayne
             {
                 public static bool UseQ => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQ"];
 
+                // ReSharper disable once InconsistentNaming
+                public static bool TryToQE => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.TryToQE"]; 
+
                 public static bool UseQToPoke => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQToPoke"];
 
                 public static bool UseQOnlyToProcW => MenuManager.MenuValues["Plugins.Vayne.ComboMenu.UseQOnlyToProcW"];
@@ -992,6 +1073,10 @@ namespace Marksman_Master.Plugins.Vayne
 
                 public static bool EAntiRengar => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.EAntiRengar"];
 
+                public static bool EAntiFlash => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.EAntiFlash"];
+                
+                public static bool UseTrinket => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.UseTrinket"]; 
+
                 public static bool EKs => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.Eks"];
 
                 public static int PushDistance => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.PushDistance", true];
@@ -1005,11 +1090,31 @@ namespace Marksman_Master.Plugins.Vayne
                 public static int EMode => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.EMode", true];
 
                 /// <summary>
+                /// 0 - Fast
+                /// 1 - More Accurate
+                /// 2 - Old method
+                /// </summary>
+                public static int EMethod => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.EMethod", true];
+
+                /// <summary>
+                /// 0 - Current Target
+                /// 1 - All enemies
+                /// </summary>
+                public static int ETargeting => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.ETargeting", true];
+
+                /// <summary>
                 /// 0 - CursorPos
                 /// 1 - Auto
                 /// </summary>
                 public static int QMode => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.QMode", true];
 
+                /// <summary>
+                /// 0 - Everywhere
+                /// 1 - Only to side
+                /// 2 - Only forward/backward
+                /// </summary>
+                public static int QDirection => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.QDirection", true];
+                
                 public static bool QSafetyChecks => MenuManager.MenuValues["Plugins.Vayne.MiscMenu.QSafetyChecks"];
             }
 
@@ -1052,7 +1157,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             public static bool IsKillableFromSilverEAndAuto(Obj_AI_Base unit)
             {
-                if (!IsECastableOnEnemy(unit))
+                if (!IsECastableOnEnemy(unit, Player.Instance.Position))
                     return false;
 
                 if (MenuManager.IsCacheEnabled && IsKillableFromSilverEAndAutoCache.Exist(unit.NetworkId))

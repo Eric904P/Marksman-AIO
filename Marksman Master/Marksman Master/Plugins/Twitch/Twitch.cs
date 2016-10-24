@@ -65,6 +65,9 @@ namespace Marksman_Master.Plugins.Twitch
         protected static BuffInstance GetDeadlyVenomBuff(Obj_AI_Base unit) => unit.Buffs.FirstOrDefault(
             b => b.IsActive && b.DisplayName.Equals("twitchdeadlyvenom", StringComparison.CurrentCultureIgnoreCase));
 
+        protected static bool IsCastingR
+            => Player.Instance.Buffs.Any(b => b.IsActive && b.Name.Equals("twitchfullautomatic", StringComparison.CurrentCultureIgnoreCase));
+
         private static readonly Text Text;
 
         private static bool _changingRangeScan;
@@ -106,7 +109,7 @@ namespace Marksman_Master.Plugins.Twitch
 
         private static void Orbwalker_OnPostAttack(AttackableUnit target, EventArgs args)
         {
-            if (Q.IsReady() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Settings.Combo.UseQ && target?.GetType() == typeof (AIHeroClient) &&
+            if (Q.IsReady() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && Settings.Combo.UseQ && (target?.GetType() == typeof (AIHeroClient)) &&
                 target.IsValidTargetCached(Player.Instance.GetAutoAttackRange() - 100) &&
                 (Player.Instance.Mana >= 130 + (R.IsReady() ? 100 : 0)))
             {
@@ -116,7 +119,7 @@ namespace Marksman_Master.Plugins.Twitch
 
         private static void Game_OnNotify(GameNotifyEventArgs args)
         {
-            if (Q.IsReady() && Settings.Combo.UseQAfterKill && args.NetworkId == Player.Instance.NetworkId && args.EventId == GameEventId.OnChampionKill)
+            if (Q.IsReady() && Settings.Combo.UseQAfterKill && (args.NetworkId == Player.Instance.NetworkId) && (args.EventId == GameEventId.OnChampionKill))
             {
                 Core.DelayAction(() =>
                 {
@@ -142,7 +145,7 @@ namespace Marksman_Master.Plugins.Twitch
                 }
             }
 
-            if (args.Slot != SpellSlot.Recall || !Q.IsReady() || !Settings.Misc.StealthRecall || Player.Instance.IsInShopRange())
+            if ((args.Slot != SpellSlot.Recall) || !Q.IsReady() || !Settings.Misc.StealthRecall || Player.Instance.IsInShopRange())
                 return;
 
             Q.Cast();
@@ -154,7 +157,7 @@ namespace Marksman_Master.Plugins.Twitch
 
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
         {
-            if (R.IsReady() && Settings.Combo.UseR && target.GetType() == typeof(AIHeroClient))
+            if (R.IsReady() && Settings.Combo.UseR && (target.GetType() == typeof(AIHeroClient)))
             {
                 if (Player.Instance.CountEnemiesInRangeCached(1000) < Settings.Combo.RIfEnemiesHit)
                     return;
@@ -256,6 +259,7 @@ namespace Marksman_Master.Plugins.Twitch
 
             ComboMenu.AddLabel("Venom Cask (W) settings :");
             ComboMenu.Add("Plugins.Twitch.ComboMenu.UseW", new CheckBox("Use W"));
+            ComboMenu.Add("Plugins.Twitch.ComboMenu.BlockWIfRIsActive", new CheckBox("Don't use W if R is active"));
             ComboMenu.AddSeparator(5);
 
             ComboMenu.AddLabel("Contaminate (E) settings :");
@@ -483,9 +487,11 @@ namespace Marksman_Master.Plugins.Twitch
             {
                 public static bool UseQAfterKill => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseQAfterKill"];
 
-                public static bool UseQ => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseQ"]; 
+                public static bool UseQ => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseQ"];
 
                 public static bool UseW => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseW"];
+
+                public static bool BlockWIfRIsActive => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.BlockWIfRIsActive"]; 
 
                 public static bool UseE => MenuManager.MenuValues["Plugins.Twitch.ComboMenu.UseE"];
 
@@ -586,16 +592,16 @@ namespace Marksman_Master.Plugins.Twitch
                 
                 float damage = 0;
 
-                if (Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing] != null &&
+                if ((Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing] != null) &&
                     Activator.Activator.Items[ItemsEnum.BladeOfTheRuinedKing].ToItem().IsReady())
                 {
                     damage += Player.Instance.GetItemDamage(enemy, ItemId.Blade_of_the_Ruined_King);
                 }
 
-                if (Activator.Activator.Items[ItemsEnum.Cutlass] != null && Activator.Activator.Items[ItemsEnum.Cutlass].ToItem().IsReady())
+                if ((Activator.Activator.Items[ItemsEnum.Cutlass] != null) && Activator.Activator.Items[ItemsEnum.Cutlass].ToItem().IsReady())
                     damage += Player.Instance.GetItemDamage(enemy, ItemId.Bilgewater_Cutlass);
 
-                if (Activator.Activator.Items[ItemsEnum.Gunblade] != null && Activator.Activator.Items[ItemsEnum.Gunblade].ToItem().IsReady())
+                if ((Activator.Activator.Items[ItemsEnum.Gunblade] != null) && Activator.Activator.Items[ItemsEnum.Gunblade].ToItem().IsReady())
                     damage += Player.Instance.GetItemDamage(enemy, ItemId.Hextech_Gunblade);
 
                 if (E.IsReady())
@@ -613,7 +619,7 @@ namespace Marksman_Master.Plugins.Twitch
 
             public static bool CanCastEOnUnit(Obj_AI_Base target)
             {
-                if (target == null || !target.IsValidTargetCached(E.Range) || GetDeadlyVenomBuff(target) == null)
+                if ((target == null) || !target.IsValidTargetCached(E.Range) || (GetDeadlyVenomBuff(target) == null))
                     return false;
 
                 if (target.GetType() != typeof(AIHeroClient))
@@ -745,7 +751,7 @@ namespace Marksman_Master.Plugins.Twitch
                     return EStacks.Get(unit.NetworkId);
                 }
 
-                if (unit.IsDead || !unit.IsEnemy || unit.Type != GameObjectType.AIHeroClient && unit.Type != GameObjectType.obj_AI_Minion)
+                if (unit.IsDead || !unit.IsEnemy || ((unit.Type != GameObjectType.AIHeroClient) && (unit.Type != GameObjectType.obj_AI_Minion)))
                 {
                     return 0;
                 }
@@ -753,8 +759,8 @@ namespace Marksman_Master.Plugins.Twitch
                 var index = (from i in ObjectManager.Get<Obj_GeneralParticleEmitter>()
                     where
                         i.Name.Contains("twitch_poison_counter") &&
-                        i.Position.DistanceCached(unit.ServerPosition) <=
-                        (unit.Type == GameObjectType.obj_AI_Minion ? 65 : 176.7768f)
+                        (i.Position.DistanceCached(unit.ServerPosition) <=
+                         (unit.Type == GameObjectType.obj_AI_Minion ? 65 : 176.7768f))
                     orderby i.DistanceCached(unit)
                     select i.Name).FirstOrDefault();
 

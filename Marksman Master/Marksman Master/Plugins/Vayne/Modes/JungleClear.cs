@@ -48,8 +48,8 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 "SRU_Crab"
             };
 
-            if (IsPostAttack && E.IsReady() && Settings.LaneClear.UseE &&
-                Player.Instance.ManaPercent >= Settings.LaneClear.MinMana)
+            if (IsPostAttack &&  E.IsReady() && Settings.LaneClear.UseE &&
+                (Player.Instance.ManaPercent >= Settings.LaneClear.MinMana))
             {
                 var entity =
                     jungleMinions.Find(
@@ -57,13 +57,13 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                             x.IsValidTargetCached(E.Range) &&
                             allowedMonsters.Any(name => string.Equals(name, x.BaseSkinName)) && WillEStun(x));
 
-                if (entity != null && (entity.Health > Player.Instance.GetAutoAttackDamageCached(entity) * 2))
+                if ((entity != null) && (entity.Health > Player.Instance.GetAutoAttackDamageCached(entity) * 2))
                 {
                     E.Cast(entity);
                 }
             }
 
-            if (!IsPostAttack || !Q.IsReady() || Orbwalker.LastTarget == null || !Settings.LaneClear.UseQToJungleClear || Player.Instance.ManaPercent < Settings.LaneClear.MinMana)
+            if (!IsPostAttack || !Q.IsReady() || (Orbwalker.LastTarget == null) || !Settings.LaneClear.UseQToJungleClear || (Player.Instance.ManaPercent < Settings.LaneClear.MinMana))
                 return;
 
             if (!Player.Instance.Position.Extend(Game.CursorPos, 299)

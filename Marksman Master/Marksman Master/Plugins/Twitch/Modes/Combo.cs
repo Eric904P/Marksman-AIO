@@ -38,7 +38,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
     {
         public static void Execute()
         {
-            if (R.IsReady() && Settings.Combo.UseR && Settings.Combo.RifTargetOutOfRange && !E.IsReady() && Player.Instance.Spellbook.GetSpell(SpellSlot.E).CooldownExpires - Game.Time > 2)
+            if (R.IsReady() && Settings.Combo.UseR && Settings.Combo.RifTargetOutOfRange && !E.IsReady() && (Player.Instance.Spellbook.GetSpell(SpellSlot.E).CooldownExpires - Game.Time > 2))
             {
                 var enemy = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).FirstOrDefault(x =>
                     !x.IsDead && x.IsValidTargetCached(850) &&
@@ -47,7 +47,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                      Player.Instance.CalculateDamageOnUnit(x, DamageType.Physical,
                          Player.Instance.TotalAttackDamage + Damage.RBonusAd[R.Level], false, true)*2));
 
-                if (enemy != null && enemy.IsValidTargetCached(750) && (enemy.Health > Damage.GetPassiveDamage(enemy)) &&
+                if ((enemy != null) && enemy.IsValidTargetCached(750) && (enemy.Health > Damage.GetPassiveDamage(enemy)) &&
                     Orbwalker.CanAutoAttack &&
                     (enemy.Health + Player.Instance.CalculateDamageOnUnit(enemy, DamageType.Physical,
                         Player.Instance.TotalAttackDamage + Damage.RBonusAd[R.Level], false, true) >
@@ -58,7 +58,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                 }
             }
 
-            if (W.IsReady() && Settings.Combo.UseW)
+            if (W.IsReady() && Settings.Combo.UseW && !(Settings.Combo.BlockWIfRIsActive && IsCastingR))
             {
                 var target = TargetSelector.GetTarget(W.Range, DamageType.Physical, Player.Instance.Position);
 
@@ -71,13 +71,14 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                     }
                 }
             }
+
             if (E.IsReady() && Settings.Combo.UseE)
             {
                 if (Settings.Combo.EMode == 0) // percentage
                 {
                     var enemyUnit = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).ToList().Find(unit => !unit.IsDead && unit.IsValidTargetCached(E.Range) && HasDeadlyVenomBuff(unit));
 
-                    if (enemyUnit != null && Damage.CanCastEOnUnit(enemyUnit))
+                    if ((enemyUnit != null) && Damage.CanCastEOnUnit(enemyUnit))
                     {
                         var percentDamage = Damage.GetEDamage(enemyUnit) / enemyUnit.TotalHealthWithShields() * 100;
                         if (percentDamage >= Settings.Combo.EAt)
@@ -91,7 +92,7 @@ namespace Marksman_Master.Plugins.Twitch.Modes
                 {
                     if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                             unit => !unit.IsZombie && unit.IsValidTargetCached(E.Range) && HasDeadlyVenomBuff(unit) &&
-                                Damage.CountEStacks(unit) >= Settings.Combo.EAt).Any())
+                                (Damage.CountEStacks(unit) >= Settings.Combo.EAt)).Any())
                     {
                         E.Cast();
                     }
