@@ -48,7 +48,7 @@ namespace Marksman_Master.Plugins.Vayne.Modes
                 "SRU_Crab"
             };
 
-            if (IsPostAttack &&  E.IsReady() && Settings.LaneClear.UseE &&
+            if (E.IsReady() && Settings.LaneClear.UseE &&
                 (Player.Instance.ManaPercent >= Settings.LaneClear.MinMana))
             {
                 var entity =

@@ -87,6 +87,7 @@ namespace Marksman_Master.Plugins.Vayne
         private static readonly Text FlashCondemnText;
 
         protected static bool IsPostAttack { get; private set; }
+        protected static bool IsPostAttackB { get; private set; }
         protected static bool IsPreAttack { get; private set; }
 
         protected static KeyBind FlashCondemnKeybind { get; set; }
@@ -96,8 +97,6 @@ namespace Marksman_Master.Plugins.Vayne
         protected static Vector3 FlashPosition { get; set; }
 
         protected static float LastTick { get; set; }
-
-        protected static float LastQ { get; set; }
 
         protected static bool HasAnyOrbwalkerFlags => (Orbwalker.ActiveModesFlags & (Orbwalker.ActiveModes.Combo | Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit | Orbwalker.ActiveModes.JungleClear | Orbwalker.ActiveModes.Flee)) != 0;
         
@@ -111,7 +110,7 @@ namespace Marksman_Master.Plugins.Vayne
             (Player.Instance.GetPathingDirection() - Player.Instance.Position).Normalized().To2D().DotProduct((point - Player.Instance.Position).Normalized().To2D()) < -0.55;
 
         protected static int CondemnCastTime => 250;
-        protected static int CondemnMissileSpeed => 3000;
+        protected static int CondemnMissileSpeed => 2200;
 
         protected static float Condemn_ETA(Obj_AI_Base unit, Vector3 checkFrom) => unit.DistanceCached(checkFrom) / CondemnMissileSpeed * 1000 + CondemnCastTime;
 
@@ -130,8 +129,7 @@ namespace Marksman_Master.Plugins.Vayne
             
             Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
             Orbwalker.OnPostAttack += (target, args) => IsPostAttack = true;
-            Spellbook.OnCastSpell += Spellbook_OnCastSpell;
-            Game.OnPostTick += args => IsPostAttack = false;
+            Game.OnPostTick += args => { IsPostAttack = false; IsPostAttackB = false; };
 
             ChampionTracker.Initialize(ChampionTrackerFlags.PostBasicAttackTracker);
             ChampionTracker.OnPostBasicAttack += ChampionTracker_OnPostBasicAttack;
@@ -139,9 +137,7 @@ namespace Marksman_Master.Plugins.Vayne
             GameObject.OnCreate += Obj_AI_Base_OnCreate;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             Messages.OnMessage += Messages_OnMessage;
-
-            Player.OnIssueOrder += Player_OnIssueOrder;
-
+            
             var flashSlot = Player.Instance.GetSpellSlotFromName("summonerflash");
 
             if ((flashSlot == SpellSlot.Summoner1) || (flashSlot == SpellSlot.Summoner2))
@@ -153,30 +149,27 @@ namespace Marksman_Master.Plugins.Vayne
             FlashCondemnText = new Text("", new Font("calibri", 25, FontStyle.Regular));
 
             CondemnEvade.Initialize();
-
-            Obj_AI_Base.OnPlayAnimation += (sender, args) =>
+            
+            Spellbook.OnStopCast += (sender, args) =>
             {
-                if(!sender.IsMe || (args.Animation != "Spell1") || !HasAnyOrbwalkerFlags)
+                if(!sender.IsMe || !args.DestroyMissile)
                     return;
 
-                Core.DelayAction(() => Player.ForceIssueOrder(GameObjectOrder.MoveTo, Game.CursorPos, false), 10);
-                Core.DelayAction(Orbwalker.ResetAutoAttack, 50);
-
-                var target = Orbwalker.GetTarget();
-
-                if (target == null)
-                    return;
-
-                Core.DelayAction(() => Player.ForceIssueOrder(GameObjectOrder.AttackUnit, target.Position, false), 65);
+                IsPreAttack = false;
             };
-
-            Game.OnUpdate += args =>
+            
+            Spellbook.OnCastSpell += (sender, args) =>
             {
-                if ((LastQ > 0) && ((Core.GameTickCount - LastQ > 500) || (Orbwalker.GetTarget() == null)))
-                    LastQ = 0;
+                if (!Settings.Misc.NoAaWhileStealth || !HasInquisitionBuff)
+                    return;
+
+                if ((args.Slot == SpellSlot.Q) && HasAnyOrbwalkerFlags)
+                {
+                    _lastQCastTime = Core.GameTickCount;
+                }
             };
         }
-
+        
         protected static bool IsValidDashDirection(Vector3 dashPosition)
         {
             if (Settings.Misc.QDirection == 0)
@@ -207,13 +200,7 @@ namespace Marksman_Master.Plugins.Vayne
                 pinkWard.Cast(position);
             }
         }
-
-        private static void Player_OnIssueOrder(Obj_AI_Base sender, PlayerIssueOrderEventArgs args)
-        {
-            if ((LastQ > 0) && !IsPostAttack && HasAnyOrbwalkerFlags && (args.Order == GameObjectOrder.MoveTo))
-                args.Process = false;
-        }
-
+        
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
 #region Q
@@ -463,12 +450,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             if(!sender.IsMe)
                 return;
-
-            if (args.Slot == SpellSlot.Q)
-            {
-                LastQ = Core.GameTickCount;
-            }
-
+            
             if ((args.Slot == SpellSlot.E) && Settings.Misc.UseTrinket)
             {
                 var heroClient = args.Target as AIHeroClient;
@@ -533,10 +515,8 @@ namespace Marksman_Master.Plugins.Vayne
             if ((e.Sender == null) || !e.Sender.IsMe)
                 return;
 
-            if (LastQ > 0)
-                LastQ = 0;
-
             IsPreAttack = false;
+            IsPostAttackB = true;
 
             if (((e.Target.Type == GameObjectType.obj_AI_Turret) ||
                  (e.Target.Type == GameObjectType.obj_BarracksDampener) || (e.Target.Type == GameObjectType.obj_HQ)) && Q.IsReady() && Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) && Settings.LaneClear.UseQToLaneClear)
@@ -573,18 +553,7 @@ namespace Marksman_Master.Plugins.Vayne
 
             Misc.PrintInfoMessage($"Casting <b><blue>condemn</blue></b> to execute <c>{enemy.Hero}</c>");
         }
-
-        private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
-        {
-            if (!Settings.Misc.NoAaWhileStealth || !HasInquisitionBuff)
-                return;
-
-            if ((args.Slot == SpellSlot.Q) && HasAnyOrbwalkerFlags)
-            {
-                _lastQCastTime = Core.GameTickCount;
-            }
-        }
-
+        
         private static void Obj_AI_Base_OnCreate(GameObject sender, EventArgs args)
         {
             if ((sender == null) || !StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.Hero == Champion.Rengar).Any())
