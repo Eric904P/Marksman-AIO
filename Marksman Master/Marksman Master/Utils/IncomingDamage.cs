@@ -26,6 +26,7 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,20 +57,20 @@ namespace Marksman_Master.Utils
             if (Player.Instance.IsDead)
                 return;
 
-            if (e.Sender == null || e.Target == null)
+            if ((e.Sender == null) || (e.Target == null))
                 return;
 
             var heroSender = e.Sender;
             var target = e.Target as AIHeroClient;
 
-            if (heroSender == null || target == null || Champions.All(x => target.NetworkId != x) || target.Team == heroSender.Team)
+            if ((heroSender == null) || (target == null) || Champions.All(x => target.NetworkId != x) || (target.Team == heroSender.Team))
                 return;
 
             IncomingDamages.Add(new IncomingDamageArgs
             {
                 Sender = heroSender,
                 Target = target,
-                Tick = (int) Game.Time*1000,
+                Tick = Core.GameTickCount,
                 Damage = heroSender.GetAutoAttackDamageCached(target, true),
                 IsTargetted = true
             });
@@ -77,8 +78,8 @@ namespace Marksman_Master.Utils
 
         private static void Obj_AI_Base_OnDamage(AttackableUnit sender, AttackableUnitDamageEventArgs args)
         {
-            IncomingDamages.RemoveAll(x => x.Sender.NetworkId == args.Source.NetworkId &&
-                                           x.Target.NetworkId == args.Target.NetworkId);
+            IncomingDamages.RemoveAll(x => (x.Sender.NetworkId == args.Source.NetworkId) &&
+                                           (x.Target.NetworkId == args.Target.NetworkId));
         }
 
         private static void Obj_AI_Base_OnBasicAttack(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
@@ -89,7 +90,7 @@ namespace Marksman_Master.Utils
             var turret = sender as Obj_AI_Turret;
             var target = args.Target as AIHeroClient;
 
-            if (turret == null || target == null || Champions.All(x => target.NetworkId != x) || target.Team == turret.Team)
+            if ((turret == null) || (target == null) || Champions.All(x => target.NetworkId != x) || (target.Team == turret.Team))
                 return;
 
             var damage = IsInhibitorOrNexusTurret(turret.BaseSkinName)
@@ -101,7 +102,7 @@ namespace Marksman_Master.Utils
                 Sender = turret,
                 Target = target,
                 IsTurretShot = true,
-                Tick = (int) Game.Time*1000,
+                Tick = Core.GameTickCount,
                 IsTargetted = false,
                 IsSkillShot = false,
                 Damage = damage
@@ -112,53 +113,57 @@ namespace Marksman_Master.Utils
         {
             if (Player.Instance.IsDead)
                 return;
-            
+
             var heroSender = sender as AIHeroClient;
             var target = args.Target as AIHeroClient;
 
-            if (heroSender != null && target != null && Champions.Exists(x => target.NetworkId == x) && target.Team != heroSender.Team)
+            if ((heroSender != null) && (target != null) && Champions.Exists(x => target.NetworkId == x) &&
+                !Equals(target.Team, heroSender.Team))
             {
                 IncomingDamages.Add(new IncomingDamageArgs
                 {
                     Sender = heroSender,
                     Target = target,
-                    Tick = (int) Game.Time*1000,
+                    Tick = Core.GameTickCount,
                     Damage = heroSender.GetSpellDamageCached(target, args.Slot),
                     IsTargetted = true
                 });
             }
-            if (heroSender == null || target != null)
+            if ((heroSender == null) || (target != null))
                 return;
 
-            if (args.SData.TargettingType == SpellDataTargetType.LocationAoe)
-            {
-                var polygon = new Geometry.Polygon.Circle(args.End, args.SData.CastRadius);
-                var polygon2 = new Geometry.Polygon.Circle(args.End, args.SData.CastRadiusSecondary);
+            if (args.SData.TargettingType != SpellDataTargetType.LocationAoe)
+                return;
 
-                foreach (
-                    var hero in
-                        EntityManager.Heroes.AllHeroes.Where(
-                            ally =>
-                                Champions.Exists(x => ally.NetworkId == x) && polygon.IsInside(ally) ||
-                                polygon2.IsInside(ally) && ally.Team != heroSender.Team))
+            var polygon = new Geometry.Polygon.Circle(args.End, args.SData.CastRadius);
+            var polygon2 = new Geometry.Polygon.Circle(args.End, args.SData.CastRadiusSecondary);
+
+            foreach (
+                var hero in
+                EntityManager.Heroes.AllHeroes.Where(
+                    ally =>
+                        (Champions.Exists(x => ally.NetworkId == x) && polygon.IsInside(ally)) ||
+                        (polygon2.IsInside(ally) && (ally.Team != heroSender.Team))))
+            {
+                IncomingDamages.Add(new IncomingDamageArgs
                 {
-                    IncomingDamages.Add(new IncomingDamageArgs
-                    {
-                        Sender = heroSender,
-                        Target = hero,
-                        IsSkillShot = true,
-                        Damage = heroSender.GetSpellDamageCached(hero, heroSender.GetSpellSlotFromName(args.SData.Name)),
-                        Tick = (int) Game.Time*1000,
-                        IsTargetted = false,
-                        IsTurretShot = false
-                    });
-                }
+                    Sender = heroSender,
+                    Target = hero,
+                    IsSkillShot = true,
+                    Damage = heroSender.GetSpellDamageCached(hero, heroSender.GetSpellSlotFromName(args.SData.Name)),
+                    Tick = Core.GameTickCount,
+                    IsTargetted = false,
+                    IsTurretShot = false
+                });
             }
         }
 
         public static float GetIncomingDamage(AIHeroClient hero)
         {
-            if (!Champions.Contains(hero.NetworkId))
+            if (Champions.Contains(hero.NetworkId))
+                return
+                    IncomingDamages.Where(x => x.Target.NetworkId.Equals(hero.NetworkId))
+                        .Sum(incomingDamageArgse => incomingDamageArgse.Damage);
             {
                 Champions.Add(hero.NetworkId);
                 Core.DelayAction(() => Champions.RemoveAll(x=> x == hero.NetworkId), 15000);
@@ -169,7 +174,7 @@ namespace Marksman_Master.Utils
 
         private static void Game_OnTick(EventArgs args)
         {
-            IncomingDamages.RemoveAll(x => Game.Time*1000 - x.Tick > 1250);
+            IncomingDamages.RemoveAll(x => Core.GameTickCount - x.Tick > 1250);
         }
 
         private class IncomingDamageArgs

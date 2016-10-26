@@ -64,7 +64,7 @@ namespace Marksman_Master.Utils
         };
 
         private static Dictionary<int, Vector3> PathingDirection { get; set; }
-        private static Dictionary<int, Vector3> LastPath { get; set; }
+        private static Dictionary<int, Vector3> LastPathDictionary { get; set; }
 
         public static ChampionTrackerFlags Flags { get; private set; }
 
@@ -101,7 +101,7 @@ namespace Marksman_Master.Utils
             if (Flags.HasFlag(ChampionTrackerFlags.PathingTracker))
             {
                 PathingDirection = new Dictionary<int, Vector3>();
-                LastPath = new Dictionary<int, Vector3>();
+                LastPathDictionary = new Dictionary<int, Vector3>();
 
                 Obj_AI_Base.OnNewPath += Obj_AI_Base_OnNewPath;
 
@@ -126,7 +126,7 @@ namespace Marksman_Master.Utils
                 return;
 
             PathingDirection[sender.NetworkId] = sender.ServerPosition.Extend(path, path.Distance(sender) + 100).To3D();
-            LastPath[sender.NetworkId] = path;
+            LastPathDictionary[sender.NetworkId] = path;
         }
 
         internal static Vector3 GetPathingDirection(int networkId)
@@ -136,7 +136,7 @@ namespace Marksman_Master.Utils
 
         internal static Vector3 GetLastPath(int networkId)
         {
-            return LastPath.ContainsKey(networkId) ? LastPath[networkId] : default(Vector3);
+            return LastPathDictionary.ContainsKey(networkId) ? LastPathDictionary[networkId] : default(Vector3);
         }
 
         private static void Obj_AI_Base_OnSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)

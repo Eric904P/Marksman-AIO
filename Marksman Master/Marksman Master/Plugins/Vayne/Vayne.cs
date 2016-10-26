@@ -157,7 +157,7 @@ namespace Marksman_Master.Plugins.Vayne
 
                 IsPreAttack = false;
             };
-            
+
             Spellbook.OnCastSpell += (sender, args) =>
             {
                 if (!Settings.Misc.NoAaWhileStealth || !HasInquisitionBuff)
@@ -169,7 +169,7 @@ namespace Marksman_Master.Plugins.Vayne
                 }
             };
         }
-        
+
         protected static bool IsValidDashDirection(Vector3 dashPosition)
         {
             if (Settings.Misc.QDirection == 0)
@@ -637,7 +637,7 @@ namespace Marksman_Master.Plugins.Vayne
             if (target == null)
                 return false;
 
-            var checkFrom = @from != default(Vector3) ? @from : Player.Instance.Position;
+            var checkFrom = from != default(Vector3) ? from : Player.Instance.Position;
 
             if (!IsECastableOnEnemy(target, checkFrom))
                 return false;

@@ -75,10 +75,6 @@ namespace Marksman_Master.Utils
                 Misc.PrintDebugMessage("saving token");
 
                 token = GetFileLinesNumber(path) != 0 ? JToken.ReadFrom(file) : null;
-                //foreach (var xd in token.First)
-                //{
-                //    Console.WriteLine("[DEBUG] " + xd);
-                //}
             }
             Misc.PrintDebugMessage("returning token");
             return token;

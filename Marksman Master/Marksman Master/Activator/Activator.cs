@@ -106,7 +106,7 @@ namespace Marksman_Master.Activator
             "SRU_RiftHerald", "SRU_Dragon_Fire", "SRU_Dragon_Earth", "SRU_Dragon_Air", "SRU_Dragon_Elder",
             "SRU_Dragon_Water", "SRU_Baron"
         };
-        
+
         public static void InitializeActivator() //TODO EXHAUST LOGICS such as zed ult etc
         {
             LoadSummoners();

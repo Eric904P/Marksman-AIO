@@ -208,17 +208,17 @@ namespace Marksman_Master.Utils
         internal static float GetSpellDamageCached(this AIHeroClient from, Obj_AI_Base target, SpellSlot spellSlot)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.GetSpellDamage(target, spellSlot);
+                return from.GetSpellDamage(target, spellSlot);
 
-            if (CachedSpellDamage.Exist(new Tuple<int, int, SpellSlot>(@from.NetworkId, target.NetworkId, spellSlot)))
+            if (CachedSpellDamage.Exist(new Tuple<int, int, SpellSlot>(from.NetworkId, target.NetworkId, spellSlot)))
             {
-                return CachedSpellDamage.Get(new Tuple<int, int, SpellSlot>(@from.NetworkId, target.NetworkId, spellSlot));
+                return CachedSpellDamage.Get(new Tuple<int, int, SpellSlot>(from.NetworkId, target.NetworkId, spellSlot));
             }
 
-            CachedSpellDamage.Add(new Tuple<int, int, SpellSlot>(@from.NetworkId, target.NetworkId, spellSlot),
-                @from.GetSpellDamage(target, spellSlot));
+            CachedSpellDamage.Add(new Tuple<int, int, SpellSlot>(from.NetworkId, target.NetworkId, spellSlot),
+                from.GetSpellDamage(target, spellSlot));
 
-            return CachedSpellDamage.Get(new Tuple<int, int, SpellSlot>(@from.NetworkId, target.NetworkId, spellSlot));
+            return CachedSpellDamage.Get(new Tuple<int, int, SpellSlot>(from.NetworkId, target.NetworkId, spellSlot));
         }
 
 
@@ -226,259 +226,259 @@ namespace Marksman_Master.Utils
             bool respectPassives = false)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.GetAutoAttackDamage(target, respectPassives);
+                return from.GetAutoAttackDamage(target, respectPassives);
 
             if (
-                CachedAutoAttackDamage.Exist(new Tuple<int, int, bool>(@from.NetworkId, target.NetworkId, respectPassives)))
+                CachedAutoAttackDamage.Exist(new Tuple<int, int, bool>(from.NetworkId, target.NetworkId, respectPassives)))
             {
                 return
-                    CachedAutoAttackDamage.Get(new Tuple<int, int, bool>(@from.NetworkId, target.NetworkId,
+                    CachedAutoAttackDamage.Get(new Tuple<int, int, bool>(from.NetworkId, target.NetworkId,
                         respectPassives));
             }
 
-            CachedAutoAttackDamage.Add(new Tuple<int, int, bool>(@from.NetworkId, target.NetworkId, respectPassives),
-                @from.GetAutoAttackDamage(target, respectPassives));
+            CachedAutoAttackDamage.Add(new Tuple<int, int, bool>(from.NetworkId, target.NetworkId, respectPassives),
+                from.GetAutoAttackDamage(target, respectPassives));
 
             return
-                CachedAutoAttackDamage.Get(new Tuple<int, int, bool>(@from.NetworkId, target.NetworkId, respectPassives));
+                CachedAutoAttackDamage.Get(new Tuple<int, int, bool>(from.NetworkId, target.NetworkId, respectPassives));
         }
 
         internal static int CountEnemiesInRangeCached(this GameObject from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.CountEnemiesInRange(range);
+                return from.CountEnemiesInRange(range);
 
-            if (CountEnemiesInRange.Exist(new KeyValuePair<int, float>(@from.NetworkId, range)))
+            if (CountEnemiesInRange.Exist(new KeyValuePair<int, float>(from.NetworkId, range)))
             {
-                return CountEnemiesInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
+                return CountEnemiesInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
             }
-            CountEnemiesInRange.Add(new KeyValuePair<int, float>(@from.NetworkId, range), @from.CountEnemiesInRange(range));
+            CountEnemiesInRange.Add(new KeyValuePair<int, float>(from.NetworkId, range), from.CountEnemiesInRange(range));
 
-            return CountEnemiesInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
+            return CountEnemiesInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
         }
 
         internal static int CountAlliesInRangeCached(this GameObject from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.CountAlliesInRange(range);
+                return from.CountAlliesInRange(range);
 
-            if (CountAlliesInRange.Exist(new KeyValuePair<int, float>(@from.NetworkId, range)))
+            if (CountAlliesInRange.Exist(new KeyValuePair<int, float>(from.NetworkId, range)))
             {
-                return CountAlliesInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
+                return CountAlliesInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
             }
 
-            CountAlliesInRange.Add(new KeyValuePair<int, float>(@from.NetworkId, range), @from.CountAlliesInRange(range));
+            CountAlliesInRange.Add(new KeyValuePair<int, float>(from.NetworkId, range), from.CountAlliesInRange(range));
 
-            return CountAlliesInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
+            return CountAlliesInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
         }
 
         internal static int CountEnemyMinionsInRangeCached(this GameObject from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.CountEnemyMinionsInRange(range);
+                return from.CountEnemyMinionsInRange(range);
 
-            if (CountEnemyMinionsInRange.Exist(new KeyValuePair<int, float>(@from.NetworkId, range)))
+            if (CountEnemyMinionsInRange.Exist(new KeyValuePair<int, float>(from.NetworkId, range)))
             {
-                return CountEnemyMinionsInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
+                return CountEnemyMinionsInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
             }
 
-            CountEnemyMinionsInRange.Add(new KeyValuePair<int, float>(@from.NetworkId, range),
-                @from.CountEnemyMinionsInRange(range));
+            CountEnemyMinionsInRange.Add(new KeyValuePair<int, float>(from.NetworkId, range),
+                from.CountEnemyMinionsInRange(range));
 
-            return CountEnemyMinionsInRange.Get(new KeyValuePair<int, float>(@from.NetworkId, range));
+            return CountEnemyMinionsInRange.Get(new KeyValuePair<int, float>(from.NetworkId, range));
         }
 
         internal static int CountEnemiesInRangeCached(this Vector3 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.CountEnemiesInRange(range);
+                return from.CountEnemiesInRange(range);
 
-            if (CountEnemiesInRange2.Exist(new KeyValuePair<Vector3, float>(@from, range)))
+            if (CountEnemiesInRange2.Exist(new KeyValuePair<Vector3, float>(from, range)))
             {
-                return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
+                return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
             }
 
-            CountEnemiesInRange2.Add(new KeyValuePair<Vector3, float>(@from, range), @from.CountEnemiesInRange(range));
+            CountEnemiesInRange2.Add(new KeyValuePair<Vector3, float>(from, range), from.CountEnemiesInRange(range));
 
-            return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
+            return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
         }
 
         internal static int CountAlliesInRangeCached(this Vector3 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.CountAlliesInRange(range);
+                return from.CountAlliesInRange(range);
 
-            if (CountAlliesInRange2.Exist(new KeyValuePair<Vector3, float>(@from, range)))
+            if (CountAlliesInRange2.Exist(new KeyValuePair<Vector3, float>(from, range)))
             {
-                return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
+                return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
             }
 
-            CountAlliesInRange2.Add(new KeyValuePair<Vector3, float>(@from, range), @from.CountAlliesInRange(range));
+            CountAlliesInRange2.Add(new KeyValuePair<Vector3, float>(from, range), from.CountAlliesInRange(range));
 
-            return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
+            return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
         }
 
         internal static int CountEnemyMinionsInRangeCached(this Vector3 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.CountEnemyMinionsInRange(range);
+                return from.CountEnemyMinionsInRange(range);
 
-            if (CountEnemyMinionsInRange2.Exist(new KeyValuePair<Vector3, float>(@from, range)))
+            if (CountEnemyMinionsInRange2.Exist(new KeyValuePair<Vector3, float>(from, range)))
             {
-                return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
+                return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
             }
 
-            CountEnemyMinionsInRange2.Add(new KeyValuePair<Vector3, float>(@from, range),
-                @from.CountEnemyMinionsInRange(range));
+            CountEnemyMinionsInRange2.Add(new KeyValuePair<Vector3, float>(from, range),
+                from.CountEnemyMinionsInRange(range));
 
-            return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(@from, range));
+            return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(from, range));
         }
 
 
         internal static int CountEnemiesInRangeCached(this Vector2 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.CountEnemiesInRange(range);
+                return from.CountEnemiesInRange(range);
 
-            if (CountEnemiesInRange2.Exist(new KeyValuePair<Vector3, float>(@from.To3D(), range)))
+            if (CountEnemiesInRange2.Exist(new KeyValuePair<Vector3, float>(from.To3D(), range)))
             {
-                return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
+                return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
             }
 
-            CountEnemiesInRange2.Add(new KeyValuePair<Vector3, float>(@from.To3D(), range),
-                @from.CountEnemiesInRange(range));
+            CountEnemiesInRange2.Add(new KeyValuePair<Vector3, float>(from.To3D(), range),
+                from.CountEnemiesInRange(range));
 
-            return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
+            return CountEnemiesInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
         }
 
         internal static int CountAlliesInRangeCached(this Vector2 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.CountAlliesInRange(range);
+                return from.CountAlliesInRange(range);
 
-            if (CountAlliesInRange2.Exist(new KeyValuePair<Vector3, float>(@from.To3D(), range)))
+            if (CountAlliesInRange2.Exist(new KeyValuePair<Vector3, float>(from.To3D(), range)))
             {
-                return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
+                return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
             }
 
-            CountAlliesInRange2.Add(new KeyValuePair<Vector3, float>(@from.To3D(), range), from.CountAlliesInRange(range));
+            CountAlliesInRange2.Add(new KeyValuePair<Vector3, float>(from.To3D(), range), from.CountAlliesInRange(range));
 
-            return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
+            return CountAlliesInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
         }
 
         internal static int CountEnemyMinionsInRangeCached(this Vector2 from, float range)
         {
             if (!MenuManager.IsCacheEnabled)
-                return @from.CountEnemyMinionsInRange(range);
+                return from.CountEnemyMinionsInRange(range);
 
-            if (CountEnemyMinionsInRange2.Exist(new KeyValuePair<Vector3, float>(@from.To3D(), range)))
+            if (CountEnemyMinionsInRange2.Exist(new KeyValuePair<Vector3, float>(from.To3D(), range)))
             {
-                return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
+                return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
             }
 
-            CountEnemyMinionsInRange2.Add(new KeyValuePair<Vector3, float>(@from.To3D(), range),
-                @from.CountEnemyMinionsInRange(range));
+            CountEnemyMinionsInRange2.Add(new KeyValuePair<Vector3, float>(from.To3D(), range),
+                from.CountEnemyMinionsInRange(range));
 
-            return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(@from.To3D(), range));
+            return CountEnemyMinionsInRange2.Get(new KeyValuePair<Vector3, float>(from.To3D(), range));
         }
 
         internal static bool IsInRangeCached(this Vector2 from, Vector2 target, float range)
         {
-            return @from.To3D().IsInRangeCached(target.To3D(), range);
+            return from.To3D().IsInRangeCached(target.To3D(), range);
         }
 
         internal static bool IsInRangeCached(this Vector2 from, Vector3 target, float range)
         {
-            return @from.To3D().IsInRangeCached(target, range);
+            return from.To3D().IsInRangeCached(target, range);
         }
 
         internal static bool IsInRangeCached(this Vector2 from, GameObject target, float range)
         {
-            return @from.To3D().IsInRangeCached(target.Position, range);
+            return from.To3D().IsInRangeCached(target.Position, range);
         }
 
         internal static bool IsInRangeCached(this Vector3 from, Vector3 target, float range)
         {
             return MenuManager.IsCacheEnabled
-                ? CachedIsInRange.Get(@from, target, range)
-                : @from.IsInRange(target, range);
+                ? CachedIsInRange.Get(from, target, range)
+                : from.IsInRange(target, range);
         }
 
         internal static bool IsInRangeCached(this Vector3 from, Vector2 target, float range)
         {
             return MenuManager.IsCacheEnabled
-                ? CachedIsInRange.Get(@from, target.To3D(), range)
-                : @from.IsInRange(target, range);
+                ? CachedIsInRange.Get(from, target.To3D(), range)
+                : from.IsInRange(target, range);
         }
 
         internal static bool IsInRangeCached(this Vector3 from, GameObject target, float range)
         {
             return MenuManager.IsCacheEnabled
-                ? CachedIsInRange.Get(@from, target.Position, range)
-                : @from.IsInRange(target, range);
+                ? CachedIsInRange.Get(from, target.Position, range)
+                : from.IsInRange(target, range);
         }
 
         internal static bool IsInRangeCached(this GameObject from, GameObject target, float range)
         {
             return MenuManager.IsCacheEnabled
-                ? CachedIsInRange.Get(@from, target, range)
-                : @from.IsInRange(target, range);
+                ? CachedIsInRange.Get(from, target, range)
+                : from.IsInRange(target, range);
         }
 
         internal static float DistanceCached(this Vector2 from, Vector3 target)
         {
-            return MenuManager.IsCacheEnabled ? CachedDistance.Get(@from.To3D(), target) : @from.Distance(target);
+            return MenuManager.IsCacheEnabled ? CachedDistance.Get(from.To3D(), target) : from.Distance(target);
         }
 
         internal static float DistanceCached(this Vector2 from, Vector2 target)
         {
-            return MenuManager.IsCacheEnabled ? CachedDistance.Get(@from.To3D(), target.To3D()) : @from.Distance(target);
+            return MenuManager.IsCacheEnabled ? CachedDistance.Get(from.To3D(), target.To3D()) : from.Distance(target);
         }
 
         internal static float DistanceCached(this Vector2 from, GameObject target)
         {
             return MenuManager.IsCacheEnabled
-                ? CachedDistance.Get(@from.To3D(), target.Position)
-                : @from.Distance(target);
+                ? CachedDistance.Get(from.To3D(), target.Position)
+                : from.Distance(target);
         }
 
         internal static float DistanceCached(this Vector3 from, Vector3 target)
         {
-            return MenuManager.IsCacheEnabled ? CachedDistance.Get(@from, target) : @from.Distance(target);
+            return MenuManager.IsCacheEnabled ? CachedDistance.Get(from, target) : from.Distance(target);
         }
 
         internal static float DistanceCached(this Vector3 from, Vector2 target)
         {
-            return MenuManager.IsCacheEnabled ? CachedDistance.Get(@from, target.To3D()) : @from.Distance(target);
+            return MenuManager.IsCacheEnabled ? CachedDistance.Get(from, target.To3D()) : from.Distance(target);
         }
 
         internal static float DistanceCached(this Vector3 from, GameObject target)
         {
-            return MenuManager.IsCacheEnabled ? CachedDistance.Get(@from, target.Position) : @from.Distance(target);
+            return MenuManager.IsCacheEnabled ? CachedDistance.Get(from, target.Position) : from.Distance(target);
         }
 
         internal static float DistanceCached(this GameObject from, GameObject target)
         {
-            return MenuManager.IsCacheEnabled ? CachedDistance.Get(@from, target) : @from.Distance(target);
+            return MenuManager.IsCacheEnabled ? CachedDistance.Get(from, target) : from.Distance(target);
         }
 
         internal static float DistanceCached(this GameObject from, Vector3 target)
         {
-            return MenuManager.IsCacheEnabled ? CachedDistance.Get(@from.Position, target) : @from.Distance(target);
+            return MenuManager.IsCacheEnabled ? CachedDistance.Get(from.Position, target) : from.Distance(target);
         }
 
         internal static float DistanceCached(this GameObject from, Vector2 target)
         {
             return MenuManager.IsCacheEnabled
-                ? CachedDistance.Get(@from.Position, target.To3D())
-                : @from.Distance(target);
+                ? CachedDistance.Get(from.Position, target.To3D())
+                : from.Distance(target);
         }
 
         internal static bool IsValidTargetCached(this AttackableUnit from, float? range = null)
         {
             return MenuManager.IsCacheEnabled
-                ? CachedIsValidTarget.Get(@from, range ?? 999999)
-                : @from.IsValidTarget(range);
+                ? CachedIsValidTarget.Get(from, range ?? 999999)
+                : from.IsValidTarget(range);
         }
     }
 }
