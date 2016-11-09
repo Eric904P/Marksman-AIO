@@ -118,6 +118,12 @@ namespace Marksman_Master.Plugins.Jinx
 
             ChampionTracker.Initialize(ChampionTrackerFlags.LongCastTimeTracker);
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
+
+            Spellbook.OnStopCast += (sender, args) =>
+            {
+                if (sender.IsMe && IsPreAttack)
+                    IsPreAttack = false;
+            };
         }
 
         private static void ChampionTracker_OnLongSpellCast(object sender, OnLongSpellCastEventArgs e)
@@ -158,8 +164,9 @@ namespace Marksman_Master.Plugins.Jinx
             if (_changingkeybindRange)
                 Circle.Draw(SharpDX.Color.White, Settings.Combo.RRangeKeybind, Player.Instance);
 
+
             if (Settings.Drawings.DrawRocketsRange)
-                Circle.Draw(ColorPicker[0].Color, Q.Range, Player.Instance);
+                Circle.Draw(HasRocketLauncher ? SharpDX.Color.AliceBlue.BGRAfromSharpDx() : ColorPicker[0].Color, HasRocketLauncher ? 625 : Q.Range, Player.Instance);
 
             if (Settings.Drawings.DrawW && (!Settings.Drawings.DrawSpellRangesWhenReady || W.IsReady()))
                 Circle.Draw(ColorPicker[1].Color, W.Range, Player.Instance);

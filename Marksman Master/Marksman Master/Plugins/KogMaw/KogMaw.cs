@@ -27,7 +27,6 @@
 // ---------------------------------------------------------------------
 #endregion
 using System;
-using System.Drawing;
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
@@ -50,6 +49,7 @@ namespace Marksman_Master.Plugins.KogMaw
         internal static Menu ComboMenu { get; set; }
         internal static Menu HarassMenu { get; set; }
         internal static Menu DrawingsMenu { get; set; }
+        internal static Menu FarmingMenu { get; set; }
 
         private static readonly ColorPicker[] ColorPicker;
         private static readonly Text Text;
@@ -62,22 +62,23 @@ namespace Marksman_Master.Plugins.KogMaw
 
         protected static BuffInstance GetKogMawWBuff
             =>
-                Player.Instance.Buffs.FirstOrDefault(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "kogmawbioarcanebarrage");
+                Player.Instance.Buffs.FirstOrDefault(b => b.IsActive && b.DisplayName.Equals("kogmawbioarcanebarrage", StringComparison.CurrentCultureIgnoreCase));
 
         protected static bool HasKogMawWBuff
             =>
-                Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.DisplayName.ToLowerInvariant() == "kogmawbioarcanebarrage");
+                Player.Instance.Buffs.Any(b => b.IsActive && b.DisplayName.Equals("kogmawbioarcanebarrage", StringComparison.CurrentCultureIgnoreCase));
 
         protected static BuffInstance GetKogMawRBuff
-            => Player.Instance.Buffs.FirstOrDefault(
-                b => b.IsActive && b.Name.ToLowerInvariant() == "kogmawlivingartillerycost");
+            => Player.Instance.Buffs.FirstOrDefault(b => b.IsActive && b.Name.Equals("kogmawlivingartillerycost", StringComparison.CurrentCultureIgnoreCase));
 
         protected static bool HasKogMawRBuff
             =>
-                Player.Instance.Buffs.Any(
-                    b => b.IsActive && b.Name.ToLowerInvariant() == "kogmawlivingartillerycost");
+                Player.Instance.Buffs.Any(b => b.IsActive && b.Name.Equals( "kogmawlivingartillerycost", StringComparison.CurrentCultureIgnoreCase));
+
+        protected static bool FarmMode
+            => (Orbwalker.ActiveModesFlags &
+                (Orbwalker.ActiveModes.Harass | Orbwalker.ActiveModes.LaneClear | Orbwalker.ActiveModes.LastHit |
+                 Orbwalker.ActiveModes.JungleClear)) != 0;
 
         static KogMaw()
         {
@@ -90,7 +91,7 @@ namespace Marksman_Master.Plugins.KogMaw
             {
                 AllowedCollisionCount = int.MaxValue
             };
-            R = new Spell.Skillshot(SpellSlot.R, 1800, SkillShotType.Circular, 1250, int.MaxValue, 230)
+            R = new Spell.Skillshot(SpellSlot.R, 1800, SkillShotType.Circular, 1100, int.MaxValue, 230)
             {
                 AllowedCollisionCount = int.MaxValue
             };
@@ -102,17 +103,33 @@ namespace Marksman_Master.Plugins.KogMaw
             ColorPicker[2] = new ColorPicker("KogMawE", new ColorBGRA(241, 188, 160, 255));
             ColorPicker[3] = new ColorPicker("KogMawR", new ColorBGRA(241, 188, 160, 255));
 
-            Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
+            Text = new Text(string.Empty,
+                new SharpDX.Direct3D9.FontDescription
+                {
+                    FaceName = "Verdana",
+                    Weight = SharpDX.Direct3D9.FontWeight.Regular,
+                    Quality = SharpDX.Direct3D9.FontQuality.NonAntialiased,
+                    OutputPrecision = SharpDX.Direct3D9.FontPrecision.String,
+                    Height = 19,
+                    MipLevels = 1
+                });
 
             Orbwalker.OnUnkillableMinion += Orbwalker_OnUnkillableMinion;
         }
 
         private static void Orbwalker_OnUnkillableMinion(Obj_AI_Base target, Orbwalker.UnkillableMinionArgs args)
         {
-            if (!Q.IsReady() || !(Player.Instance.Mana - 40 > 150) || !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear))
+            if (!Settings.Farm.UseQOnUnkillableMinion || !FarmMode || !Q.IsReady() || !(Player.Instance.Mana - 40 > 150))
+                return;
+
+            var predictedHealth = Prediction.Health.GetPrediction(target, (int) (Player.Instance.Distance(target) / Q.Speed * 1000) + Q.CastDelay);
+            var damage = Player.Instance.GetSpellDamageCached(target, SpellSlot.Q);
+
+            if((damage < predictedHealth) || (predictedHealth <= 0))
                 return;
 
             var qPrediction = Q.GetPrediction(target);
+
             if (qPrediction.HitChancePercent >= 70)
             {
                 Q.Cast(qPrediction.CastPosition);
@@ -138,18 +155,19 @@ namespace Marksman_Master.Plugins.KogMaw
                 var hpPosition = Player.Instance.HPBarPosition;
                 hpPosition.Y = hpPosition.Y + 18;
                 var timeLeft = GetKogMawWBuff.EndTime - Game.Time;
-                var endPos = timeLeft * 1000 / 92;
+                var endPos = timeLeft * 1000 / 95;
 
                 var degree = Misc.GetNumberInRangeFromProcent(timeLeft * 1000d / 8000d * 100d, 3, 110);
                 var color = new Misc.HsvColor(degree, 1, 1).ColorFromHsv();
 
-                Text.X = (int)(hpPosition.X + 45 + endPos);
-                Text.Y = (int)hpPosition.Y + 15; // + text size 
                 Text.Color = color;
                 Text.TextValue = timeLeft.ToString("F1");
+                Text.X = (int)(hpPosition.X + 45 + endPos);
+                Text.Y = (int)hpPosition.Y + 12; // + text size
                 Text.Draw();
-                
+
                 Drawing.DrawLine(hpPosition.X + 45 + endPos, hpPosition.Y, hpPosition.X + 45, hpPosition.Y, 1, color);
+                Drawing.DrawLine(hpPosition.X + 45 + endPos, hpPosition.Y, hpPosition.X + 45 + endPos, hpPosition.Y+8, 1, color);
             }
 
             foreach (var source in EntityManager.Heroes.Enemies.Where(x=> x.IsHPBarRendered && x.IsInRange(Player.Instance, R.Range)))
@@ -158,10 +176,10 @@ namespace Marksman_Master.Plugins.KogMaw
                 hpPosition.Y = hpPosition.Y + 30; // tracker friendly.
                 var percentDamage = Math.Min(100, Damage.GetRDamage(source) / source.TotalHealthWithShields(true) * 100);
 
-                Text.X = (int)(hpPosition.X - 50);
-                Text.Y = (int)source.HPBarPosition.Y;
                 Text.Color = new Misc.HsvColor(Misc.GetNumberInRangeFromProcent(percentDamage, 3, 110), 1, 1).ColorFromHsv();
-                Text.TextValue = percentDamage.ToString("F1");
+                Text.TextValue = percentDamage.ToString("F1") + "%";
+                Text.X = (int) (hpPosition.X - Text.Bounding.Width - 5);
+                Text.Y = (int)source.HPBarPosition.Y;
                 Text.Draw();
             }
         }
@@ -172,8 +190,8 @@ namespace Marksman_Master.Plugins.KogMaw
 
         protected override void OnGapcloser(AIHeroClient sender, GapCloserEventArgs args)
         {
-            if (E.IsReady() && Settings.Combo.UseEVsGapclosers && Player.Instance.ManaPercent > 30 &&
-                args.End.Distance(Player.Instance) < 350 && sender.IsValidTarget(E.Range))
+            if (E.IsReady() && Settings.Combo.UseEVsGapclosers && (Player.Instance.ManaPercent > 30) &&
+                (args.End.Distance(Player.Instance) < 350) && sender.IsValidTarget(E.Range))
             {
                 if (args.Delay == 0)
                     E.Cast(sender);
@@ -206,10 +224,10 @@ namespace Marksman_Master.Plugins.KogMaw
                 new Slider("R hitchance percent : {0}", 60));
             ComboMenu.Add("Plugins.KogMaw.ComboMenu.RAllowedStacks",
                 new Slider("Allowed stacks amount to use", 2, 0, 10));
-            ComboMenu.Add("Plugins.KogMaw.ComboMenu.RMaxHealth", new Slider("Minimum enemy health percent to cast R", 25));
+            ComboMenu.Add("Plugins.KogMaw.ComboMenu.RMaxHealth", new Slider("Minimum enemy health percent to cast R", 60));
             ComboMenu.AddSeparator(2);
             ComboMenu.AddLabel(
-                "Maximum health percent to cast R on target. If use R only to kill steal is selected this opction will\nbe ignored.");
+                "Minimum health percent to cast R on target. If use R only to kill steal is selected this opction will\nbe ignored.");
             ComboMenu.AddSeparator(5);
 
             HarassMenu = MenuManager.Menu.AddSubMenu("Harass");
@@ -235,6 +253,12 @@ namespace Marksman_Master.Plugins.KogMaw
             {
                 HarassMenu.Add("Plugins.KogMaw.HarassMenu.UseR."+ aiHeroClient.Hero, new CheckBox(aiHeroClient.Hero.ToString()));
             }
+
+            FarmingMenu = MenuManager.Menu.AddSubMenu("Farm");
+            FarmingMenu.AddGroupLabel("Farm settings for Kog'Maw addon");
+
+            FarmingMenu.AddLabel("Caustic Spittle (Q) settings :");
+            FarmingMenu.Add("Plugins.KogMaw.FarmingMenu.UseQOnUnkillableMinion", new CheckBox("Use Q on unkillable minion"));
 
             MenuManager.BuildAntiGapcloserMenu();
 
@@ -373,6 +397,11 @@ namespace Marksman_Master.Plugins.KogMaw
                 public static int RAllowedStacks => MenuManager.MenuValues["Plugins.KogMaw.HarassMenu.RAllowedStacks", true];
 
                 public static bool IsHarassEnabledFor(AIHeroClient unit) => MenuManager.MenuValues["Plugins.KogMaw.HarassMenu.UseR." + unit.Hero];
+            }
+
+            internal static class Farm
+            {
+                public static bool UseQOnUnkillableMinion => MenuManager.MenuValues["Plugins.KogMaw.FarmingMenu.UseQOnUnkillableMinion"];
             }
     
             internal static class Drawings

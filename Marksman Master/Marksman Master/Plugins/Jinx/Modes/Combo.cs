@@ -40,7 +40,10 @@ namespace Marksman_Master.Plugins.Jinx.Modes
         {
             if (Q.IsReady() && Settings.Combo.UseQ && !IsPreAttack)
             {
-                var target = TargetSelector.GetTarget(GetRealRocketLauncherRange(), DamageType.Physical);
+                var validTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                    x => !x.IsZombie && x.IsValidTargetCached(GetRealRocketLauncherRange()) && !x.HasUndyingBuffA());
+
+                var target = TargetSelector.GetTarget(validTargets, DamageType.Physical);
 
                 if (target != null)
                 {

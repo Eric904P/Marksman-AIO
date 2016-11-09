@@ -47,7 +47,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                             x =>
                                 x.IsValidTargetCached(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield() &&
                                 (x.TotalHealthWithShields() < Player.Instance.GetSpellDamageCached(x, SpellSlot.Q)) &&
-                                !(x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(x, true) && Player.Instance.IsInAutoAttackRange(x))))
+                                !((x.TotalHealthWithShields() < Player.Instance.GetAutoAttackDamageCached(x, true)) && Player.Instance.IsInAutoAttackRange(x))))
                 {
                     Q.CastMinimumHitchance(target, 60);
                     break;
@@ -61,10 +61,13 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     x =>
                         x.IsValidTargetCached(W.Range) && !x.HasSpellShield() &&
-                        x.GetMovementBlockedDebuffDuration() > 1.5f).ToList();
+                        (x.GetMovementBlockedDebuffDuration() > 1.5f)).ToList();
 
             foreach (var immobileEnemy in immobileEnemies)
             {
+                if (!IsValidWCast(immobileEnemy.ServerPosition, 200, 0))
+                    continue;
+
                 W.Cast(immobileEnemy.ServerPosition);
                 return;
             }
@@ -81,6 +84,9 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 foreach (var owner in ga.Select(objGeneralParticleEmitter => StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                     x => x.DistanceCached(objGeneralParticleEmitter) < 20).FirstOrDefault()).Where(owner => owner != null))
                 {
+                    if (!IsValidWCast(owner.ServerPosition, 200, 0))
+                        continue;
+
                     W.Cast(owner.ServerPosition);
                     break;
                 }
@@ -99,7 +105,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                         m => m.Name.Equals("zhonyasringshield", StringComparison.CurrentCultureIgnoreCase) ||
                              m.Name.Equals("bardrstasis", StringComparison.CurrentCultureIgnoreCase));
 
-                if (buffTime == null || (buffTime.EndTime - Game.Time < 1.25f))
+                if ((buffTime == null) || (buffTime.EndTime - Game.Time < 1.25f) || !IsValidWCast(enemy.ServerPosition, 200, 0))
                     continue;
 
                 W.Cast(enemy.ServerPosition);

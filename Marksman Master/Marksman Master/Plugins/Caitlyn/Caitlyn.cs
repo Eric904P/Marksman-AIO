@@ -78,6 +78,9 @@ namespace Marksman_Master.Plugins.Caitlyn
 
         protected static Cache.Cache Cache => StaticCacheProvider.Cache;
 
+        protected static bool IsValidWCast(Vector3 castPosition, float minRange = 200, int time = 2000)
+            => (!GetTrapsInRange(castPosition, minRange).Any() && (Core.GameTickCount - _lastWCastTime >= time));
+
         static Caitlyn()
         {
             Q = new Spell.Skillshot(SpellSlot.Q, 1300, SkillShotType.Linear, 625, 2200, 90)
@@ -115,6 +118,9 @@ namespace Marksman_Master.Plugins.Caitlyn
             Orbwalker.OnPostAttack += (sender, args) =>
             {
                 IsPreAttack = false;
+
+                if(Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
+                    Modes.Combo.Execute();
             };
 
             Orbwalker.OnPreAttack += (target, args) => IsPreAttack = true;
@@ -122,7 +128,6 @@ namespace Marksman_Master.Plugins.Caitlyn
             Text = new Text("", new Font("calibri", 15, FontStyle.Regular));
 
             ChampionTracker.OnLongSpellCast += ChampionTracker_OnLongSpellCast;
-            Spellbook.OnCastSpell += Spellbook_OnCastSpell;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
         }
 
@@ -146,24 +151,16 @@ namespace Marksman_Master.Plugins.Caitlyn
             }
         }
 
-        private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
-        {
-            if (args.Slot == SpellSlot.W && (GetTrapsInRange(args.EndPosition, 200).Any() || (Core.GameTickCount - _lastWCastTime < 2000)))
-            {
-                args.Process = false;
-            }
-        }
-
         private static void ChampionTracker_OnLongSpellCast(object sender, OnLongSpellCastEventArgs e)
         {
             if (!W.IsReady() || !Settings.Combo.UseWOnImmobile)
                 return;
 
-            if (e.IsTeleport && W.IsInRange(e.EndPosition))
+            if (e.IsTeleport && W.IsInRange(e.EndPosition) && IsValidWCast(e.EndPosition))
             {
                 W.Cast(e.EndPosition);
             }
-            else if(e.Sender.IsValidTarget(W.Range))
+            else if(e.Sender.IsValidTarget(W.Range) && IsValidWCast(e.Sender.ServerPosition))
             {
                 W.Cast(e.Sender.ServerPosition);
             }

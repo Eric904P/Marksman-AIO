@@ -42,13 +42,13 @@ namespace Marksman_Master.Plugins.Quinn.Modes
             {
                 var possibleTargets =
                     EntityManager.Heroes.Enemies.Where(
-                        x => x.IsValidTarget(Q.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+                        x => x.IsValidTarget(Q.Range) && !HasWBuff(x) && !x.HasUndyingBuffA() && !x.HasSpellShield());
 
                 Q.CastIfItWillHit();
 
                 var target = TargetSelector.GetTarget(possibleTargets, DamageType.Physical);
 
-                if (target != null && !HasWBuff(target) && !HasRBuff)
+                if ((target != null) && !HasRBuff)
                 {
                     Q.CastMinimumHitchance(target, HitChance.High);
                 }
@@ -58,7 +58,7 @@ namespace Marksman_Master.Plugins.Quinn.Modes
             {
                 if (EntityManager.Heroes.Enemies.Where(x => !x.IsDead && x.IsUserInvisibleFor(500)).Select(source =>
                     source.GetVisibilityTrackerData())
-                    .Any(data => data.LastHealthPercent < 30 && data.LastPosition.Distance(Player.Instance) < 2000))
+                    .Any(data => (data.LastHealthPercent < 30) && (data.LastPosition.Distance(Player.Instance) < 2000)))
                 {
                     W.Cast();
                 }
@@ -69,22 +69,22 @@ namespace Marksman_Master.Plugins.Quinn.Modes
 
             var possibleETargets =
                 EntityManager.Heroes.Enemies.Where(
-                    x => x.IsValidTarget(E.Range) && !x.HasUndyingBuffA() && !x.HasSpellShield());
+                    x => x.IsValidTarget(E.Range) && !HasWBuff(x) && !x.HasUndyingBuffA() && !x.HasSpellShield());
 
             var eTarget = TargetSelector.GetTarget(possibleETargets, DamageType.Physical);
 
             if (eTarget == null)
                 return;
 
-            if (eTarget.TotalHealthWithShields() < GetComboDamage(eTarget))
+            if ((eTarget.TotalHealthWithShields() < GetComboDamage(eTarget)) && (eTarget.CountEnemiesInRange(600) <= 2))
             {
                 E.Cast(eTarget);
             }
-            else if (!HasWBuff(eTarget) && IsAfterAttack)
+            else if (IsAfterAttack && (eTarget.CountEnemiesInRange(600) <= 1))
             {
                 E.Cast(eTarget);
             }
-            else if (HasRBuff && eTarget.CountEnemiesInRange(600) <= 2)
+            else if (HasRBuff && (eTarget.CountEnemiesInRange(600) <= 2))
             {
                 E.Cast(eTarget);
             }

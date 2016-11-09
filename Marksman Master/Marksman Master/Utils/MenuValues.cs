@@ -351,6 +351,8 @@ namespace Marksman_Master.Utils
                                     return Plugins.KogMaw.KogMaw.ComboMenu;
                                 case "HarassMenu":
                                     return Plugins.KogMaw.KogMaw.HarassMenu;
+                                case "FarmingMenu":
+                                    return Plugins.KogMaw.KogMaw.FarmingMenu;
                                 case "DrawingsMenu":
                                     return Plugins.KogMaw.KogMaw.DrawingsMenu;
                                 default:

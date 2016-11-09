@@ -44,8 +44,9 @@ namespace Marksman_Master.Plugins.Varus.Modes
             {
                 if(Q.IsReady() && !Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo) && StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x=>x.IsValidTargetCached(Q.Range)))
                 {
-                    foreach (var targ in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x=> x.IsValidTargetCached(Q.Range) &&
-                                (x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x))))
+                    foreach (var targ in StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero, x => x.IsValidTargetCached(Q.Range) &&
+                                                                                                           !x.HasUndyingBuffA() && !x.HasSpellShield() &&
+                                                                                                           (x.TotalHealthWithShields() <= Damage.GetQDamage(x) + Damage.GetWDamage(x))))
                     {
                         if (!Q.IsCharging)
                         {

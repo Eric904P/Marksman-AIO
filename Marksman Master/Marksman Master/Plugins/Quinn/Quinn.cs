@@ -69,12 +69,12 @@ namespace Marksman_Master.Plugins.Quinn
         protected static bool IsPreAttack { get; private set; }
 
         protected static bool HasWBuff(Obj_AI_Base unit)
-            => unit.Buffs.Any(x => x.IsActive && x.Name.ToLower() == "quinnw");
+            => unit.Buffs.Any(x => x.IsActive && (x.Name.ToLower() == "quinnw"));
 
         protected static BuffInstance GetWBuff(Obj_AI_Base unit)
-            => unit.Buffs.FirstOrDefault(x => x.IsActive && x.Name.ToLower() == "quinnw");
+            => unit.Buffs.FirstOrDefault(x => x.IsActive && (x.Name.ToLower() == "quinnw"));
 
-        protected static bool HasRBuff => Player.Instance.Buffs.Any(x => x.IsActive && x.Name.ToLower() == "quinnr");
+        protected static bool HasRBuff => Player.Instance.Buffs.Any(x => x.IsActive && (x.Name.ToLower() == "quinnr"));
 
         private static readonly Text Text;
 
@@ -109,6 +109,15 @@ namespace Marksman_Master.Plugins.Quinn
                 IsPreAttack = false;
             };
 
+            Obj_AI_Base.OnProcessSpellCast += (sender, args) =>
+            {
+                if (sender.IsMe && (args.Slot == SpellSlot.E))
+                {
+                    Orbwalker.ResetAutoAttack();
+                }
+
+            };
+
             Orbwalker.OnPreAttack += (target, args) => IsPreAttack = true;
             Game.OnPostTick += args => { IsAfterAttack = false; };
 
@@ -130,7 +139,7 @@ namespace Marksman_Master.Plugins.Quinn
         protected static float GetComboDamage(Obj_AI_Base unit)
         {
             if (Damages.ContainsKey(unit.NetworkId) &&
-                !Damages.Any(x => x.Key == unit.NetworkId && x.Value.Any(k => Game.Time * 1000 - k.Key > 200)))
+                !Damages.Any(x => (x.Key == unit.NetworkId) && x.Value.Any(k => Game.Time * 1000 - k.Key > 1000)))
                 return Damages[unit.NetworkId].Values.FirstOrDefault();
 
             var damage = 0f;

@@ -26,7 +26,6 @@
 // </summary>
 // ---------------------------------------------------------------------
 #endregion
-using System.Linq;
 using EloBuddy.SDK;
 using Marksman_Master.Utils;
 
@@ -36,21 +35,25 @@ namespace Marksman_Master.Plugins.KogMaw.Modes
     {
         public static void Execute()
         {
-            if (R.IsReady())
+            if (!R.IsReady())
+                return;
+
+            var possibleTargets = StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
+                x =>
+                    x.IsValidTarget(R.Range) &&
+                    (x.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(x) < Damage.GetRDamage(x)));
+
+            var target = TargetSelector.GetTarget(possibleTargets, EloBuddy.DamageType.Magical);
+
+            if (target == null)
+                return;
+
+            var rPrediction = R.GetPrediction(target);
+
+            if (((HasKogMawRBuff && (GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks + 1)) ||
+                 !HasKogMawRBuff) && (rPrediction.HitChancePercent >= Settings.Combo.RHitChancePercent))
             {
-                var enemy = EntityManager.Heroes.Enemies.Where(
-                    x => x.IsValidTarget(R.Range) && (x.TotalHealthWithShields() - IncomingDamage.GetIncomingDamage(x) < Damage.GetRDamage(x)))
-                    .OrderBy(TargetSelector.GetPriority).ThenByDescending(x=>R.GetPrediction(x).HitChancePercent).FirstOrDefault();
-
-                if (enemy != null)
-                {
-                    var rPrediction = R.GetPrediction(enemy);
-
-                    if (((HasKogMawRBuff && (GetKogMawRBuff.Count <= Settings.Combo.RAllowedStacks + 1)) || !HasKogMawRBuff) && (rPrediction.HitChancePercent >= Settings.Combo.RHitChancePercent))
-                    {
-                        R.Cast(rPrediction.CastPosition);
-                    }
-                }
+                R.Cast(rPrediction.CastPosition);
             }
         }
     }

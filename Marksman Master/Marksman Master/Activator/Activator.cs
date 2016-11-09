@@ -116,8 +116,8 @@ namespace Marksman_Master.Activator
             ActivatorMenu.Add("Activator.Enable", new CheckBox("Enable activator"));
             ScanForItems();
             InitializeMenu();
-            
-            Shop.OnBuyItem += Shop_OnBuyItem;
+
+            //Shop.OnBuyItem += Shop_OnBuyItem; //bug InvalidCastException being thrown in the core
             Shop.OnSellItem += Shop_OnSellItem;
             Game.OnTick += Game_OnTick;
             Obj_AI_Base.OnBuffGain += Obj_AI_Base_OnBuffGain;
@@ -480,11 +480,11 @@ namespace Marksman_Master.Activator
             }
         }
 
-        private static void Shop_OnBuyItem(AIHeroClient sender, ShopActionEventArgs args)
+        private static void Shop_OnBuyItem(Obj_AI_Base sender, ShopActionEventArgs args)
         {
             if (!MenuManager.MenuValues["Activator.Enable"])
                 return;
-            
+
             LoadItem(args.Id);
         }
 
@@ -498,9 +498,9 @@ namespace Marksman_Master.Activator
 
         private static void ScanForItems()
         {
-            _lastScanTick = (int) Game.Time*1000;
+            _lastScanTick = Core.GameTickCount;
 
-            if (Summoners.Any(x => x.Value != null && x.Value.Item1.HasFlag(Summoner.Smite)))
+            if (Summoners.Any(x => (x.Value != null) && x.Value.Item1.HasFlag(Summoner.Smite)))
             {
                 LoadSummoners();
             }

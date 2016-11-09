@@ -457,6 +457,18 @@ namespace Marksman_Master.Utils
             return System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
         }
 
+        // ReSharper disable once InconsistentNaming
+        public static Color SharpDxFromBGRA(this ColorBGRA color)
+        {
+            return color;
+        }
+
+        // ReSharper disable once InconsistentNaming
+        public static ColorBGRA BGRAfromSharpDx(this Color color)
+        {
+            return color;
+        }
+
         public static System.Drawing.Color ColorFromSharpDx(this Color color)
         {
             return System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);

@@ -32,7 +32,6 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
     using System.Linq;
     using EloBuddy;
     using EloBuddy.SDK;
-    using EloBuddy.SDK.Enumerations;
     using Utils;
 
     internal class Combo : Caitlyn
@@ -53,7 +52,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                                 .Select(target => E.GetPrediction(target))
                                 .Where(
                                     ePrediciton =>
-                                        ePrediciton.HitChancePercent >= Settings.Combo.EHitChancePercent &&
+                                        (ePrediciton.HitChancePercent >= Settings.Combo.EHitChancePercent) &&
                                         !GetDashEndPosition(ePrediciton.CastPosition).IsVectorUnderEnemyTower()))
                     {
                         E.Cast(ePrediciton.CastPosition);
@@ -71,7 +70,7 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 {
                     var ePrediciton = E.GetPrediction(eTarget);
 
-                    if (ePrediciton.HitChancePercent >= Settings.Combo.EHitChancePercent && !GetDashEndPosition(ePrediciton.CastPosition).IsVectorUnderEnemyTower())
+                    if ((ePrediciton.HitChancePercent >= Settings.Combo.EHitChancePercent) && !GetDashEndPosition(ePrediciton.CastPosition).IsVectorUnderEnemyTower())
                     {
                         var damage = Player.Instance.GetSpellDamageCached(eTarget, SpellSlot.E);
 
@@ -101,7 +100,13 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                        StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero,
                            x => x.IsValidTargetCached(700) && !x.HasUndyingBuffA() && !x.HasSpellShield() && !x.Position.IsVectorUnderEnemyTower());
 
-                if (StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero).Any(x => x.IsValidTargetCached() && x.IsMelee && (x.DistanceCached(Player.Instance) <= 500) && Player.Instance.IsInRangeCached(x, BasicAttackRange) && x.IsMovingTowards(Player.Instance, 400)))
+                if (
+                    StaticCacheProvider.GetChampions(CachedEntityType.EnemyHero)
+                        .Any(
+                            x =>
+                                x.IsValidTargetCached() && x.IsMelee && (x.DistanceCached(Player.Instance) <= 500) &&
+                                Player.Instance.IsInRangeCached(x, BasicAttackRange) &&
+                                x.IsMovingTowards(Player.Instance, 400)) && IsValidWCast(Player.Instance.ServerPosition))
                 {
                     W.Cast(Player.Instance.ServerPosition);
                     return;
@@ -113,9 +118,12 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                 {
                     var wPrediction = W.GetPrediction(wTarget);
 
-                    if (wPrediction.HitChancePercent >= Settings.Combo.WHitChancePercent && (wPrediction.CastPosition.DistanceCached(wTarget) > 50))
+                    if ((wPrediction.HitChancePercent >= Settings.Combo.WHitChancePercent) &&
+                        (wPrediction.CastPosition.DistanceCached(wTarget) > 50) &&
+                        IsValidWCast(wPrediction.CastPosition))
                     {
                         W.Cast(wPrediction.CastPosition);
+                        return;
                     }
                 }
             }
@@ -132,7 +140,13 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
 
                     if (qTarget != null)
                     {
-                        Q.CastMinimumHitchance(qTarget, HitChance.High);
+                        var hitchance = 80;
+
+                        if (((qTarget.HealthPercent <= 25) && (Player.Instance.ManaPercent >= 55)) || (Player.Instance.ManaPercent >= 85))
+                            hitchance = 65;
+
+                        if(Q.CastMinimumHitchance(qTarget, hitchance))
+                            return;
                     }
                 }
             }
@@ -165,8 +179,8 @@ namespace Marksman_Master.Plugins.Caitlyn.Modes
                     return;
 
                 if (
-                    Player.Instance.CountEnemyHeroesInRangeWithPrediction(
-                        (int) (Player.Instance.GetAutoAttackRange() + 100), 1200) == 0 && !IsPreAttack)
+                    (Player.Instance.CountEnemyHeroesInRangeWithPrediction(
+                         (int) (Player.Instance.GetAutoAttackRange() + 100), 1200) == 0) && !IsPreAttack)
                 {
                     R.Cast(rTarget);
                 }
