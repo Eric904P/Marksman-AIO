@@ -758,7 +758,7 @@ namespace Marksman_Master.Plugins.Twitch
                 
                 var index = (from i in ObjectManager.Get<Obj_GeneralParticleEmitter>()
                     where
-                        i.Name.Contains("twitch_poison_counter") &&
+                        i.Name.Contains("Twitch_Base_P_Stack") &&
                         (i.Position.DistanceCached(unit.ServerPosition) <=
                          (unit.Type == GameObjectType.obj_AI_Minion ? 65 : 176.7768f))
                     orderby i.DistanceCached(unit)
@@ -771,22 +771,22 @@ namespace Marksman_Master.Plugins.Twitch
 
                 switch (index)
                 {
-                    case "twitch_poison_counter_01.troy":
+                    case "Twitch_Base_P_Stack_01.troy":
                         stacks = 1;
                         break;
-                    case "twitch_poison_counter_02.troy":
+                    case "Twitch_Base_P_Stack_02.troy":
                         stacks = 2;
                         break;
-                    case "twitch_poison_counter_03.troy":
+                    case "Twitch_Base_P_Stack_03.troy":
                         stacks = 3;
                         break;
-                    case "twitch_poison_counter_04.troy":
+                    case "Twitch_Base_P_Stack_04.troy":
                         stacks = 4;
                         break;
-                    case "twitch_poison_counter_05.troy":
+                    case "Twitch_Base_P_Stack_05.troy":
                         stacks = 5;
                         break;
-                    case "twitch_poison_counter_06.troy":
+                    case "Twitch_Base_P_Stack_06.troy":
                         stacks = 6;
                         break;
                     default:
